@@ -1,0 +1,65 @@
+name: SLAS Scale Exec (Steps 1–5)
+
+on:
+  workflow_dispatch:
+    inputs:
+      org_id:
+        description: "Org UUID"
+        required: true
+      user_id:
+        description: "User UUID"
+        required: true
+      base_url:
+        description: "Stage Next.js base URL"
+        required: true
+
+jobs:
+  validate-stage:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v1.187.8/supabase_1.187.8_linux_amd64.deb -o supabase.deb
+          sudo dpkg -i supabase.deb
+          supabase -v
+
+      - name: Install Postgres client + jq
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client jq
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Run Stage Validation (Makefile)
+        run: |
+          make live ORG_ID="${{ github.event.inputs.org_id }}" USER_ID="${{ github.event.inputs.user_id }}" BASE_URL="${{ github.event.inputs.base_url }}"
+        shell: bash
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slas-exec-artifacts
+          path: |
+            pre_exec_schema.sql
+            loads.csv
+            /tmp/next-start.log
+          if-no-files-found: ignore
