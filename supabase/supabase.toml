@@ -1,0 +1,164 @@
+# Supabase configuration
+[functions.refresh-safety-summary]
+verify_jwt = false
+
+[functions.refresh-safety-summary.schedule]
+cron = "0 6 * * *" # Daily at 06:00 UTC
+
+[functions.hazards-kpi-aggregate]
+verify_jwt = false
+
+[functions.hazards-kpi-aggregate.schedule]
+cron = "20 5 * * *" # daily 05:20 UTC
+
+[functions.ingest-report]
+verify_jwt = true
+
+[functions.alerts-evaluate]
+verify_jwt = true
+
+[functions.feed-noaa]
+verify_jwt = false
+
+[functions.feed-noaa.schedule]
+cron = "*/5 * * * *"  # every 5 minutes
+
+[functions.hazards-ingest]
+verify_jwt = false
+
+[functions.kpi-aggregate-export]
+verify_jwt = false
+
+[functions.kpi-aggregate-export.schedule]
+cron = "5 6 * * *" # daily 06:05 UTC
+
+
+[functions.kpi-aggregate]
+verify_jwt = false
+
+[functions.kpi-aggregate.schedule]
+cron = "15 * * * *"
+
+[functions.insurer-export]
+verify_jwt = false
+
+# Supabase configuration
+[functions.refresh-safety-summary]
+verify_jwt = false
+
+[functions.refresh-safety-summary.schedule]
+cron = "0 6 * * *" # Daily at 06:00 UTC
+
+[functions.hazards-kpi-aggregate]
+verify_jwt = false
+
+[functions.hazards-kpi-aggregate.schedule]
+cron = "20 5 * * *" # daily 05:20 UTC
+
+[functions.ingest-report]
+verify_jwt = true
+
+[functions.alerts-evaluate]
+verify_jwt = true
+
+[functions.feed-noaa]
+verify_jwt = false
+
+[functions.feed-noaa.schedule]
+cron = "*/5 * * * *"  # every 5 minutes
+
+[functions.hazards-ingest]
+verify_jwt = false
+
+[functions.kpi-aggregate-export]
+verify_jwt = false
+
+[functions.kpi-aggregate-export.schedule]
+cron = "5 6 * * *" # daily 06:05 UTC
+
+
+[functions.kpi-aggregate]
+verify_jwt = false
+
+[functions.kpi-aggregate.schedule]
+cron = "15 * * * *"
+
+[functions.insurer-export]
+verify_jwt = false
+
+# New interpreter bootstrap function
+[functions.interpreter]
+verify_jwt = false
+
+# New hourly locale KPI aggregator
+[functions.aggregate-kpis]
+verify_jwt = false
+
+[functions.aggregate-kpis.schedule]
+cron = "0 * * * *" # hourly
+[functions.asr-transcribe]
+verify_jwt = false
+
+[functions.model-manifest]
+verify_jwt = false
+
+
+# Integrations ETL functions
+[functions.ifta-rollup]
+verify_jwt = false
+
+[functions.ifta-rollup.schedule]
+cron = "0 3 2 * *" # second day monthly
+
+[functions.dvir-to-work-order]
+verify_jwt = false
+
+[functions.dvir-to-work-order.schedule]
+cron = "*/30 * * * *" # every 30 minutes
+
+[functions.invoice-sync]
+verify_jwt = false
+
+[functions.invoice-sync.schedule]
+cron = "0 2 * * *" # daily 02:00 UTC
+
+
+[functions.webhook-handler]
+verify_jwt = false
+
+[functions.anomaly-guard]
+verify_jwt = false
+
+[functions.retention-job]
+verify_jwt = false
+
+[functions.retention-job.schedule]
+cron = "30 5 * * *" # daily 05:30 UTC
+
+[functions.etl-runner]
+verify_jwt = false
+
+[functions.etl-runner.schedule]
+cron = "*/5 * * * *"
+
+
+# Added by PWA/Onboarding setup
+[functions.validate-credentials]
+verify_jwt = true
+
+[functions.issue-install-license]
+verify_jwt = true
+
+
+[functions.webhook-retry]
+verify_jwt = false
+
+[functions.webhook-retry.schedule]
+cron = "*/5 * * * *"
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+
+[functions.export-alerts-csv]
+verify_jwt = true

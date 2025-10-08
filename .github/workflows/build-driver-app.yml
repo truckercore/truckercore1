@@ -1,0 +1,83 @@
+name: Build Driver App
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - 'driver-v*'
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Run tests
+        run: flutter test
+      
+      - name: Build APK
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON="$SUPABASE_ANON" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=APP_VERSION="${GITHUB_REF#refs/*/}" \
+            --dart-define=GIT_COMMIT="${GITHUB_SHA:0:7}" \
+            --dart-define=RELEASE_CHANNEL="production" \
+            --dart-define=USE_MOCK_DATA="false"
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-app-android
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build iOS
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON="$SUPABASE_ANON" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=APP_VERSION="${GITHUB_REF#refs/*/}" \
+            --dart-define=GIT_COMMIT="${GITHUB_SHA:0:7}" \
+            --dart-define=RELEASE_CHANNEL="production" \
+            --dart-define=USE_MOCK_DATA="false"

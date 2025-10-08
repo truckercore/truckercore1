@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "regions": ["iad1"],
+  "cleanUrls": true,
+  "trailingSlash": false,
+
+  "rewrites": [
+    {
+      "source": "/downloads/:file",
+      "destination": "https://your-project.supabase.co/storage/v1/object/public/downloads/:file"
+    }
+  ],
+
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ],
+
+  "crons": [
+    { "path": "/api/weekly-report", "schedule": "0 9 * * 1" },
+    { "path": "/api/geofence-trigger", "schedule": "*/5 * * * *" },
+    { "path": "/api/exec-report-trigger", "schedule": "0 7 * * 1" },
+    { "path": "/api/safety-score-refresh", "schedule": "15 7 * * *" },
+    { "path": "/api/roi-weekly", "schedule": "0 8 * * 1" },
+    { "path": "/api/ai-refresh-open-loads", "schedule": "0 6 * * *" },
+    { "path": "/api/forecast-rates", "schedule": "0 5 * * *" },
+    { "path": "/api/transaction-invoicer", "schedule": "0 7 * * *" },
+    { "path": "/api/ifta-rollup", "schedule": "0 8 1 */3 *" },
+    { "path": "/api/stripe-billing-daily", "schedule": "0 9 * * *" }
+  ]
+}

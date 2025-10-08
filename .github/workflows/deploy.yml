@@ -1,0 +1,86 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies (root)
+        run: npm ci
+      - name: Install dependencies (apps/web)
+        run: npm ci
+        working-directory: apps/web
+      - name: Run type check (apps/web)
+        run: npm run typecheck
+        working-directory: apps/web
+      - name: Run linter (apps/web)
+        run: npm run lint
+        working-directory: apps/web
+      - name: Validate Production Readiness
+        run: npm run validate
+      - name: Generate Validation Report
+        if: failure()
+        run: npm run validate:report
+      - name: Upload Validation Report
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-report
+          path: validation-report-*.md
+      - name: Run tests (root)
+        run: npm test --if-present
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies (apps/web)
+        run: npm ci
+        working-directory: apps/web
+      - name: Build application (apps/web)
+        run: npm run build
+        working-directory: apps/web
+        env:
+          NODE_ENV: production
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-build
+          path: apps/web/.next/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: web-build
+          path: apps/web/.next/
+      - name: Deploy to production (Vercel)
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Notify deployment
+        if: always()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"Fleet Manager Dashboard deployed to production ✅"}'

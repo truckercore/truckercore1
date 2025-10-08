@@ -1,0 +1,68 @@
+{
+  "package": { "productName": "TruckerCore", "version": "1.0.0" },
+  "tauri": {
+    "bundle": {
+      "identifier": "com.truckercore.desktop",
+      "targets": ["msi", "dmg", "deb", "rpm", "appimage"],
+      "active": true,
+      "icon": ["icons/icon.png"],
+      "resources": [],
+      "windows": {
+        "wix": {
+          "language": ["en-US"],
+          "template": "wix/extra-shortcuts.wxs",
+          "fragmentPaths": [],
+          "enable_elevated_update_task": true
+        },
+        "certificateThumbprint": "",
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "http://timestamp.digicert.com"
+      },
+      "macOS": {
+        "category": "public.app-category.business",
+        "exceptionDomain": ["app.truckercore.com", "api.truckercore.com", "updates.truckercore.com"],
+        "signingIdentity": "Developer ID Application: Your Legal Company (TEAMID)",
+        "minimumSystemVersion": "10.15",
+        "providerShortName": "TEAMID"
+      },
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1", "libssl3"]
+      },
+      "rpm": { "depends": ["webkit2gtk4.1", "gtk3"] },
+      "fileAssociations": [
+        { "ext": ["tcore"], "name": "TruckerCore Bundle", "mimeType": "application/x-truckercore" }
+      ]
+    },
+    "allowlist": {
+      "all": false,
+      "http": { "all": false, "request": true },
+      "dialog": { "open": true },
+      "updater": { "all": true },
+      "clipboard": { "writeText": true }
+    },
+    "windows": [
+      { "title": "TruckerCore", "width": 1280, "height": 800, "resizable": true, "fullscreen": false }
+    ],
+    "updater": {
+      "active": true,
+      "endpoints": ["https://updates.truckercore.com/desktop/{{target}}/{{current_version}}.json"],
+      "dialog": true,
+      "pubkey": "YOUR_TAURI_UPDATER_PUBLIC_KEY"
+    },
+    "security": {
+      "csp": null,
+      "dangerousRemoteDomainIpcAccess": [
+        { "domain": "app.truckercore.com", "windows": ["*"] },
+        { "domain": "api.truckercore.com", "windows": ["*"] },
+        { "domain": "updates.truckercore.com", "windows": ["*"] }
+      ]
+    },
+    "systemTray": { "iconPath": "icons/icon.png" }
+  },
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "https://app.truckercore.com/desktop/dev",
+    "distDir": "https://app.truckercore.com/desktop"
+  }
+}

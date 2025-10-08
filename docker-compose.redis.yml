@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Application instances (for testing scaling)
+  app1:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
+      - NEXT_PUBLIC_WS_URL=ws://localhost:3000
+      - SERVER_ID=app-1
+      - ENABLE_REDIS_WEBSOCKET=true
+    depends_on:
+      - db
+      - redis
+    networks:
+      - fleet-network
+
+  app2:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
+      - NEXT_PUBLIC_WS_URL=ws://localhost:3001
+      - SERVER_ID=app-2
+      - ENABLE_REDIS_WEBSOCKET=true
+    depends_on:
+      - db
+      - redis
+    networks:
+      - fleet-network
+
+  # PostgreSQL with PostGIS
+  db:
+    image: postgis/postgis:15-3.3
+    environment:
+      - POSTGRES_USER=fleet_user
+      - POSTGRES_PASSWORD=fleet_password
+      - POSTGRES_DB=fleet_development
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./lib/database/fleet-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - fleet-network
+
+  # Redis for WebSocket scaling and caching
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - fleet-network
+
+  # Redis Commander (GUI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - fleet-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  fleet-network:
+    driver: bridge

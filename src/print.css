@@ -1,0 +1,47 @@
+@media print {
+  /* Hide navigation and unnecessary elements */
+  .app-nav,
+  .form-actions,
+  .upload-button,
+  .assign-button,
+  .clear-button,
+  .remove-receipt,
+  .remove-photo,
+  .photo-actions,
+  .toast-container {
+    display: none !important;
+  }
+
+  /* Optimize for printing */
+  body {
+    background: white !important;
+  }
+
+  .app-main {
+    padding: 0 !important;
+  }
+
+  .form-card,
+  .history-card,
+  .load-card,
+  .driver-card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure signatures and photos print well */
+  .signature-canvas,
+  .photo-preview img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Add page breaks where needed */
+  .pod-item,
+  .expense-item,
+  .load-card {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}
