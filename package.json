@@ -264,8 +264,7 @@
     ]
   },
   "dependencies": {
-    "@json2csv/plainjs": "^6.0.0",
-    "json2csv": "^6.0.0",
+    "@json2csv/plainjs": "^7.0.6",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "html2canvas": "^1.4.1",
@@ -322,10 +321,11 @@
     "@stryker-mutator/vitest-runner": "^8.0.0"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=18.0.0 <21.0.0",
     "npm": ">=9.0.0"
   },
   "overrides": {
-    "jose": "^4.15.5"
+    "jose": "^4.15.5",
+    "json2csv": "npm:@json2csv/plainjs@^7.0.6"
   }
 }
