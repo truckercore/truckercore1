@@ -57,10 +57,27 @@ jobs:
       - name: Start Supabase local
         run: supabase start
 
+      - name: Set Supabase anon key
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.TEST_SUPABASE_ANON }}" ]; then
+            echo "ANON_KEY=${{ secrets.TEST_SUPABASE_ANON }}" >> $GITHUB_ENV
+          else
+            if command -v jq >/dev/null 2>&1; then
+              :
+            else
+              sudo apt-get update && sudo apt-get install -y jq
+            fi
+            KEY_FILE="$(pwd)/supabase/.temp/keys.json"
+            if [ -f "$KEY_FILE" ]; then
+              echo "ANON_KEY=$(jq -r '.anon' \"$KEY_FILE\")" >> $GITHUB_ENV
+            else
+              echo "ANON_KEY=anon-key" >> $GITHUB_ENV
+            fi
+          fi
+
       - name: Run integration tests with real Supabase
-        run: flutter test test/integration/supabase_integration_test.dart \
-          --dart-define=SUPABASE_URL=http://localhost:54321 \
-          --dart-define=SUPABASE_ANON=$ANON_KEY
+        run: flutter test test/integration/supabase_integration_test.dart --dart-define=SUPABASE_URL=http://localhost:54321 --dart-define=SUPABASE_ANON=$ANON_KEY
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3

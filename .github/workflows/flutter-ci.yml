@@ -90,6 +90,7 @@ jobs:
         retention-days: 7
 
   build-windows:
+    if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
     needs: analyze-and-test
 
@@ -125,6 +126,7 @@ jobs:
         retention-days: 7
 
   build-android:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: analyze-and-test
 
