@@ -1,0 +1,49 @@
+name: Stage CI Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-vercel-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify package manifests exist at repository root
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "::error file=package.json::package.json is missing at the repository root. Vercel cannot build without it." \
+            && exit 1
+          fi
+          if [ ! -f package-lock.json ]; then
+            echo "::warning file=package-lock.json::package-lock.json is missing. Builds may be inconsistent. Consider committing it to stabilize Vercel installs." 
+          fi
+          echo "Manifests present."
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (CI-safe)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts
+          else
+            npm install --no-audit --no-fund --prefer-offline
+          fi
+
+      - name: Sanity check Next.js project
+        run: |
+          node -e "const p=require('./package.json'); if(!p.dependencies||!p.dependencies.next){ console.log('::warning::next not declared in dependencies. If this repo is a monorepo, set Vercel Root Directory to the web app folder.'); } else { console.log('Next dependency found:', p.dependencies.next); }"
+
+      - name: Output guidance on Vercel Root Directory
+        run: |
+          echo "If Vercel still fails with ENOENT: package.json missing, ensure the project Root Directory is set to the repository root (.) in Vercel Dashboard → Settings → General."

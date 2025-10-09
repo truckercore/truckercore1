@@ -12,6 +12,11 @@
   "cleanUrls": true,
   "trailingSlash": false,
 
+  "functions": {
+    "app/api/**/*.ts": { "maxDuration": 60 },
+    "pages/api/**/*.ts": { "maxDuration": 60 }
+  },
+
   "rewrites": [
     {
       "source": "/downloads/:file",
@@ -31,15 +36,15 @@
   ],
 
   "crons": [
-    { "path": "/api/weekly-report", "schedule": "0 9 * * 1" },
-    { "path": "/api/geofence-trigger", "schedule": "*/5 * * * *" },
-    { "path": "/api/exec-report-trigger", "schedule": "0 7 * * 1" },
-    { "path": "/api/safety-score-refresh", "schedule": "15 7 * * *" },
-    { "path": "/api/roi-weekly", "schedule": "0 8 * * 1" },
-    { "path": "/api/ai-refresh-open-loads", "schedule": "0 6 * * *" },
-    { "path": "/api/forecast-rates", "schedule": "0 5 * * *" },
-    { "path": "/api/transaction-invoicer", "schedule": "0 7 * * *" },
-    { "path": "/api/ifta-rollup", "schedule": "0 8 1 */3 *" },
-    { "path": "/api/stripe-billing-daily", "schedule": "0 9 * * *" }
+    { "path": "/api/weekly-report", "schedule": "0 8 * * *" },
+    { "path": "/api/geofence-trigger", "schedule": "0 8 * * *" },
+    { "path": "/api/exec-report-trigger", "schedule": "0 8 * * *" },
+    { "path": "/api/safety-score-refresh", "schedule": "0 8 * * *" },
+    { "path": "/api/roi-weekly", "schedule": "0 8 * * *" },
+    { "path": "/api/ai-refresh-open-loads", "schedule": "0 8 * * *" },
+    { "path": "/api/forecast-rates", "schedule": "0 8 * * *" },
+    { "path": "/api/transaction-invoicer", "schedule": "0 8 * * *" },
+    { "path": "/api/ifta-rollup", "schedule": "0 8 * * *" },
+    { "path": "/api/stripe-billing-daily", "schedule": "0 8 * * *" }
   ]
 }
