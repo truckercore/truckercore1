@@ -1,0 +1,14 @@
+groups:
+- name: roi-export
+  rules:
+  - alert: ROIExportErrorBudgetBurn
+    expr: |
+      sum(rate(http_requests_total{handler="roi/report_monthly_pdf",status=~"5.."}[30m])) /
+      clamp_min(sum(rate(http_requests_total{handler="roi/report_monthly_pdf"}[30m])), 1)
+      > 0.02
+    for: 15m
+    labels:
+      severity: page
+    annotations:
+      summary: "ROI export 5xx >2% for 15m"
+      runbook: "docs/runbooks/roi_export.md"

@@ -1,0 +1,176 @@
+openapi: 3.1.0
+info:
+  title: TruckerCore Public API
+  version: 0.1.0
+servers:
+  - url: https://api.truckercore.example.com
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  parameters:
+    OrgId:
+      name: orgId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: { type: string }
+paths:
+  /v1/orgs/{orgId}/api-keys:
+    post:
+      summary: Create a scoped API key
+      parameters: [ { $ref: '#/components/parameters/OrgId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string }
+                scopes: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Created }
+    get:
+      summary: List API keys
+      parameters: [ { $ref: '#/components/parameters/OrgId' } ]
+      responses:
+        '200': { description: OK }
+  /v1/orgs/{orgId}/webhooks:
+    post:
+      summary: Create webhook subscription
+      parameters: [ { $ref: '#/components/parameters/OrgId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, endpoint_url, topics]
+              properties:
+                name: { type: string }
+                endpoint_url: { type: string, format: uri }
+                topics: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Created }
+    get:
+      summary: List webhook subscriptions
+      parameters: [ { $ref: '#/components/parameters/OrgId' } ]
+      responses:
+        '200': { description: OK }
+  /v1/orgs/{orgId}/loads:
+    get:
+      summary: List loads
+      parameters:
+        - { $ref: '#/components/parameters/OrgId' }
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create load
+      parameters:
+        - { $ref: '#/components/parameters/OrgId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '201': { description: Created }
+  /v1/orgs/{orgId}/trucks/{truckId}/locations:
+    post:
+      summary: Append truck locations (batched)
+      parameters:
+        - { $ref: '#/components/parameters/OrgId' }
+        - name: truckId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [points]
+              properties:
+                points:
+                  type: array
+                  items:
+                    type: object
+                    required: [ts, lat, lng, seq]
+                    properties:
+                      ts: { type: string, format: date-time }
+                      lat: { type: number }
+                      lng: { type: number }
+                      seq: { type: integer }
+                      speed_kph: { type: number }
+      responses:
+        '202': { description: Accepted }
+    get:
+      summary: Get locations since a timestamp
+      parameters:
+        - { $ref: '#/components/parameters/OrgId' }
+        - name: truckId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200': { description: OK }
+  /v1/me/alerts:
+    get:
+      summary: List alerts for current user
+      responses:
+        '200': { description: OK }
+  /v1/me/alerts/{id}/seen:
+    post:
+      summary: Mark alert seen
+      responses:
+        '204': { description: No Content }
+  /v1/orgs/{orgId}/documents:
+    post:
+      summary: Upload a document
+      parameters:
+        - { $ref: '#/components/parameters/OrgId' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, doc_type]
+              properties:
+                file: { type: string, format: binary }
+                doc_type: { type: string, enum: [bol, pod, receipt, other] }
+                load_id: { type: string, format: uuid }
+      responses:
+        '201': { description: Created }
+  /v1/me/privacy/consent:
+    post:
+      summary: Record consent change
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, category, purpose]
+              properties:
+                action: { type: string, enum: [consent_granted, consent_revoked, policy_viewed] }
+                category: { type: string }
+                purpose: { type: string }
+      responses:
+        '204': { description: No Content }

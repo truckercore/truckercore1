@@ -1,0 +1,108 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "2.39.0" }
+  ],
+  "editable": true,
+  "graphTooltip": 0,
+  "id": null,
+  "title": "Ingest + Geofence + MiniAgg Overview",
+  "timezone": "browser",
+  "version": 1,
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Geofence events/min (enter/exit)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum(rate(geofence_enter_total[5m])) by (org_id)", "legendFormat": "enter {{org_id}}" },
+        { "expr": "sum(rate(geofence_exit_total[5m])) by (org_id)", "legendFormat": "exit {{org_id}}" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Eval latency (approx p95)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (org_id) (geofence_eval_latency_ms_bucket) / ignoring(le) group_left sum by (org_id) (geofence_eval_latency_ms_count)", "legendFormat": "latency bucket frac {{org_id}}" }
+      ],
+      "description": "Proxy for p95 using bucket tail behavior. Replace with proper histogram_quantile if native histograms added.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Candidate count distribution",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "geofence_eval_candidates", "legendFormat": "cand {{org_id}}" }
+      ],
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Dwell suppressions",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(dwell_suppressed_total[5m])", "legendFormat": "dwell_suppressed r/s" }
+      ],
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Meters/day (enter+exit) & Limit blocks",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (org_id) (geofence_events_meter)", "legendFormat": "meter {{org_id}}" },
+        { "expr": "rate(geofence_limit_block_total[5m])", "legendFormat": "limit blocks r/s {{org_id}}" }
+      ],
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Mini-agg freshness (per device/day) & max",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "miniagg_freshness_seconds", "legendFormat": "fresh {{device_id}} {{day}}" },
+        { "expr": "miniagg_freshness_seconds_max", "legendFormat": "fresh_max" }
+      ],
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 14 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Persistence & State Loads",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "rate(persisted_state_load_success_total[5m])", "legendFormat": "state load success r/s" },
+        { "expr": "rate(persisted_state_load_failure_total[5m])", "legendFormat": "state load failure r/s" }
+      ],
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 14 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ingest health",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "ingest_last_request_ms", "legendFormat": "last_request_ms" },
+        { "expr": "rate(ingest_accepted[5m])", "legendFormat": "accepted r/s" },
+        { "expr": "rate(ingest_dropped_jitter[5m])", "legendFormat": "jitter r/s" },
+        { "expr": "rate(ingest_dropped_teleport[5m])", "legendFormat": "teleport r/s" }
+      ],
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 20 }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": { "list": [] }
+}

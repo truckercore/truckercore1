@@ -1,0 +1,29 @@
+name: PR Size Labeler
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+jobs:
+  size:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_max_size: '50'
+          s_max_size: '200'
+          m_max_size: '600'
+          l_max_size: '1200'
+          files_to_ignore: |
+            **/*.lock
+            **/yarn.lock
+            **/pnpm-lock.yaml
+            **/package-lock.json
+            **/generated/**
+            **/dist/**
+          label_prefix: 'size/'
+          # Labels created automatically: size/XS, size/S, size/M, size/L, size/XL

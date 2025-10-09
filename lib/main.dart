@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,14 +13,13 @@ import 'package:logger/logger.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:truckercore1/services/supa_client.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
-import 'core/dashboards/dashboard_entry.dart';
 
 import 'app_router.dart';
 import 'common/config/app_config.dart';
 import 'common/config/app_env.dart';
 import 'common/widgets/app_background.dart';
 import 'common/widgets/offline_banner.dart';
+import 'core/dashboards/dashboard_entry.dart';
 import 'core/flags/rollout_flags.dart';
 import 'core/observability/log_buffer.dart';
 import 'core/refresh/refresh_orchestrator.dart';
@@ -46,39 +46,49 @@ Future<void> main([List<String>? args]) async {
   if (a.isNotEmpty && a.first == 'multi_window') {
     final windowId = int.parse(a[1]);
     final controller = WindowController.fromWindowId(windowId);
+    // Parse JSON args payload in a[2] if present
+    Map<String, dynamic> entryArgs = const {};
+    try {
+      final raw = (a.length > 2) ? a[2] : '';
+      entryArgs = raw.isEmpty ? const {} : (jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      entryArgs = const {};
+    }
 
     WidgetsFlutterBinding.ensureInitialized();
     await _initializeSupabaseForDashboard();
 
-    runApp(DashboardEntry(controller: controller));
+    runApp(DashboardEntry(controller: controller, args: entryArgs));
     return;
   }
-  // Ensure the Flutter bindings are initialized in the correct zone first
-  WidgetsFlutterBinding.ensureInitialized();
+  // Run the app inside a guarded zone and ensure bindings are initialized in the SAME zone as runApp
+  runZonedGuarded(() async {
+    // MUST be called inside the same zone as runApp to avoid zone mismatch
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Edge-to-edge system UI on Android/iOS
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+    // Edge-to-edge system UI on Android/iOS
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
 
-  // Load environment variables from .env (optional; ignore if not bundled)
-  // On web, this asset may not exist; avoid throwing if it does not.
-  try {
-    if (!kIsWeb) {
-      await dotenv.load();
-    } else {
-      // For web, rely on --dart-define or public runtime config; .env is typically not served.
-    }
-  } catch (_) {/* no .env asset or not needed */}
+    // Load environment variables from .env (optional; ignore if not bundled)
+    // On web, this asset may not exist; avoid throwing if it does not.
+    try {
+      if (!kIsWeb) {
+        await dotenv.load();
+      } else {
+        // For web, rely on --dart-define or public runtime config; .env is typically not served.
+      }
+    } catch (_) {/* no .env asset or not needed */}
 
-  // Emit one-time warning if using legacy env var name
-  AppEnv.maybeWarnLegacy();
+    // Emit one-time warning if using legacy env var name
+    AppEnv.maybeWarnLegacy();
 
     // Build runtime AppConfig using dart-define first, then .env (if present), then fallback to existing appConfigFromEnv
     final ddUrl = AppEnv.supabaseUrl;
@@ -287,9 +297,10 @@ Future<void> main([List<String>? args]) async {
     ));
   } catch (_) {}
 
-  // Run app inside error zone to capture uncaught exceptions (desktop crash telemetry)
-  runZonedGuarded(() {
-    runApp(app);
+  // Finally, run the app
+  runApp(app);
+
+  // Close guarded zone with error handler
   }, (error, stack) {
     try {
       Sentry.captureException(error, stackTrace: stack);

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="ProgramMenuFolder">
+      <Directory Id="TruckerCoreProgramMenu" Name="TruckerCore" />
+    </DirectoryRef>
+
+    <ComponentGroup Id="TruckerCoreShortcuts">
+      <Component Id="CmpShortcutOwner" Guid="*">
+        <Shortcut Id="ScOwnerPM"
+          Directory="TruckerCoreProgramMenu"
+          Name="TruckerCore - Owner Operator"
+          WorkingDirectory="INSTALLDIR"
+          Icon="TruckerCore.exe"
+          Arguments="--role owner-operator"
+          Target="[#TruckerCore.exe]" />
+        <RegistryValue Root="HKCU" Key="Software\\TruckerCore" Name="OwnerShortcut" Type="string" Value="1" KeyPath="yes"/>
+      </Component>
+
+      <Component Id="CmpShortcutFleet" Guid="*">
+        <Shortcut Id="ScFleetPM"
+          Directory="TruckerCoreProgramMenu"
+          Name="TruckerCore - Fleet Manager"
+          WorkingDirectory="INSTALLDIR"
+          Icon="TruckerCore.exe"
+          Arguments="--role fleet-manager"
+          Target="[#TruckerCore.exe]" />
+        <RegistryValue Root="HKCU" Key="Software\\TruckerCore" Name="FleetShortcut" Type="string" Value="1" KeyPath="yes"/>
+      </Component>
+
+      <Component Id="CmpShortcutBroker" Guid="*">
+        <Shortcut Id="ScBrokerPM"
+          Directory="TruckerCoreProgramMenu"
+          Name="TruckerCore - Freight Broker"
+          WorkingDirectory="INSTALLDIR"
+          Icon="TruckerCore.exe"
+          Arguments="--role freight-broker"
+          Target="[#TruckerCore.exe]" />
+        <RegistryValue Root="HKCU" Key="Software\\TruckerCore" Name="BrokerShortcut" Type="string" Value="1" KeyPath="yes"/>
+      </Component>
+
+      <Component Id="CmpShortcutTruckStop" Guid="*">
+        <Shortcut Id="ScTruckStopPM"
+          Directory="TruckerCoreProgramMenu"
+          Name="TruckerCore - Truck Stop Operator"
+          WorkingDirectory="INSTALLDIR"
+          Icon="TruckerCore.exe"
+          Arguments="--role truck-stop"
+          Target="[#TruckerCore.exe]" />
+        <RegistryValue Root="HKCU" Key="Software\\TruckerCore" Name="TruckStopShortcut" Type="string" Value="1" KeyPath="yes"/>
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroupRef Id="TruckerCoreShortcuts"/>
+  </Fragment>
+</Wix>

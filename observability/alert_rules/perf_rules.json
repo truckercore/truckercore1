@@ -1,0 +1,5 @@
+[
+  { "name": "API_p95_budget", "expr": "p95_latency_seconds > 0.25", "for": "15m", "severity": "warning" },
+  { "name": "DB_active_conns_over_80pct", "expr": "db_active_connections / db_max_connections > 0.8", "for": "10m", "severity": "warning" },
+  { "name": "DB_wait_events_spike", "expr": "rate(db_wait_events_total[5m]) > 50", "for": "10m", "severity": "warning" }
+]

@@ -1,0 +1,18 @@
+# Anomaly Alert: verification latency p95 spike
+
+groups:
+- name: webhooks-anomaly
+  rules:
+  - alert: WebhookLatencyP95Spike
+    expr: |
+      histogram_quantile(0.95, sum by (le) (rate(webhook_verify_duration_seconds_bucket[10m])))
+        > (scalar(avg_over_time(histogram_quantile(0.95, sum by (le) (rate(webhook_verify_duration_seconds_bucket[1h]))) [6h:1m])) * 2)
+    for: 20m
+    labels:
+      severity: warning
+      env: staging
+      owner: webhooks-oncall
+    annotations:
+      summary: "Webhook verification p95 latency > 2x baseline"
+      description: "Investigate crypto slowness, dependency degradation, or traffic surge."
+      owner_email: "webhooks-oncall@example.com"

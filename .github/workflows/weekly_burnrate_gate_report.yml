@@ -1,0 +1,83 @@
+name: Weekly Burn-rate & Gate Report
+
+on:
+  schedule:
+    - cron: '0 11 * * 1' # Mondays 11:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql & jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Query burn-rate trends (7d)
+        id: burn
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "json=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          SQL="select coalesce(json_agg(t), '[]'::json) from (select date_trunc('day', created_at) as day, kind, window, round(avg(burn_rate)::numeric, 3) as avg_burn from public.slo_burn_alerts where created_at >= now() - interval '7 days' group by 1,2,3 order by 1 desc, 2, 3) t;"
+          RES=$(psql "$SUPABASE_DB_URL" -At -c "$SQL" || echo "[]")
+          echo "json=$RES" >> $GITHUB_OUTPUT
+
+      - name: Compute gate pass/fail ratios (7d)
+        id: gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const since = new Date(Date.now() - 7*24*3600*1000).toISOString();
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { owner, repo, per_page: 100, status: 'completed' });
+            const gateNames = new Set(['Edge Deploy with Gate + Rollback','Edge Deploy Gate']);
+            const recent = runs.filter(r => r.created_at >= since && gateNames.has(r.name||''));
+            const total = recent.length;
+            const passed = recent.filter(r => r.conclusion === 'success').length;
+            const failed = recent.filter(r => r.conclusion === 'failure').length;
+            core.setOutput('total', total);
+            core.setOutput('passed', passed);
+            core.setOutput('failed', failed);
+
+      - name: Open/Update Weekly Burn-rate & Gate Report issue
+        uses: actions/github-script@v7
+        env:
+          BURN_JSON: ${{ steps.burn.outputs.json }}
+          GATES_TOTAL: ${{ steps.gates.outputs.total }}
+          GATES_PASSED: ${{ steps.gates.outputs.passed }}
+          GATES_FAILED: ${{ steps.gates.outputs.failed }}
+        with:
+          script: |
+            const burn = process.env.BURN_JSON && process.env.BURN_JSON !== '' ? JSON.parse(process.env.BURN_JSON) : [];
+            const total = Number(process.env.GATES_TOTAL||0);
+            const passed = Number(process.env.GATES_PASSED||0);
+            const failed = Number(process.env.GATES_FAILED||0);
+            const title = `Weekly Burn-rate & Gate Report – ${new Date().toISOString().slice(0,10)}`;
+            const body = [
+              '## Burn-rate trends (avg over last 7 days by day/kind/window)',
+              '```json',
+              JSON.stringify(burn, null, 2),
+              '```',
+              '',
+              '## Deploy Gate pass/fail (7d)',
+              `Total: ${total} | Passed: ${passed} | Failed: ${failed}`,
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'ops' });
+            const existing = issues.find(i => i.title.startsWith('Weekly Burn-rate & Gate Report'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['ops'] });
+            }

@@ -1,0 +1,71 @@
+name: Dependency Security Check
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Daily at 9 AM UTC
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/dependency-audit.mjs'
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (moderate+)
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Generate consolidated audit report
+        run: node scripts/dependency-audit.mjs
+
+      - name: Upload audit report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-report
+          path: dependency-audit-*.md
+
+      - name: Fail on excessive vulnerabilities
+        run: |
+          npm audit --json > audit.json || true
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit.json)
+          echo "Critical: $CRITICAL, High: $HIGH"
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 5 ]; then
+            echo "::error::Found $CRITICAL critical and $HIGH high severity vulnerabilities"
+            exit 1
+          fi
+
+      # Optional Slack notification step. Requires SLACK_WEBHOOK secret if enabled.
+      - name: Notify on Slack (if vulnerabilities found)
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "🚨 Security vulnerabilities detected in dependencies!",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {"title": "Repository", "value": "${{ github.repository }}", "short": true},
+                  {"title": "Branch", "value": "${{ github.ref_name }}", "short": true}
+                ]
+              }]
+            }

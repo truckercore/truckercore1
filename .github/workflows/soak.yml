@@ -1,0 +1,25 @@
+name: Soak
+on:
+  schedule: [{cron: "0 */6 * * *"}]
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v1
+      - run: deno --version
+      - name: Soak run
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          TEST_JWT: ${{ secrets.TEST_JWT }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          for i in $(seq 1 40); do
+            ./module/pois/probe.sh || exit 1
+            ./module/promos/probe.sh || exit 1
+          done
+      - name: Upload probe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-probes
+          path: reports/

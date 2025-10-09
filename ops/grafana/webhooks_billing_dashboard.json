@@ -1,0 +1,65 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Webhook Errors (last 24h)",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select date_trunc('hour', received_at) as time, count(*) as errors from webhook_events where status = 'errored' and received_at >= now() - interval '24 hours' group by 1 order by 1",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "postgres", "uid": "POSTGRES_DS_UID" }
+    },
+    {
+      "type": "stat",
+      "title": "Queued Retries",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select count(*) as queued from webhook_retry where status = 'queued' and next_run_at <= now()",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "postgres", "uid": "POSTGRES_DS_UID" }
+    },
+    {
+      "type": "table",
+      "title": "Recent Webhook Events",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select received_at, provider, event_type, status, org_id from webhook_events order by received_at desc limit 100",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "postgres", "uid": "POSTGRES_DS_UID" }
+    },
+    {
+      "type": "piechart",
+      "title": "License Status Distribution",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select license_status as metric, count(*) as value from orgs group by 1",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "postgres", "uid": "POSTGRES_DS_UID" }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["billing", "webhooks", "license"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "browser",
+  "title": "Billing & Webhooks Overview",
+  "version": 1
+}

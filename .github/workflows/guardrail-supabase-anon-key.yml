@@ -1,0 +1,33 @@
+name: "Guardrail: SUPABASE_ANON_KEY references"
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Guardrail: forbid new SUPABASE_ANON_KEY references"
+        shell: bash
+        run: |
+          set -e
+          echo "Scanning for disallowed SUPABASE_ANON_KEY usages..."
+          # Allowlist: docs, examples, .env samples, and explicit allow file
+          ALLOW='(^docs/|^README|^.*\.md$|^.*\.env(\.example|\.local|\.template)?$|^apps/web/README\.md$|^ALLOW_SUPABASE_ANON_KEY_REFERENCES\.txt$)'
+          # Find files containing the token
+          MATCHED=$(git grep -n "SUPABASE_ANON_KEY" || true)
+          if [ -z "$MATCHED" ]; then
+            echo "No references found."
+            exit 0
+          fi
+          # Filter allowed paths
+          DISALLOWED=$(echo "$MATCHED" | awk -F: '{print $1":"$2":"$3}' | grep -Ev "$ALLOW" || true)
+          if [ -n "$DISALLOWED" ]; then
+            echo "Disallowed SUPABASE_ANON_KEY references found:"
+            echo "$DISALLOWED"
+            exit 1
+          fi
+          echo "Only allowed references found."

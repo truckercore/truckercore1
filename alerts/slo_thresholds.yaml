@@ -1,0 +1,39 @@
+# SLO Threshold Alerts (Prometheus alerting rules pseudo-format)
+# Adapt these to your Alertmanager/Grafana setup.
+
+groups:
+- name: webhooks-slo
+  rules:
+  - alert: WebhookVerificationP95Slow
+    expr: histogram_quantile(0.95, sum by (le) (rate(webhook_verify_duration_seconds_bucket[5m]))) > 0.05
+    for: 15m
+    labels:
+      severity: warning
+      env: staging
+      owner: webhooks-oncall
+    annotations:
+      summary: "Webhook verification p95 latency above 50ms"
+      runbook: "https://repo/runbooks/webhooks"
+      owner_email: "webhooks-oncall@example.com"
+  - alert: WebhookInvalidRateHigh
+    expr: sum(rate(webhook_verify_total{result="invalid"}[15m])) / sum(rate(webhook_verify_total[15m])) > 0.01
+    for: 15m
+    labels:
+      severity: warning
+      env: staging
+      owner: webhooks-oncall
+    annotations:
+      summary: "Invalid webhook rate > 1% over 15m"
+      runbook: "https://repo/runbooks/webhooks"
+      owner_email: "webhooks-oncall@example.com"
+  - alert: WebhookReplaySpike
+    expr: sum(rate(replay_total[15m])) > 0
+    for: 15m
+    labels:
+      severity: warning
+      env: staging
+      owner: webhooks-oncall
+    annotations:
+      summary: "Non-zero replay rate detected"
+      description: "Investigate potential re-sends or abuse; expected near 0"
+      owner_email: "webhooks-oncall@example.com"

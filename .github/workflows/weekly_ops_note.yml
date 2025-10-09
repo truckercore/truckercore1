@@ -1,0 +1,138 @@
+name: Weekly Ops Note
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays 09:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  weekly_ops:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Query Supabase for SLO and RLS
+        id: db
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "No SUPABASE_DB_URL secret configured; skipping DB queries.";
+            echo "slo_json=[]" >> $GITHUB_OUTPUT
+            echo "rls_count=0" >> $GITHUB_OUTPUT
+            exit 0;
+          fi
+          # p95 breaches from slo_burn_7d
+          SLO=$(psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select fn, availability, avail_target, p95_ms, p95_target_ms from public.slo_burn_7d where availability < avail_target or p95_ms > p95_target_ms order by fn) t" || echo "[]")
+          echo "slo_json=$SLO" >> $GITHUB_OUTPUT
+          # RLS audit: count of public tables with RLS disabled
+          RLS=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(count(*),0) from public.rls_audit where rls_enabled=false" || echo "0")
+          echo "rls_count=$RLS" >> $GITHUB_OUTPUT
+
+      - name: Find recent runbooks_check failures
+        id: runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 50,
+              status: 'completed',
+              event: 'pull_request'
+            });
+            const failures = data.workflow_runs.filter(r => r.name && r.name.includes('Runbooks Validation') && r.conclusion === 'failure');
+            core.setOutput('failures', JSON.stringify(failures.map(f => ({id:f.id, head_branch:f.head_branch, url:f.html_url, head_sha:f.head_sha, created_at:f.created_at}))))
+
+      - name: Compute PR label compliance (7d)
+        id: labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+            const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'closed', per_page: 100 });
+            const merged = prs.filter(p => p.merged_at && p.merged_at >= since);
+            const required = new Set(['type:feature','type:fix','type:ops']);
+            let ok = 0; let total = merged.length;
+            for (const p of merged) {
+              const labels = (p.labels||[]).map(l => (l.name||'').toLowerCase());
+              if (labels.some(l => required.has(l))) ok++;
+            }
+            core.setOutput('compliance', total ? Math.round(ok*100/total) : 100);
+            core.setOutput('total', total);
+            core.setOutput('ok', ok);
+
+      - name: Query recon failures (optional)
+        id: recon
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "count=0" >> $GITHUB_OUTPUT; exit 0; fi
+          CNT=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(count(*),0) from public.alerts_events where code like 'billing_recon%' and triggered_at >= now() - interval '7 days'" || echo "0")
+          echo "count=$CNT" >> $GITHUB_OUTPUT
+
+      - name: Open/Update Weekly Ops Note issue
+        uses: actions/github-script@v7
+        env:
+          SLO_JSON: ${{ steps.db.outputs.slo_json }}
+          RLS_COUNT: ${{ steps.db.outputs.rls_count }}
+          RUNBOOK_FAILS: ${{ steps.runs.outputs.failures }}
+          LABEL_OK: ${{ steps.labels.outputs.ok }}
+          LABEL_TOTAL: ${{ steps.labels.outputs.total }}
+          LABEL_COMPLIANCE: ${{ steps.labels.outputs.compliance }}
+          RECON_FAILS: ${{ steps.recon.outputs.count }}
+        with:
+          script: |
+            const slo = process.env.SLO_JSON && process.env.SLO_JSON !== '' ? JSON.parse(process.env.SLO_JSON) : [];
+            const rlsCount = Number(process.env.RLS_COUNT || 0);
+            const fails = process.env.RUNBOOK_FAILS && process.env.RUNBOOK_FAILS !== '' ? JSON.parse(process.env.RUNBOOK_FAILS) : [];
+            const labelOk = Number(process.env.LABEL_OK || 0);
+            const labelTotal = Number(process.env.LABEL_TOTAL || 0);
+            const labelCompliance = Number(process.env.LABEL_COMPLIANCE || 0);
+            const reconFails = Number(process.env.RECON_FAILS || 0);
+            const today = new Date().toISOString().slice(0,10);
+            const title = `Weekly Ops Note – ${today}`;
+            const body = [
+              `## Summary`,
+              `- p95/avail breaches (7d): ${slo.length}`,
+              `- Runbooks CI failures (recent PRs): ${fails.length}`,
+              `- RLS disabled tables (current): ${rlsCount}`,
+              `- PR label compliance (7d): ${labelCompliance}% (${labelOk}/${labelTotal})`,
+              `- Recon failures (7d): ${reconFails}`,
+              '',
+              '## p95/Availability Breaches (7d)',
+              '```json',
+              JSON.stringify(slo, null, 2),
+              '```',
+              '',
+              '## Recent Runbooks CI Failures',
+              fails.length ? fails.map(f => `- ${f.head_branch} ${f.head_sha?.slice(0,7)} → ${f.url} (${f.created_at})`).join('\n') : '- none',
+              '',
+              '## RLS Audit',
+              `Disabled public tables count: ${rlsCount}`,
+              '',
+              '## Governance KPIs',
+              `PR label compliance: ${labelCompliance}% (${labelOk}/${labelTotal})`,
+              `Recon failures last 7d: ${reconFails}`,
+              '',
+              '> Source: slo_burn_7d, rls_audit, alerts_events; CI workflow runs and PR metadata.'
+            ].join('\n');
+
+            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.data.find(i => i.title.startsWith('Weekly Ops Note'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['governance','ops'] });
+            }

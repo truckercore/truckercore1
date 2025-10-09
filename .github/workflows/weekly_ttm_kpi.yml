@@ -1,0 +1,85 @@
+name: Weekly TTM KPI
+
+on:
+  schedule:
+    - cron: '10 9 * * 1' # Mondays 09:10 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ttm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql & jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Pull DB KPIs (alerts TTM)
+        id: db
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "kpi=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          SQL1="select coalesce(json_agg(row_to_json(t)),'[]'::json) from (select * from public.kpi_time_to_ack_7d order by avg_minutes desc nulls last) t";
+          SQL2="select coalesce(json_agg(row_to_json(t)),'[]'::json) from (select * from public.kpi_quarantine_ttm_30d order by avg_minutes desc nulls last) t";
+          KPI=$(psql "$SUPABASE_DB_URL" -At -c "$SQL1" || echo "[]")
+          QN=$(psql "$SUPABASE_DB_URL" -At -c "$SQL2" || echo "[]")
+          echo "kpi=$KPI" >> $GITHUB_OUTPUT
+          echo "qkpi=$QN" >> $GITHUB_OUTPUT
+
+      - name: Compute Incident Issue TTM (GitHub)
+        id: gh
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner; const repo = context.repo.repo;
+            const since = new Date(Date.now() - 7*24*3600*1000).toISOString();
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'closed', labels: 'incident', per_page: 100 });
+            const recent = issues.filter(i => i.closed_at && i.created_at >= since);
+            const minutes = recent.map(i => (new Date(i.closed_at) - new Date(i.created_at)) / 60000);
+            const avg = minutes.length ? Math.round(minutes.reduce((a,b)=>a+b,0)/minutes.length) : 0;
+            core.setOutput('avgMin', avg);
+            core.setOutput('count', recent.length);
+
+      - name: Open/Update Weekly TTM KPI Note
+        uses: actions/github-script@v7
+        env:
+          KPI: ${{ steps.db.outputs.kpi }}
+          QKPI: ${{ steps.db.outputs.qkpi }}
+          INC_AVG: ${{ steps.gh.outputs.avgMin }}
+          INC_COUNT: ${{ steps.gh.outputs.count }}
+        with:
+          script: |
+            const kpi = process.env.KPI && process.env.KPI !== '' ? JSON.parse(process.env.KPI) : [];
+            const qkpi = process.env.QKPI && process.env.QKPI !== '' ? JSON.parse(process.env.QKPI) : [];
+            const incAvg = Number(process.env.INC_AVG || 0);
+            const incCount = Number(process.env.INC_COUNT || 0);
+            const title = `Weekly TTM KPI – ${new Date().toISOString().slice(0,10)}`;
+            const body = [
+              '## Alerts Time-to-Acknowledge (7d)',
+              '```json',
+              JSON.stringify(kpi, null, 2),
+              '```',
+              '',
+              '## Quarantine/Greenline TTM (30d)',
+              '```json',
+              JSON.stringify(qkpi, null, 2),
+              '```',
+              '',
+              `## GitHub Incident Issues: ${incCount} closed (7d); Avg TTM: ${incAvg} minutes`
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'ops' });
+            const existing = issues.find(i => i.title.startsWith('Weekly TTM KPI'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body, labels: ['ops','governance'] });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['ops','governance'] });
+            }

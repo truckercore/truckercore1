@@ -1,0 +1,40 @@
+{
+  "title": "ROI Overview (30d)",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "ROI 30d (Fuel/HOS/Promo + Total)",
+      "targets": [
+        { "refId": "A", "expr": "sum by (day) (roi_fuel_cents_30d)" },
+        { "refId": "B", "expr": "sum by (day) (roi_hos_cents_30d)" },
+        { "refId": "C", "expr": "sum by (day) (roi_promo_cents_30d)" },
+        { "refId": "D", "expr": "sum by (day) (roi_total_cents_30d)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "type": "stat",
+      "title": "Anomalies (5m)",
+      "targets": [
+        { "refId": "E", "expr": "roi_anomaly_events_5m" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Rollup Freshness (last refresh age sec)",
+      "targets": [
+        { "refId": "F", "expr": "time() - roi_rollup_last_refresh_timestamp_seconds" }
+      ],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 86400 }
+        ]
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

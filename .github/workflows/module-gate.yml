@@ -1,0 +1,37 @@
+name: Module Gate
+on:
+  pull_request:
+    paths:
+      - 'module/**'
+      - 'db/migrations/**'
+      - 'functions/**'
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      FUNC_URL: ${{ secrets.FUNC_URL }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      TEST_JWT: ${{ secrets.TEST_JWT }}
+      SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect changed modules
+        id: mods
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}... | grep '^module/' | cut -d/ -f2 | sort -u | tr '\n' ' ')
+          echo "mods=$CHANGED" >> $GITHUB_OUTPUT
+      - name: Run gates for changed modules
+        if: steps.mods.outputs.mods != ''
+        run: |
+          mkdir -p reports
+          for m in ${{ steps.mods.outputs.mods }}; do
+            echo "==> $m"
+            ./scripts/run_gate.sh $m full
+          done
+      - name: Upload probe artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probes
+          path: reports/

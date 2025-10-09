@@ -1,0 +1,1 @@
+module.exports = ["PUBLIC_MAPBOX_TOKEN", "PUBLIC_APP_NAME", "SENTRY_DSN_PUBLIC"];

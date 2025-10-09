@@ -1,0 +1,26 @@
+name: Validate Event Schemas
+
+on:
+  pull_request:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install validator deps (no package.json changes)
+        run: |
+          npm i -D ajv@8 ajv-formats@3 glob@10
+
+      - name: Validate event fixtures against schemas
+        run: |
+          node scripts/ci/validate-events.mjs

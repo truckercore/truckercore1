@@ -27,11 +27,11 @@ class FleetOverviewScreen extends ConsumerWidget {
         onRefresh: () async {
           await Future.delayed(const Duration(seconds: 1));
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+        child: const SingleChildScrollView(
+          padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               // Fleet Summary Cards
               _FleetSummaryCards(),
               SizedBox(height: 24),

@@ -1,0 +1,54 @@
+name: Release Gate
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  gate-and-artifacts:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      FUNC_URL: ${{ secrets.FUNC_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup tools
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install jq, psql, curl
+        run: sudo apt-get update && sudo apt-get install -y jq postgresql-client curl
+
+      - name: Run release gate
+        run: |
+          chmod +x scripts/gate_release.sh
+          make release_gate
+
+      - name: Export evidence bundle
+        run: |
+          chmod +x scripts/export_evidence.sh
+          ./scripts/export_evidence.sh
+          echo "REL=$(ls -1 evidence | sort | tail -n1)" >> $GITHUB_ENV
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ env.REL }}
+          path: evidence/${{ env.REL }}.tgz
+
+      - name: Build Sales ROI bundle
+        env:
+          ORG_ID: ${{ vars.SALES_ORG_ID }}
+        run: |
+          chmod +x scripts/sales_case_bundle.sh
+          ./scripts/sales_case_bundle.sh
+      - name: Upload Sales ROI bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sales-bundle-${{ env.REL }}
+          path: |
+            sales/*-roi.html
+            sales/*-kpis.json

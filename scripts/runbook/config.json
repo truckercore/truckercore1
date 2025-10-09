@@ -1,0 +1,13 @@
+{
+  "steps": [
+    { "id": 2, "file": "step2_db_check.sh", "tags": ["MV"] },
+    { "id": 3, "file": "step3_http_health.sh", "tags": ["HTTP"] },
+    { "id": 4, "file": "step4_refresh_mv.sh", "tags": ["MV"] },
+    { "id": 5, "file": "step5_seed_or_sync.sh" },
+    { "id": 6, "file": "step6_permissions.sh" },
+    { "id": 7, "file": "step7_functions_ping.sh", "tags": ["HTTP"] },
+    { "id": 8, "file": "step8_ui_ping.sh", "tags": ["HTTP"] },
+    { "id": 9, "file": "step9_metrics_dump.sh" },
+    { "id": 10, "file": "step10_cleanup.sh" }
+  ]
+}

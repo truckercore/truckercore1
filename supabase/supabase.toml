@@ -162,3 +162,28 @@ verify_jwt = false
 
 [functions.export-alerts-csv]
 verify_jwt = true
+
+[functions.verify-credentials]
+verify_jwt = false
+
+[functions.daily-refresh]
+verify_jwt = false
+
+[functions.daily-refresh.schedule]
+cron = "*/15 * * * *"  # every 15 minutes in staging; switch to "0 6 * * *" for daily 06:00 UTC
+
+
+[functions.signed-coi-upload]
+verify_jwt = true
+
+[functions.track]
+verify_jwt = true
+
+[functions.run-export-job]
+verify_jwt = false
+
+[functions.send-roi-emails]
+verify_jwt = false
+
+[functions.send-roi-emails.schedule]
+cron = "0 9 5 1,4,7,10 *" # 5th of Jan/Apr/Jul/Oct at 09:00 UTC

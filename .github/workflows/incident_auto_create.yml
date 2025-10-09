@@ -1,0 +1,41 @@
+name: Incident Auto-Create
+
+on:
+  workflow_run:
+    workflows:
+      - "Edge Deploy with Gate + Rollback"
+      - "Edge Deploy Gate"
+      - "Burn Rate Check"
+      - "Burn-Rate Alerts Cron"
+      - "Pilot Cron"
+    types: [completed]
+
+jobs:
+  create-incident:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - name: Gather context
+        id: ctx
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const name = run.name;
+            const url = run.html_url;
+            const headSha = run.head_sha;
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            const time = run.updated_at;
+            core.setOutput('title', `[INCIDENT] ${name} failed — ${repo} @ ${headSha.slice(0,7)}`);
+            core.setOutput('body', `\nWorkflow: ${name}\nRun: ${url}\nRepo: ${repo}\nSHA: ${headSha}\nWhen: ${time}\n\nEvidence: search 'deploy-evidence-${run.id}' artifact in the run artifacts (schema diffs, gate logs).\n\nDashboards:\n- SLIs: <link to Grafana SLI overview>\n- Burn-rate: <link to burn-rate panel>\n- Errors: <link to logs>\n\nNext Steps:\n- Page on-call per escalation policy\n- Review deploy evidence\n- If deploy-related, confirm rollback executed\n- Attach root cause notes and resolution timeline\n`);
+      - name: Create issue
+        uses: actions-ecosystem/action-create-issue@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: ${{ steps.ctx.outputs.title }}
+          body: ${{ steps.ctx.outputs.body }}
+          labels: incident, sev1

@@ -49,7 +49,7 @@ class AppEnv {
   static String get envName => _provider.read('ENV_NAME');
 
   /// Default role for this app instance (owner_operator or fleet_manager)
-  static String get defaultRole => const String.fromEnvironment('DEFAULT_ROLE', defaultValue: '');
+  static String get defaultRole => const String.fromEnvironment('DEFAULT_ROLE');
 
   // Emit a single deprecation warning when legacy is used.
   static void maybeWarnLegacy() {

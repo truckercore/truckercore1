@@ -1,0 +1,55 @@
+name: SECDEF Manifest Snapshot
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 5 * * 1' # Mondays 05:00 UTC
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql & jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Snapshot SECDEF manifest
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "No SUPABASE_DB_URL configured; skipping SECDEF manifest snapshot."; exit 0; fi
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "select public.snapshot_secdef_manifest();"
+          # Export latest manifest
+          mkdir -p secdef
+          psql "$SUPABASE_DB_URL" -At -c "copy (select * from public.secdef_fn_manifest_latest) to stdout with csv header" > secdef/secdef_manifest_latest.csv
+
+      - name: Download previous baseline (if any)
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
+        with:
+          workflow: secdef_manifest_snapshot.yml
+          branch: main
+          workflow_conclusion: success
+          name: secdef-latest
+          path: .baseline
+
+      - name: Diff vs previous
+        run: |
+          if [ -f .baseline/secdef_manifest_latest.csv ]; then
+            diff -u .baseline/secdef_manifest_latest.csv secdef/secdef_manifest_latest.csv || true
+          else
+            echo "No previous baseline available."
+          fi
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: secdef-latest
+          path: secdef/

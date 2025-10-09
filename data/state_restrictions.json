@@ -1,0 +1,54 @@
+{
+  "NH": {
+    "lowClearances": [
+      "US 1 Bypass — Portsmouth → 11’10”",
+      "US 3 — Plymouth → 11’9”",
+      "NH 85 — Exeter → 11’0”",
+      "NH 110A — Milan → 13’0”",
+      "NH 119 — Hinsdale, 7.3 mi. north, Connecticut River bridge → 11’10”",
+      "NH 175 — Woodstock, over Pemigewasset River → 12’5”"
+    ],
+    "weighStations": [
+      "I-89 NB, SB — Lebanon, west of exit 18",
+      "I-93 NB, SB — Windham, between exit 3 and 4",
+      "NH 101 EB, WB — Epping, east of NH 125"
+    ],
+    "restrictedRoutes": [
+      "US 1 — Portsmouth, over Piscataqua River",
+      "NH 1B — NH 1A to New Castle",
+      "NH 27 — NH 101 to Hampton",
+      "NH 103B — Mount Sunapee to Sunapee",
+      "NH 109 — Melvin Village to NH 25",
+      "NH 109 — Moultonboro to Center Sandwich",
+      "NH 113A — NH 113 (North Sandwich) to NH 113 (Tamworth)",
+      "NH 123A — NH 123 to NH 10",
+      "NH 142 — US 3 to Liscott",
+      "NH 171 — NH 109 to Tuftonboro"
+    ]
+  },
+  "NJ": {
+    "lowClearances": [
+      "NJ 4 — Englewood, Jones Rd. overpass, mm 9.62 → 13’1”",
+      "NJ 30 — Camden, Baird Blvd. overpass, mm 2.49 → 13’2”",
+      "NJ 53 — Denville, mm 4.2 → 12’10”",
+      "NJ 73 — Berlin, just north of US 30 → 13’3”",
+      "NJ 49 — Bridgeton, north of NJ 49 → 12’10”",
+      "I-80 WB — Knowlton, Decatur St. overpass, mm 4.2 → 13’6”",
+      "NJ 94 — Hainesburg, Scranton Branch overpass, mm 2.20 → 13’6”",
+      "NJ 124 — Madison, under RR tracks → 12’9”",
+      "NJ 130 — Brooklawn (south of Gloucester City), mm 25.61 → 13’0”",
+      "NJ 439 — Elizabeth, mm 1.93 → 10’7”",
+      "NJ 495 — Union City, Hudson Av. overpass, mm 1.85 → 13’6”"
+    ],
+    "weighStations": [
+      "I-78 — Greenwich Township",
+      "I-80 — Allamuchy",
+      "I-287 — Mahwah"
+    ],
+    "restrictedRoutes": [
+      "US 1 — Trenton bridge",
+      "US 1/9 (Pulaski Skyway) — I-95 to Jersey City",
+      "Garden State Pkwy — Trucks not permitted"
+    ]
+  }
+}

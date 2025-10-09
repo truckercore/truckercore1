@@ -1,0 +1,50 @@
+{
+  "title": "Promotion & Rollouts",
+  "time": { "from": "now-6h", "to": "now" },
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "id": 101,
+      "type": "table",
+      "title": "AI Rollout Status",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "datasource": { "type": "postgres", "uid": "POSTGRES_DS" },
+          "rawSql": "select model_key, strategy, active, candidate, canary_pct, age from public.ai_rollout_status order by model_key",
+          "intervalMs": 60000
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "canary_pct" }, "properties": [{ "id": "custom.align", "value": "right" }] }
+        ]
+      }
+    },
+    {
+      "id": 102,
+      "type": "timeseries",
+      "title": "Promotion p95 (ms)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "options": { "legend": { "showLegend": true, "placement": "bottom" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "promoctl_promote_p95_ms",
+          "datasource": { "type": "prometheus", "uid": "PROM_DS" }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green" }, { "color": "red", "value": 800 } ] },
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+name: Governance Task
+description: Track governance and hardening items
+title: "[Gov] "
+labels: ["governance", "hardening"]
+body:
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Areas
+      options:
+        - label: RLS coverage verified
+        - label: Observability (metrics, alerts) added
+        - label: Integration tests added/updated
+        - label: Pagination/perf strategy reviewed
+        - label: Docs/runbooks updated
+        - label: Dependency/deprecation review
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      placeholder: What changed, risks, and next steps

@@ -54,21 +54,21 @@ class MultiFleetDashboard extends ConsumerWidget {
               onRefresh: () async {
                 await Future.delayed(const Duration(seconds: 1));
               },
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+              child: const SingleChildScrollView(
+                padding: EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Overview',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 16),
-                    const _MetricsGrid(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 16),
+                    _MetricsGrid(),
+                    SizedBox(height: 32),
                     
                     Row(
-                      children: const [
+                      children: [
                         Expanded(
                           flex: 2,
                           child: Column(
@@ -99,14 +99,14 @@ class MultiFleetDashboard extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     
-                    const Text(
+                    Text(
                       'Recent Activity',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 12),
-                    const _RecentActivityTable(),
+                    SizedBox(height: 12),
+                    _RecentActivityTable(),
                   ],
                 ),
               ),

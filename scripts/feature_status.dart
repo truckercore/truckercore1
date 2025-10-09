@@ -1,4 +1,5 @@
 /// Run with: dart run scripts/feature_status.dart
+library;
 import 'dart:io';
 
 void main() {

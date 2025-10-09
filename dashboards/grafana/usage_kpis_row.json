@@ -1,0 +1,25 @@
+{
+  "title": "Usage KPIs",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Units MTD",
+      "targets": [{ "format": "table", "rawSql": "select units_mtd from v_usage_kpis" }]
+    },
+    {
+      "type": "stat",
+      "title": "Active Orgs MTD",
+      "targets": [{ "format": "table", "rawSql": "select active_orgs_mtd from v_usage_kpis" }]
+    },
+    {
+      "type": "stat",
+      "title": "Sync Drift (open)",
+      "targets": [{ "format": "table", "rawSql": "select sync_drift_open from v_usage_kpis" }]
+    },
+    {
+      "type": "stat",
+      "title": "Anomalies (open)",
+      "targets": [{ "format": "table", "rawSql": "select anomalies_open from v_usage_kpis" }]
+    }
+  ]
+}

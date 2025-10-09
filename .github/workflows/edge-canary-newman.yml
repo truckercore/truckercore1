@@ -1,0 +1,47 @@
+name: Edge Canary Newman
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure newman output dir exists
+        run: mkdir -p newman
+
+      - name: Run Newman (Edge Canary)
+        env:
+          # Optional: allow overriding via repository/organization secrets
+          POSTMAN_SIGNING_SECRET: ${{ secrets.POSTMAN_SIGNING_SECRET }}
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          # Inject signing_secret into environment file at runtime if provided
+          if [ -n "$POSTMAN_SIGNING_SECRET" ]; then
+            tmp_env=./docs/postman/truckercore-stage.postman_environment.runtime.json
+            node -e "const fs=require('fs');const env=JSON.parse(fs.readFileSync('./docs/postman/truckercore-stage.postman_environment.json','utf8'));const has=env.values.find(v=>v.key==='signing_secret'); if(has){has.value=process.env.POSTMAN_SIGNING_SECRET;} else {env.values.push({key:'signing_secret',value:process.env.POSTMAN_SIGNING_SECRET,enabled:true});} fs.writeFileSync(tmp_env,JSON.stringify(env,null,2)); console.log('Injected signing_secret into env');";
+            ENV_FILE=./docs/postman/truckercore-stage.postman_environment.runtime.json
+          else
+            ENV_FILE=./docs/postman/truckercore-stage.postman_environment.json
+          fi
+          npx newman run ./docs/postman/truckercore-canary-edge-functions.postman_collection.json -e "$ENV_FILE" --reporters cli,htmlextra --reporter-htmlextra-export ./newman/edge-canary.html
+
+      - name: Upload Newman HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-canary-newman-report
+          path: newman/edge-canary.html
+          if-no-files-found: error

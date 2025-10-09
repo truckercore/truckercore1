@@ -4,7 +4,7 @@
  * Validates environment, dependencies, and readiness
  */
 
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { execSync } from 'child_process';
 
 const GREEN = '\x1b[32m';
@@ -55,7 +55,7 @@ function cmd(command) {
   try {
     execSync(command, { stdio: 'pipe', encoding: 'utf-8' });
     return true;
-  } catch (_err) {
+  } catch (err) {
     throw new Error(`Command failed: ${command}`);
   }
 }
@@ -108,7 +108,7 @@ check('Dependencies up to date', () => {
   try {
     execSync('npm outdated --json', { stdio: 'pipe' });
     return true;
-  } catch (_err) {
+  } catch (err) {
     // npm outdated exits with 1 if outdated packages exist
     return 'Some packages outdated (non-critical)';
   }
@@ -154,14 +154,14 @@ section('Files & Structure');
 
 const requiredFiles = [
   'package.json',
-  'apps/web/src/app/page.tsx',
-  'apps/web/src/app/layout.tsx',
+  'pages/index.tsx',
+  'pages/_app.tsx',
   'supabase/migrations/20250928_refresh_safety_summary.sql',
   'supabase/functions/refresh-safety-summary/index.ts',
-  'apps/web/src/components/safety/SafetySummaryCard.tsx',
-  'apps/web/src/components/exports/ExportAlertsCSVButton.tsx',
-  'apps/web/src/components/TopRiskCorridors.tsx',
-  'apps/web/src/app/api/exports/alerts/route.ts'
+  'components/SafetySummaryCard.tsx',
+  'components/ExportAlertsCSVButton.tsx',
+  'components/TopRiskCorridors.tsx',
+  'pages/api/export-alerts.csv.ts'
 ];
 
 requiredFiles.forEach(file => {
@@ -191,11 +191,11 @@ requiredDocs.forEach(doc => {
 section('Assets');
 
 const assets = [
-  { file: 'apps/web/public/favicon.ico', critical: false },
-  { file: 'apps/web/public/og-image.png', critical: false },
-  { file: 'apps/web/public/apple-touch-icon.png', critical: false },
-  { file: 'apps/web/public/manifest.json', critical: true },
-  { file: 'apps/web/public/robots.txt', critical: true }
+  { file: 'public/favicon.ico', critical: false },
+  { file: 'public/og-image.png', critical: false },
+  { file: 'public/apple-touch-icon.png', critical: false },
+  { file: 'public/manifest.json', critical: true },
+  { file: 'public/robots.txt', critical: true }
 ];
 
 assets.forEach(({ file, critical }) => {
@@ -225,7 +225,7 @@ check('No uncommitted changes', () => {
     if (status.trim()) {
       return 'Uncommitted changes exist (commit before deploy)';
     }
-  } catch (_err) {
+  } catch (err) {
     throw new Error('Cannot check git status');
   }
 });
@@ -236,7 +236,7 @@ check('On main/master branch', () => {
     if (branch !== 'main' && branch !== 'master') {
       return `On branch '${branch}' (deploy from main recommended)`;
     }
-  } catch (_err) {
+  } catch (err) {
     return 'Cannot determine branch';
   }
 });
@@ -249,13 +249,13 @@ check('Next.js builds successfully', () => {
   try {
     execSync('npm run build', { stdio: 'pipe' });
     return true;
-  } catch (_err) {
+  } catch (err) {
     throw new Error('Build failed - check logs');
   }
 }, true);
 
 check('Build output exists', () => {
-  if (!existsSync('.next') && !existsSync('apps/web/.next')) {
+  if (!existsSync('.next')) {
     throw new Error('No .next directory after build');
   }
 }, true);
@@ -270,7 +270,7 @@ check('No secrets in Git history', () => {
       throw new Error('Potential secrets found in Git history!');
     }
   } catch (err) {
-    if (String(err.message).includes('Potential secrets')) {
+    if (err.message.includes('Potential secrets')) {
       throw err;
     }
     return 'Cannot check (acceptable)';
@@ -292,7 +292,7 @@ check('npm audit (critical vulnerabilities)', () => {
   try {
     execSync('npm audit --audit-level=critical --json', { stdio: 'pipe' });
     return true;
-  } catch (_err) {
+  } catch (err) {
     return 'Critical vulnerabilities found - run: npm audit fix';
   }
 });

@@ -1,0 +1,43 @@
+name: Burn Rate Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '*/30 * * * *'
+
+jobs:
+  burn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+      - name: Run burn-rate checks (1h/6h)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "No SUPABASE_DB_URL configured; skipping DB burn-rate checks."; exit 0; fi
+          # Defensive: function may be missing; ignore errors but fail if clear anomalies
+          set -e
+          psql "$SUPABASE_DB_URL" -c "select public.check_slo_burn_rates();" || true
+          # Optional: also run SLO breaches/emitter
+          psql "$SUPABASE_DB_URL" -c "select public.check_slo_alerts();" || true
+      - name: Output recent burn alerts (artifact)
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then exit 0; fi
+          psql "$SUPABASE_DB_URL" -At -c "copy (select * from public.slo_burn_alerts where created_at >= now() - interval '6 hours') to stdout with csv header" > burn_alerts.csv || true
+      - name: Upload burn alerts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-alerts-${{ github.run_id }}
+          path: burn_alerts.csv

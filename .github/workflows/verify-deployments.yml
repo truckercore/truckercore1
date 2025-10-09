@@ -1,0 +1,70 @@
+name: Verify Deployments
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Run every hour
+  workflow_dispatch: {}
+
+jobs:
+  verify-homepage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Homepage
+        run: npm run verify:homepage:prod
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Homepage Verification Failed',
+              body: `Automated verification detected homepage is down or failing.\n\n**Workflow**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n**Ref**: ${context.sha}`,
+              labels: ['bug', 'urgent', 'ops']
+            });
+
+  verify-safety-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Safety Suite
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run verify:safety-suite:full
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Safety Suite Verification Failed',
+              body: `Automated verification detected Safety Suite is failing.\n\n**Workflow**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n**Ref**: ${context.sha}`,
+              labels: ['bug', 'urgent', 'ops']
+            });

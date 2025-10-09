@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:supercluster/supercluster.dart';
 
 import '../providers/vehicles_provider.dart';
 
@@ -14,13 +13,10 @@ class OptimizedFleetMap extends ConsumerStatefulWidget {
 }
 
 class _OptimizedFleetMapState extends ConsumerState<OptimizedFleetMap> {
-  MapLibreMapController? _mapController;
-  Supercluster? _cluster;
+  late MapLibreMapController _mapController;
   final Set<Symbol> _symbols = {};
+  final List<Map<String, dynamic>> _points = [];
 
-  static const _clusterRadius = 60;
-  static const _minZoom = 0;
-  static const _maxZoom = 16;
 
   @override
   void initState() {
@@ -29,19 +25,11 @@ class _OptimizedFleetMapState extends ConsumerState<OptimizedFleetMap> {
   }
 
   void _initializeCluster() {
-    _cluster = Supercluster(
-      radius: _clusterRadius,
-      minZoom: _minZoom,
-      maxZoom: _maxZoom,
-      extent: 512,
-      nodeSize: 64,
-    );
+    // no-op: clustering disabled for now
   }
 
   Future<void> _onMapCreated(MapLibreMapController controller) async {
     _mapController = controller;
-    controller.onCameraIdle = _updateVisibleMarkers;
-
     await _loadInitialData();
   }
 
@@ -49,71 +37,51 @@ class _OptimizedFleetMapState extends ConsumerState<OptimizedFleetMap> {
     final vehicles = await ref.read(allVehiclesProvider.future);
 
     // Convert to GeoJSON points
-    final points = vehicles.map((v) => <String, dynamic>{
-          'type': 'Feature',
-          'properties': {
-            'id': v.id,
-            'status': v.status,
-            'driver': v.currentDriver,
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [v.longitude, v.latitude],
-          },
-        }).toList();
+    _points
+      ..clear()
+      ..addAll(vehicles.map((v) => <String, dynamic>{
+            'type': 'Feature',
+            'properties': {
+              'id': v.id,
+              'status': v.status,
+              'driver': v.currentDriver,
+            },
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [v.longitude, v.latitude],
+            },
+          }));
 
-    _cluster!.load(points);
     await _updateVisibleMarkers();
   }
 
   Future<void> _updateVisibleMarkers() async {
-    if (_mapController == null || _cluster == null) return;
-
-    final bounds = await _mapController!.getVisibleRegion();
-    final zoom = (await _mapController!.getCameraPosition()).zoom.toInt();
-
-    final bbox = [
-      bounds.southwest.longitude,
-      bounds.southwest.latitude,
-      bounds.northeast.longitude,
-      bounds.northeast.latitude,
-    ];
-
-    final clusters = _cluster!.getClusters(bbox, zoom);
+    final bounds = await _mapController.getVisibleRegion();
 
     // Clear old symbols (remove in batches to avoid blocking UI)
     for (final symbol in _symbols) {
       try {
-        await _mapController!.removeSymbol(symbol);
+        await _mapController.removeSymbol(symbol);
       } catch (_) {
         // ignore errors on removal
       }
     }
     _symbols.clear();
 
-    for (final cluster in clusters) {
-      final props = cluster['properties'] as Map<String, dynamic>;
-      final coords = (cluster['geometry']['coordinates'] as List).cast<num>();
-      final isCluster = props.containsKey('cluster');
-
-      if (isCluster) {
-        final count = (props['point_count'] as num).toInt();
-        final symbol = await _mapController!.addSymbol(
-          SymbolOptions(
-            geometry: LatLng(coords[1].toDouble(), coords[0].toDouble()),
-            iconImage: 'cluster-icon', // Ensure sprite exists in style
-            iconSize: _getClusterSize(count),
-            textField: count.toString(),
-            textSize: 12,
-            textColor: '#ffffff',
-          ),
-        );
-        _symbols.add(symbol);
-      } else {
+    // Filter points within current bounds and render markers
+    for (final feature in _points) {
+      final coords = (feature['geometry']['coordinates'] as List).cast<num>();
+      final lon = coords[0].toDouble();
+      final lat = coords[1].toDouble();
+      if (lon >= bounds.southwest.longitude &&
+          lon <= bounds.northeast.longitude &&
+          lat >= bounds.southwest.latitude &&
+          lat <= bounds.northeast.latitude) {
+        final props = (feature['properties'] as Map<String, dynamic>);
         final status = props['status'] as String?;
-        final symbol = await _mapController!.addSymbol(
+        final symbol = await _mapController.addSymbol(
           SymbolOptions(
-            geometry: LatLng(coords[1].toDouble(), coords[0].toDouble()),
+            geometry: LatLng(lat, lon),
             iconImage: _getVehicleIcon(status),
             iconSize: 1.0,
           ),
@@ -151,15 +119,16 @@ class _OptimizedFleetMapState extends ConsumerState<OptimizedFleetMap> {
         target: LatLng(39.8283, -98.5795), // Center of US
         zoom: 4,
       ),
-      styleString: 'https://demotiles.maplibre.org/style.json',
-      myLocationEnabled: false,
       trackCameraPosition: true,
+      onCameraIdle: () async {
+        await _updateVisibleMarkers();
+      },
     );
   }
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 }

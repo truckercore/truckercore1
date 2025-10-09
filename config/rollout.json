@@ -1,0 +1,37 @@
+{
+  "environments": {
+    "stage": {
+      "baseUrl": "https://stage.example.com",
+      "ingestUrl": "https://stage.example.com/ingest",
+      "metricsUrl": "https://stage.example.com/metrics",
+      "miniaggUrl": "https://stage.example.com/miniagg",
+      "dashboards": {
+        "overview": "https://grafana.example.com/d/ingest-geofence-miniagg",
+        "alerts": "https://grafana.example.com/d/alerts"
+      },
+      "store": {
+        "iosTestFlight": "https://appstoreconnect.apple.com/apps/testflight/stage-link",
+        "androidInternal": "https://play.google.com/console/internal/stage-link"
+      }
+    },
+    "prod": {
+      "baseUrl": "https://app.example.com",
+      "ingestUrl": "https://app.example.com/ingest",
+      "metricsUrl": "https://app.example.com/metrics",
+      "miniaggUrl": "https://app.example.com/miniagg",
+      "dashboards": {
+        "overview": "https://grafana.example.com/d/ingest-geofence-miniagg-prod",
+        "alerts": "https://grafana.example.com/d/alerts-prod"
+      },
+      "store": {
+        "iosTestFlight": "",
+        "androidInternal": ""
+      }
+    }
+  },
+  "slos": {
+    "freshnessMaxSeconds": 120,
+    "readP95MaxMs": 150,
+    "ingestEvalP95MaxMs": 10
+  }
+}

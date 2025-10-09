@@ -1,0 +1,50 @@
+name: Flutter Desktop CI
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  flutter-desktop:
+    name: Build Flutter Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Enable desktop targets
+        run: flutter config --enable-macos-desktop --enable-windows-desktop --enable-linux-desktop
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: flutter build linux --release
+
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: flutter build windows --release
+
+      - name: Build macOS
+        if: matrix.os == 'macos-latest'
+        run: flutter build macos --release

@@ -1,0 +1,37 @@
+groups:
+- name: webhook-slo
+  rules:
+  - alert: WebhookVerifyInvalidSpike
+    expr: sum(rate(webhook_verify_total{result="invalid"}[5m])) by (endpoint) > 0.1
+    for: 5m
+    labels:
+      severity: P1
+    annotations:
+      summary: "Spike in invalid webhook signatures"
+      description: "Invalid signature rate >0.1/s for 5m on endpoint {{ $labels.endpoint }}"
+  - alert: WebhookVerifySkewSpike
+    expr: sum(rate(webhook_verify_total{result="skew"}[5m])) by (endpoint) > 0.05
+    for: 5m
+    labels:
+      severity: P2
+    annotations:
+      summary: "Spike in webhook timestamp skew"
+      description: "Skew rejections >0.05/s for 5m on endpoint {{ $labels.endpoint }}"
+  - alert: WebhookReplayOrIdempotentIncrease
+    expr: sum(rate(webhook_verify_total{result=~"replay|idempotent_duplicate"}[10m])) by (endpoint) > 0.01
+    for: 10m
+    labels:
+      severity: P2
+    annotations:
+      summary: "Replay/idempotent duplicates increasing"
+      description: "Replay or idempotent duplicates >0.01/s over 10m on endpoint {{ $labels.endpoint }}"
+  - record: job:webhook_verify_duration_seconds:p95
+    expr: histogram_quantile(0.95, sum(rate(webhook_verify_duration_seconds_bucket[5m])) by (le, endpoint))
+  - alert: WebhookVerifyLatencyHighP95
+    expr: job:webhook_verify_duration_seconds:p95 > 0.5
+    for: 10m
+    labels:
+      severity: P2
+    annotations:
+      summary: "Webhook verify latency P95 high"
+      description: "P95 verification duration > 500ms for 10m on endpoint {{ $labels.endpoint }}" 

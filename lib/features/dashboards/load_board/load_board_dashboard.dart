@@ -9,7 +9,6 @@ class LoadBoardDashboard extends BaseDashboard {
             id: 'load_board',
             title: 'Load Board Dashboard',
             defaultSize: Size(1400, 800),
-            allowResize: true,
           ),
         );
 

@@ -1,0 +1,11 @@
+{
+  "Attributes": {
+    "Email": ["alice@example.com"],
+    "Groups": ["TC-Corp-Admins", "TC-Dispatch"],
+    "Name": ["Alice Doe"]
+  },
+  "NameID": "alice@example.com",
+  "Issuer": "http://www.okta.com/exk123",
+  "Audience": "urn:truckercore:sp",
+  "Recipient": "https://your.app/saml/{orgId}/acs"
+}

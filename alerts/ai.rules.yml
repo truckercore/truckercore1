@@ -1,0 +1,20 @@
+groups:
+- name: ai
+  rules:
+  - alert: AIPredictionLatencyHigh
+    expr: avg_over_time(ai_prediction_latency_p95_ms[15m]) > 1200
+    for: 10m
+    labels: { severity: page }
+    annotations: { summary: "ETA p95 > 1.2s for 10m" }
+
+  - alert: AIDriftHigh
+    expr: avg_over_time(ai_drift_psi[24h]) > 0.25
+    for: 1h
+    labels: { severity: warn }
+    annotations: { summary: "PSI > 0.25 over 24h" }
+
+  - alert: AIBiasRegressed
+    expr: ai_bias_mae_gap > 5
+    for: 2h
+    labels: { severity: warn }
+    annotations: { summary: "MAE group gap >5 minutes" }

@@ -1,11 +1,12 @@
-import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/dashboards/base_dashboard.dart';
+import '../services/dashboard_export.dart';
 
 // Minimal vehicle model and provider to keep this dashboard self-contained.
 class VehicleLocation {
@@ -38,6 +39,73 @@ final liveTrackingVehiclesProvider = Provider<List<Vehicle>>((ref) {
   return const <Vehicle>[];
 });
 
+/// Mock vehicle count for demo/testing; can be overridden via ProviderScope overrides (e.g., from DashboardEntry window args).
+final mockVehicleCountProvider = Provider<int>((ref) => 10);
+
+// Stream provider emitting real-time vehicle updates.
+// By default, if no data is injected via liveTrackingVehiclesProvider, it emits a mock moving fleet.
+final liveTrackingVehiclesStreamProvider = StreamProvider<List<Vehicle>>((ref) async* {
+  var tick = 0;
+  while (true) {
+    await Future.delayed(const Duration(seconds: 1));
+    final injected = ref.read(liveTrackingVehiclesProvider);
+    if (injected.isNotEmpty) {
+      // If the app overrides the static provider with data, just stream that as-is
+      yield injected;
+    } else {
+      final count = ref.read(mockVehicleCountProvider);
+      yield _mockVehicles(tick, count: count);
+    }
+    tick++;
+  }
+});
+
+List<Vehicle> _mockVehicles(int tick, {int count = 10}) {
+  // Procedurally generate a moving fleet across the continental US.
+  // Positions are deterministic per index; movement is a slow drift over time.
+  final t = tick.toDouble();
+  const usaCenterLat = 39.8283;
+  const usaCenterLon = -98.5795;
+
+  Color statusColor(String s) => Colors.grey; // unused but placeholder
+
+  String statusFor(int i, int tick) {
+    const sts = ['active', 'idle', 'active', 'maintenance', 'active', 'offline'];
+    return sts[(i + (tick ~/ 60)) % sts.length];
+  }
+
+  double mphFor(int i) {
+    const base = [62.0, 0.0, 55.0, 0.0, 48.0, 0.0];
+    return base[i % base.length];
+  }
+
+  // Distribute vehicles in concentric rings around USA center
+  final list = <Vehicle>[];
+  final n = count.clamp(1, 1000);
+  for (var i = 0; i < n; i++) {
+    final angle = (i / n) * 2 * math.pi;
+    final ring = 5 + (i % 5) * 4; // degrees spread radius 5..21
+    final baseLat = usaCenterLat + ring * 0.1 * math.sin(angle);
+    final baseLon = usaCenterLon + ring * 0.1 * math.cos(angle);
+    // Gentle drift
+    final lat = baseLat + 0.02 * math.sin(t / 30.0 + i * 0.1);
+    final lon = baseLon + 0.02 * math.cos(t / 30.0 + i * 0.07);
+    final unit = 'TC${100 + i}';
+    final id = 'veh_${i + 1}';
+    list.add(
+      Vehicle(
+        id: id,
+        unitNumber: unit,
+        status: statusFor(i, tick),
+        speed: mphFor(i),
+        driverName: 'Driver ${unit.substring(0, unit.length >= 2 ? 2 : 1)}',
+        location: VehicleLocation(latitude: lat, longitude: lon),
+      ),
+    );
+  }
+  return list;
+}
+
 class LiveTrackingDashboard extends BaseDashboard {
   const LiveTrackingDashboard({super.key})
       : super(
@@ -45,7 +113,6 @@ class LiveTrackingDashboard extends BaseDashboard {
             id: 'live_tracking',
             title: 'Live Fleet Tracking',
             defaultSize: Size(1920, 1080),
-            allowResize: true,
           ),
         );
 
@@ -54,9 +121,22 @@ class LiveTrackingDashboard extends BaseDashboard {
 
   @override
   Widget buildDashboard(BuildContext context, WidgetRef ref) {
-    final vehicles = ref.watch(liveTrackingVehiclesProvider);
+    final vehiclesAsync = ref.watch(liveTrackingVehiclesStreamProvider);
 
-    return _LiveTrackingContent(vehicles: vehicles);
+    return vehiclesAsync.when(
+      data: (vehicles) => _LiveTrackingContent(vehicles: vehicles),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text('Error loading tracking data', style: TextStyle(fontSize: 18, color: Colors.red[300])),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -135,6 +215,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
             },
           ),
           const SizedBox(width: 16),
+          IconButton(icon: const Icon(Icons.download), onPressed: _exportVehicles, tooltip: 'Export to CSV'),
           IconButton(icon: const Icon(Icons.refresh), onPressed: () => setState(() {}), tooltip: 'Refresh'),
           IconButton(icon: const Icon(Icons.center_focus_strong), onPressed: _centerOnVehicles, tooltip: 'Center on Fleet'),
         ],
@@ -155,21 +236,21 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(mainAxisSize: MainAxisSize.min, children: const [
+            const Row(mainAxisSize: MainAxisSize.min, children: [
               _Dot(color: Colors.green),
               SizedBox(width: 8),
               Text('Active:', style: TextStyle(fontWeight: FontWeight.w500)),
             ]),
             Text('$activeCount'),
             const SizedBox(height: 8),
-            Row(mainAxisSize: MainAxisSize.min, children: const [
+            const Row(mainAxisSize: MainAxisSize.min, children: [
               _Dot(color: Colors.orange),
               SizedBox(width: 8),
               Text('Idle:', style: TextStyle(fontWeight: FontWeight.w500)),
             ]),
             Text('$idleCount'),
             const SizedBox(height: 8),
-            Row(mainAxisSize: MainAxisSize.min, children: const [
+            const Row(mainAxisSize: MainAxisSize.min, children: [
               _Dot(color: Colors.red),
               SizedBox(width: 8),
               Text('Offline:', style: TextStyle(fontWeight: FontWeight.w500)),
@@ -184,7 +265,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
   Widget _buildVehicleSidebar() {
     return Card(
       margin: EdgeInsets.zero,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      shape: const RoundedRectangleBorder(),
       child: Column(
         children: [
           Container(
@@ -219,7 +300,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
                   ]),
                   trailing: vehicle.speed != null
                       ? Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                          Text('${vehicle.speed!.toStringAsFixed(0)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text(vehicle.speed!.toStringAsFixed(0), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                           Text('mph', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                         ])
                       : Text('--', style: TextStyle(color: Colors.grey[600])),
@@ -325,6 +406,22 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
 
   void _centerOnVehicles() {
     _mapController.move(_getInitialCenter(), 5.0);
+  }
+
+  Future<void> _exportVehicles() async {
+    try {
+      final csv = await generateCSV(widget.vehicles);
+      final path = await saveToDisk('fleet_overview', csv);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported CSV to: $path')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Color _getStatusColor(String status) {

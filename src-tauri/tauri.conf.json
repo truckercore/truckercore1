@@ -1,68 +1,58 @@
 {
-  "package": { "productName": "TruckerCore", "version": "1.0.0" },
+  "package": {
+    "productName": "TruckerCore",
+    "version": "1.2.3"
+  },
   "tauri": {
     "bundle": {
-      "identifier": "com.truckercore.desktop",
-      "targets": ["msi", "dmg", "deb", "rpm", "appimage"],
-      "active": true,
-      "icon": ["icons/icon.png"],
-      "resources": [],
+      "targets": ["msi", "msix", "dmg", "app", "deb", "rpm"],
+      "identifier": "com.truckercore.app",
+      "publisher": "TruckerCore, Inc.",
+      "icon": [
+        "src-tauri/icons/32x32.png",
+        "src-tauri/icons/128x128.png",
+        "src-tauri/icons/128x128@2x.png",
+        "src-tauri/icons/icon.icns",
+        "src-tauri/icons/icon.ico"
+      ],
       "windows": {
-        "wix": {
-          "language": ["en-US"],
-          "template": "wix/extra-shortcuts.wxs",
-          "fragmentPaths": [],
-          "enable_elevated_update_task": true
-        },
-        "certificateThumbprint": "",
+        "certificateThumbprint": "${TAURI_WIN_CERT_THUMBPRINT}",
         "digestAlgorithm": "sha256",
         "timestampUrl": "http://timestamp.digicert.com"
       },
       "macOS": {
-        "category": "public.app-category.business",
-        "exceptionDomain": ["app.truckercore.com", "api.truckercore.com", "updates.truckercore.com"],
-        "signingIdentity": "Developer ID Application: Your Legal Company (TEAMID)",
-        "minimumSystemVersion": "10.15",
-        "providerShortName": "TEAMID"
-      },
-      "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libayatana-appindicator3-1", "libssl3"]
-      },
-      "rpm": { "depends": ["webkit2gtk4.1", "gtk3"] },
-      "fileAssociations": [
-        { "ext": ["tcore"], "name": "TruckerCore Bundle", "mimeType": "application/x-truckercore" }
-      ]
+        "entitlements": "src-tauri/entitlements.plist",
+        "exceptionDomain": "app.truckercore.com"
+      }
     },
-    "allowlist": {
-      "all": false,
-      "http": { "all": false, "request": true },
-      "dialog": { "open": true },
-      "updater": { "all": true },
-      "clipboard": { "writeText": true }
-    },
-    "windows": [
-      { "title": "TruckerCore", "width": 1280, "height": 800, "resizable": true, "fullscreen": false }
-    ],
     "updater": {
       "active": true,
-      "endpoints": ["https://updates.truckercore.com/desktop/{{target}}/{{current_version}}.json"],
       "dialog": true,
-      "pubkey": "YOUR_TAURI_UPDATER_PUBLIC_KEY"
+      "endpoints": [
+        "https://downloads.truckercore.com/stable/latest.json"
+      ],
+      "pubkey": "${TAURI_UPDATER_PUBKEY}"
     },
     "security": {
-      "csp": null,
-      "dangerousRemoteDomainIpcAccess": [
-        { "domain": "app.truckercore.com", "windows": ["*"] },
-        { "domain": "api.truckercore.com", "windows": ["*"] },
-        { "domain": "updates.truckercore.com", "windows": ["*"] }
-      ]
+      "csp": "default-src 'self' https://app.truckercore.com https://downloads.truckercore.com; img-src 'self' https://app.truckercore.com data: blob:; media-src 'self' https://app.truckercore.com; connect-src 'self' https://app.truckercore.com https://downloads.truckercore.com wss://app.truckercore.com; style-src 'self' 'unsafe-inline' https://app.truckercore.com; font-src 'self' https://app.truckercore.com data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://app.truckercore.com"
     },
-    "systemTray": { "iconPath": "icons/icon.png" }
-  },
-  "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
-    "devPath": "https://app.truckercore.com/desktop/dev",
-    "distDir": "https://app.truckercore.com/desktop"
+    "allowlist": {
+      "updater": { "all": true },
+      "shell": { "all": false },
+      "dialog": { "all": true },
+      "window": { "all": true },
+      "event": { "all": true }
+    },
+    "windows": [
+      {
+        "title": "TruckerCore",
+        "label": "main",
+        "fullscreen": false,
+        "resizable": true,
+        "width": 1200,
+        "height": 800,
+        "url": "https://app.truckercore.com"
+      }
+    ]
   }
 }

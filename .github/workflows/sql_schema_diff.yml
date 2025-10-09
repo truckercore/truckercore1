@@ -1,0 +1,82 @@
+name: SQL Schema Diff
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  schema-diff:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pg
+        uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: 15
+
+      - name: Init DBs
+        env:
+          PGUSER: postgres
+        run: |
+          createdb baseline_db
+          createdb pr_db
+
+      - name: Apply baseline migrations
+        env:
+          PGDATABASE: baseline_db
+          PGUSER: postgres
+        run: |
+          set -e
+          for f in $(git ls-files '*.sql' | sort); do
+            echo "Applying $f to baseline_db"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply PR migrations
+        env:
+          PGDATABASE: pr_db
+          PGUSER: postgres
+        run: |
+          set -e
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -E '\\.sql$' || true)
+          if [ -n "$CHANGED" ]; then
+            for f in $CHANGED; do
+              echo "Applying changed SQL $f to pr_db"
+              psql -v ON_ERROR_STOP=1 -f "$f" || true
+            done
+          fi
+          # Fallback: apply all if DB looks empty
+          if [ "$(psql -At -U postgres -d pr_db -c "select count(*) from pg_class where relkind='r'")" = "0" ]; then
+            for f in $(git ls-files '*.sql' | sort); do
+              psql -v ON_ERROR_STOP=1 -U postgres -d pr_db -f "$f"
+            done
+          fi
+
+      - name: Dump schemas
+        run: |
+          pg_dump -U postgres -d baseline_db -s > .baseline_schema.sql
+          pg_dump -U postgres -d pr_db -s > .pr_schema.sql
+          sed -i 's/[[:space:]]\+/ /g' .baseline_schema.sql
+          sed -i 's/[[:space:]]\+/ /g' .pr_schema.sql
+
+      - name: Compute diff
+        run: |
+          diff -u .baseline_schema.sql .pr_schema.sql > .schema.diff || true
+          echo "Schema diff generated."
+
+      - name: Heuristic check for destructive changes
+        run: |
+          if grep -E '^-' .schema.diff | grep -E '(DROP TABLE|DROP COLUMN|ALTER TABLE .* DROP|DROP POLICY|DISABLE TRIGGER|ALTER TABLE .* DISABLE ROW LEVEL SECURITY)' -q; then
+            echo "::error::Potential destructive change detected in schema diff."
+            exit 1
+          fi
+
+      - name: Upload schema diff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-diff
+          path: .schema.diff

@@ -1,0 +1,18 @@
+name: Greenline Quarantine
+
+on:
+  workflow_run:
+    workflows: ["Greenline Checks"]
+    types: [completed]
+
+jobs:
+  quarantine:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quarantine affected feature (placeholder)
+        run: |
+          echo "Calling quarantine_feature for the failing object..."
+          echo "This is a placeholder step; wire it to your DB with psql or an API call."
+          # Example (commented):
+          # psql "$SUPABASE_DB_URL" -c "select public.quarantine_feature('failing_key','greenline leak detected by CI');"

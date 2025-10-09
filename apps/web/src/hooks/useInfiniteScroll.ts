@@ -6,13 +6,13 @@ const INFINITE_SCROLL = process.env.NEXT_PUBLIC_ENABLE_INFINITE_SCROLL === 'true
 export interface UseInfiniteScrollOptions<T> {
   fetchFn: (page: number, pageSize: number) => Promise<{ items: T[]; hasMore: boolean }>;
   pageSize?: number;
-  threshold?: number; // IntersectionObserver threshold (0..1)
+  threshold?: number; // 0..1
   enabled?: boolean;
 }
 
 export function useInfiniteScroll<T>({
   fetchFn,
-  pageSize = parseInt(process.env.NEXT_PUBLIC_INFINITE_SCROLL_PAGE_SIZE || '20', 10),
+  pageSize = 20,
   threshold = 0.8,
   enabled = INFINITE_SCROLL,
 }: UseInfiniteScrollOptions<T>) {
@@ -24,12 +24,15 @@ export function useInfiniteScroll<T>({
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const doLoadMore = useCallback(async () => {
+  const loadMore = useCallback(async () => {
     if (!enabled || isLoading || !hasMore) return;
+
     setIsLoading(true);
     setError(null);
+
     try {
       const result = await fetchFn(page, pageSize);
+
       setItems((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
       setPage((prev) => prev + 1);
@@ -38,20 +41,23 @@ export function useInfiniteScroll<T>({
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, isLoading, hasMore, fetchFn, page, pageSize]);
-
-  // Throttle loadMore to avoid spamming
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadMore = useCallback(throttle(doLoadMore, 500), [doLoadMore]);
+  }, [fetchFn, page, pageSize, isLoading, hasMore, enabled]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
     if (!enabled || !sentinelRef.current) return;
 
+    // Throttle callback to reduce calls under rapid intersection events
+    const throttledLoad = throttle(() => {
+      if (hasMore && !isLoading) {
+        void loadMore();
+      }
+    }, 250);
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          loadMore();
+        if (entries[0].isIntersecting) {
+          throttledLoad();
         }
       },
       { threshold }
@@ -60,16 +66,17 @@ export function useInfiniteScroll<T>({
     observerRef.current.observe(sentinelRef.current);
 
     return () => {
+      throttledLoad.cancel();
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, [enabled, hasMore, isLoading, threshold, loadMore]);
+  }, [loadMore, hasMore, isLoading, threshold, enabled]);
 
   // Load initial data
   useEffect(() => {
-    if (enabled && items.length === 0) {
-      doLoadMore();
+    if (enabled && items.length === 0 && hasMore && !isLoading) {
+      void loadMore();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
@@ -87,7 +94,7 @@ export function useInfiniteScroll<T>({
     isLoading,
     error,
     hasMore,
-    loadMore: doLoadMore,
+    loadMore,
     reset,
     sentinelRef,
   } as const;

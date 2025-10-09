@@ -14,9 +14,10 @@ const { execSync, spawnSync } = require('child_process');
 // Exit codes per spec
 const EXIT_CODES = {
   SUCCESS: 0,
+  WARNING: 0, // non-blocking warnings
   VALIDATION_FAILED: 1,
   CRITICAL_ERROR: 2,
-  CONFIGURATION_ERROR: 3,
+  CONFIG_ERROR: 3,
   DEPENDENCY_ERROR: 4,
 };
 
@@ -24,9 +25,41 @@ const args = process.argv.slice(2);
 const REPORT = args.includes('--report');
 const outputArg = args.find((a) => a.startsWith('--output='));
 const REPORT_FILE = outputArg ? outputArg.split('=')[1] : `validation-report-${new Date().toISOString().replace(/[:.]/g,'-')}.md`;
+const levelArg = (args.find(a=>a.startsWith('--level='))||'').split('=')[1] || 'default';
+const categoryArg = (args.find(a=>a.startsWith('--category='))||'').split('=')[1];
 
 const repoRoot = process.cwd();
 const webDir = path.join(repoRoot, 'apps', 'web');
+
+// Load optional config
+let userConfig = null;
+let configLoadError = null;
+const configPath = path.join(repoRoot, '.validation.config.js');
+if (fs.existsSync(configPath)) {
+  try {
+    userConfig = require(configPath);
+  } catch (e) {
+    configLoadError = e;
+  }
+}
+
+function isCategoryEnabled(category) {
+  // Category filter via CLI
+  if (categoryArg && category.toLowerCase() !== String(categoryArg).toLowerCase()) return false;
+  // Level filter
+  const level = levelArg.toLowerCase();
+  const levelMap = {
+    basic: ['environment','dependencies','configuration'],
+    comprehensive: ['environment','dependencies','configuration','security','performance','infrastructure','build','tests'],
+    'critical-only': ['environment','dependencies','security','infrastructure'],
+    default: ['environment','dependencies','infrastructure','build','tests']
+  };
+  const allowed = levelMap[level] || levelMap.default;
+  if (!allowed.includes(category)) return false;
+  // Config file
+  if (userConfig && userConfig.checks && userConfig.checks[category] && userConfig.checks[category].enabled === false) return false;
+  return true;
+}
 
 const validationChecks = {
   environment: [
@@ -59,6 +92,7 @@ const validationChecks = {
 const results = [];
 let failures = 0;
 let warnings = 0;
+let criticalErrors = 0;
 
 function logStatus(ok, label, details) {
   const status = ok ? 'PASS' : 'FAIL';
@@ -88,10 +122,22 @@ function execSafe(cmd, opts = {}) {
   }
 }
 
+// Handle configuration load issues
+let configErrorFlag = false;
+if (configLoadError) {
+  setCategory('configuration');
+  logStatus(false, 'Validation config parse', `Failed to load .validation.config.js: ${configLoadError.message}`);
+  configErrorFlag = true;
+}
+
 // 1) Environment
+if (isCategoryEnabled('environment')) {
 setCategory('environment');
 try {
-  const required = ['DATABASE_URL', 'NEXT_PUBLIC_WS_URL', 'NEXT_PUBLIC_MAP_STYLE_URL'];
+  let required = ['DATABASE_URL', 'NEXT_PUBLIC_WS_URL', 'NEXT_PUBLIC_MAP_STYLE_URL'];
+  if (userConfig && Array.isArray(userConfig.ignore)) {
+    required = required.filter(v => !userConfig.ignore.includes(v));
+  }
   const missing = required.filter((v) => !process.env[v]);
   logStatus(missing.length === 0, 'Required environment variables', missing.length ? `Missing: ${missing.join(', ')}` : 'All present');
 
@@ -105,8 +151,10 @@ try {
 } catch (e) {
   logStatus(false, 'Environment validation', e.message);
 }
+}
 
 // 2) Dependencies
+if (isCategoryEnabled('dependencies')) {
 setCategory('dependencies');
 try {
   const pkgPath = path.join(repoRoot, 'package.json');
@@ -132,8 +180,10 @@ try {
 } catch (e) {
   logStatus(false, 'Dependencies validation', e.message);
 }
+}
 
 // 3) Infrastructure
+if (isCategoryEnabled('infrastructure')) {
 setCategory('infrastructure');
 try {
   const dbUrl = process.env.DATABASE_URL || '';
@@ -161,8 +211,10 @@ try {
 } catch (e) {
   logStatus(false, 'Infrastructure validation', e.message);
 }
+}
 
 // 4) Build
+if (isCategoryEnabled('build')) {
 setCategory('build');
 try {
   const nextOut = path.join(webDir, '.next');
@@ -187,8 +239,10 @@ try {
 } catch (e) {
   logStatus(false, 'Build validation', e.message);
 }
+}
 
 // 5) Tests
+if (isCategoryEnabled('tests')) {
 setCategory('tests');
 try {
   // Prefer vitest if configured
@@ -220,6 +274,7 @@ try {
   logWarn('Code coverage thresholds', cov ? 'Coverage folder exists' : 'Coverage not generated');
 } catch (e) {
   logWarn('Tests', `Test checks encountered issues: ${e.message}`);
+}
 }
 
 // Render report
@@ -253,9 +308,14 @@ if (REPORT) {
   }
 }
 
-const exitCode = failures > 0 ? EXIT_CODES.VALIDATION_FAILED : EXIT_CODES.SUCCESS;
-if (failures > 0) {
-  console.error(`\n❌ Validation failed with ${failures} failures and ${warnings} warnings.`);
+let exitCode = EXIT_CODES.SUCCESS;
+if (configErrorFlag) {
+  exitCode = EXIT_CODES.CONFIG_ERROR;
+} else if (failures > 0) {
+  exitCode = EXIT_CODES.VALIDATION_FAILED;
+}
+if (exitCode !== EXIT_CODES.SUCCESS) {
+  console.error(`\n❌ Validation finished with ${failures} failures, ${warnings} warnings.${configErrorFlag ? ' (configuration error)' : ''}`);
   process.exit(exitCode);
 } else {
   console.log(`\n✅ Validation passed with ${warnings} warnings.`);

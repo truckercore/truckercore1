@@ -17,8 +17,8 @@ final driversLoadsProvider = StreamProvider<List<ActiveLoad>>((ref) {
       .from('loads')
       .stream(primaryKey: ['id'])
       .eq('driver_id', userId)
-      .order('created_at', ascending: false)
-      .map((data) => data.map((json) => ActiveLoad.fromJson(json as Map<String, dynamic>)).toList());
+      .order('created_at')
+      .map((data) => data.map((json) => ActiveLoad.fromJson(json)).toList());
 });
 
 class LoadsScreen extends ConsumerWidget {

@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/driver_status.dart';
+import '../../connectivity/connectivity_provider.dart';
 import '../models/active_load.dart';
+import '../models/driver_status.dart';
 import '../models/hos_summary.dart';
 import 'offline_storage_provider.dart';
-import '../../connectivity/connectivity_provider.dart';
 
 // Driver Status Provider with offline support
 final driverStatusProvider = StreamProvider<DriverStatus?>((ref) {
@@ -29,7 +29,7 @@ final driverStatusProvider = StreamProvider<DriverStatus?>((ref) {
       .eq('driver_id', userId)
       .map((data) {
         if (data.isEmpty) return null;
-        final status = DriverStatus.fromJson(data.first as Map<String, dynamic>);
+        final status = DriverStatus.fromJson(data.first);
         // Cache for offline use
         offlineStorage.saveDriverStatus(status);
         return status;
@@ -57,7 +57,7 @@ final activeLoadProvider = FutureProvider<ActiveLoad?>((ref) async {
         .eq('status', 'in_transit')
         .maybeSingle();
 
-    final load = response != null ? ActiveLoad.fromJson(response as Map<String, dynamic>) : null;
+    final load = response != null ? ActiveLoad.fromJson(response) : null;
     // Cache for offline use
     await offlineStorage.saveActiveLoad(load);
     return load;
@@ -89,7 +89,7 @@ final hosSummaryProvider = FutureProvider<HOSSummary?>((ref) async {
         .limit(1)
         .maybeSingle();
 
-    final hos = response != null ? HOSSummary.fromJson(response as Map<String, dynamic>) : null;
+    final hos = response != null ? HOSSummary.fromJson(response) : null;
     if (hos != null) {
       await offlineStorage.saveHOSSummary(hos);
     }
@@ -118,9 +118,9 @@ final driversLoadsProvider = StreamProvider<List<ActiveLoad>>((ref) {
       .from('loads')
       .stream(primaryKey: ['id'])
       .eq('driver_id', userId)
-      .order('created_at', ascending: false)
+      .order('created_at')
       .map((data) {
-        final loads = data.map((json) => ActiveLoad.fromJson(json as Map<String, dynamic>)).toList();
+        final loads = data.map((json) => ActiveLoad.fromJson(json)).toList();
         // Cache for offline use
         offlineStorage.saveLoads(loads);
         return loads;

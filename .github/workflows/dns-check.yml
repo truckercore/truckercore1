@@ -1,0 +1,39 @@
+name: DNS Configuration Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  dns-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run DNS assertion
+        run: npm run dns:ci
+        continue-on-error: true
+
+      - name: Comment on PR (if DNS fails)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⚠️ DNS Configuration Warning\n\nCritical DNS records are not configured correctly. Deployment may fail.\n\nRun locally:\n\n\`\`\`bash\n npm run dns:check\n npm run dns:guide\n\`\`\``
+            })

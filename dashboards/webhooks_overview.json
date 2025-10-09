@@ -1,0 +1,44 @@
+{
+  "title": "Webhooks Overview",
+  "tags": ["webhooks", "security", "env:staging"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Verification Results by Endpoint",
+      "targets": [
+        { "expr": "sum by (result, endpoint) (rate(webhook_verify_total[5m]))" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Replay Rate",
+      "targets": [
+        { "expr": "sum by (endpoint) (rate(replay_total[5m]))" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Secret Version Match (next)",
+      "targets": [
+        { "expr": "rate(webhook_secret_match_total{matched=\"next\"}[5m])" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Verification Latency p95",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le, endpoint) (rate(webhook_verify_duration_seconds_bucket[5m])))" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Version Drift Events",
+      "targets": [
+        { "expr": "sum by (endpoint, got_version) (rate(provider_version_drift_total[5m]))" }
+      ]
+    }
+  ],
+  "schemaVersion": 18,
+  "version": 1
+}

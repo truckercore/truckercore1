@@ -1,0 +1,87 @@
+name: Weekly Incident Report
+
+on:
+  schedule:
+    - cron: '5 9 * * 1' # Mondays 09:05 UTC
+  workflow_dispatch: {}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Collect DB signals (burn-rate & quarantines)
+        id: db
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "burn_json=[]" >> $GITHUB_OUTPUT
+            echo "quarantine=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          BR=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(json_agg(row_to_json(x)), '[]'::json) from (select * from public.slo_burn_alerts where created_at >= now() - interval '7 days' order by created_at desc) x" || echo "[]")
+          QN=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(count(*),0) from public.alerts_events where code='feature_quarantined' and triggered_at >= now() - interval '7 days'" || echo "0")
+          echo "burn_json=$BR" >> $GITHUB_OUTPUT
+          echo "quarantine=$QN" >> $GITHUB_OUTPUT
+
+      - name: Compute canary failures & rollbacks (7d)
+        id: ci
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner; const repo = context.repo.repo;
+            const since = new Date(Date.now() - 7*24*3600*1000).toISOString();
+            // Edge canary nightly (stage) failed runs
+            const canary = await github.paginate(github.rest.actions.listWorkflowRuns, { owner, repo, workflow_id: 'edge_canary_nightly.yml', status: 'completed', per_page: 100 });
+            const canaryFails = canary.filter(r => r.conclusion === 'failure' && r.run_started_at >= since).length;
+            // Deploy with gate failed (rollbacks attempted)
+            const gate = await github.paginate(github.rest.actions.listWorkflowRuns, { owner, repo, workflow_id: 'deploy_with_gate.yml', status: 'completed', per_page: 100 });
+            const gateFails = gate.filter(r => r.conclusion === 'failure' && r.run_started_at >= since).length;
+            core.setOutput('canaryFails', canaryFails);
+            core.setOutput('gateFails', gateFails);
+
+      - name: Open/Update Weekly Incident Report
+        uses: actions/github-script@v7
+        env:
+          BURN: ${{ steps.db.outputs.burn_json }}
+          QUAR: ${{ steps.db.outputs.quarantine }}
+          CANARY_FAILS: ${{ steps.ci.outputs.canaryFails }}
+          GATE_FAILS: ${{ steps.ci.outputs.gateFails }}
+        with:
+          script: |
+            const burn = process.env.BURN && process.env.BURN !== '' ? JSON.parse(process.env.BURN) : [];
+            const quarantines = Number(process.env.QUAR || 0);
+            const canaryFails = Number(process.env.CANARY_FAILS || 0);
+            const gateFails = Number(process.env.GATE_FAILS || 0);
+            const today = new Date().toISOString().slice(0,10);
+            const title = `Weekly Incident Report – ${today}`;
+            const body = [
+              '## Summary',
+              `- Canary failures (7d): ${canaryFails}`,
+              `- Deploy gate failures/rollbacks (7d): ${gateFails}`,
+              `- Burn-rate alerts (7d): ${burn.length}`,
+              `- Quarantines (7d): ${quarantines}`,
+              '',
+              '## Burn-rate Alerts (7d)',
+              '```json',
+              JSON.stringify(burn, null, 2),
+              '```'
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.find(i => i.title.startsWith('Weekly Incident Report'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['governance','ops'] });
+            }

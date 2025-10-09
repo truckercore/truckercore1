@@ -1,0 +1,16 @@
+name: RLS Gate
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+jobs:
+  rls-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run RLS simulator
+        run: bash .github/scripts/gate_rls.sh
+        env:
+          READONLY_DATABASE_URL: ${{ secrets.READONLY_DATABASE_URL }}

@@ -1,0 +1,9 @@
+// Reserved for PDF/print layouts only. Avoid importing into the main app bundle.
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}

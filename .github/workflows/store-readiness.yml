@@ -1,0 +1,23 @@
+name: Store Readiness
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate policies and URLs
+        run: npm run validate:policies
+      - name: Validate mobile metadata (iOS/Android manifests)
+        run: npm run validate:mobile-metadata
+      - name: Validate store assets presence
+        run: npm run validate:store-assets

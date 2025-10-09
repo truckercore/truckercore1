@@ -1,8 +1,9 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:developer' as dev;
 
 // Using compile-time flag for demo accounts
 
@@ -267,7 +268,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
 
                     // Demo Accounts (for testing)
-                    if (const bool.fromEnvironment('USE_MOCK_DATA', defaultValue: false)) ...[
+                    if (const bool.fromEnvironment('USE_MOCK_DATA')) ...[
                       const SizedBox(height: 32),
                       const Divider(),
                       const SizedBox(height: 16),

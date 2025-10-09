@@ -1,0 +1,54 @@
+name: tag-probes
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  probes-and-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run probes
+        run: make probes
+        env:
+          POS_WEBHOOK_URL: ${{ secrets.POS_WEBHOOK_URL }}
+          POS_WEBHOOK_SECRET: ${{ secrets.POS_WEBHOOK_SECRET }}
+          RL_ENDPOINT: ${{ secrets.RL_ENDPOINT }}
+          PROBE_TENANT: ${{ secrets.PROBE_TENANT }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Aggregate & gate
+        run: make snapshot
+
+      - name: Collect evidence
+        run: bash .github/scripts/collect_evidence.sh artifacts/evidence
+        env:
+          READONLY_DATABASE_URL: ${{ secrets.READONLY_DATABASE_URL }}
+
+      - name: Sign evidence
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/evidence_${{ github.sha }}.tar.gz -C artifacts evidence
+          openssl dgst -sha256 -sign <(printf "%s" "$EVIDENCE_SIGNING_KEY_PEM") \
+            -out artifacts/evidence_${{ github.sha }}.sig artifacts/evidence_${{ github.sha }}.tar.gz
+        env:
+          EVIDENCE_SIGNING_KEY_PEM: ${{ secrets.EVIDENCE_SIGNING_KEY_PEM }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: probes-${{ github.ref_name }}-${{ github.sha }}
+          path: |
+            artifacts/probes
+            artifacts/probes_summary.json
+            artifacts/evidence
+            artifacts/evidence_${{ github.sha }}.tar.gz
+            artifacts/evidence_${{ github.sha }}.sig

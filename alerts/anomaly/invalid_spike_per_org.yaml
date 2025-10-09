@@ -1,0 +1,18 @@
+# Anomaly Alert: invalid verification spike per org/IP
+
+groups:
+- name: webhooks-anomaly
+  rules:
+  - alert: WebhookInvalidSpikePerOrg
+    expr: |
+      topk(5, sum by (org_id) (rate(webhook_verify_total{result="invalid"}[10m])))
+        > (scalar(avg_over_time(sum by (org_id) (rate(webhook_verify_total{result="invalid"}[1h]))[6h:1m])) * 3)
+    for: 20m
+    labels:
+      severity: warning
+      env: staging
+      owner: webhooks-oncall
+    annotations:
+      summary: "Invalid verification spike for specific org(s)"
+      description: "Potential abuse or misconfiguration; check AbuseGuard bans and provider profile."
+      owner_email: "webhooks-oncall@example.com"

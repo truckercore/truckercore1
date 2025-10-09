@@ -1,0 +1,25 @@
+name: Catalog Canary (Multi-Region)
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+jobs:
+  probe:
+    strategy:
+      matrix:
+        region: [iad, fra, syd]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe catalog (multi-region)
+        env:
+          CATALOG_URL: ${{ secrets.CATALOG_URL }}
+          REGION: ${{ matrix.region }}
+        run: |
+          set -e
+          ts=$(date -u +%s)
+          code=$(curl -s -o /tmp/cat.json -w "%{http_code}" "$CATALOG_URL?canary=$REGION&ts=$ts")
+          if [ "$code" -ne 200 ]; then
+            echo "::error ::$REGION: HTTP $code"
+            exit 1
+          fi
+          etag=$(curl -sI "$CATALOG_URL" | awk '/^[Ee][Tt][Aa][Gg]:/ {print $2}')
+          echo "region=$REGION etag=$etag"

@@ -1,0 +1,61 @@
+name: Rehearse Rollback & Gate Failure Drill
+
+on:
+  schedule:
+    - cron: '0 4 * * 6' # Saturdays 04:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for recent gate failures with evidence (30d)
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const since = new Date(Date.now() - 30*24*3600*1000).toISOString();
+            const names = new Set(['Edge Deploy with Gate + Rollback','Edge Deploy Gate']);
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { owner, repo, per_page: 100, status: 'completed' });
+            const recent = runs.filter(r => r.created_at >= since && names.has(r.name||''));
+            const failures = recent.filter(r => r.conclusion === 'failure');
+            core.setOutput('hadFailure', failures.length > 0);
+            core.setOutput('count', failures.length);
+
+      - name: Open rehearsal task if no failures found
+        if: ${{ steps.check.outputs.hadFailure != 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Rehearse Rollback & Deploy Gate Failure – ${new Date().toISOString().slice(0,10)}`;
+            const body = [
+              '## Drill Instructions',
+              '- Trigger the Edge Deploy with Gate + Rollback workflow in a safe env (stage).',
+              '- Intentionally cause a gate failure (e.g., bad env) and verify rollback runs.',
+              '- Ensure evidence artifact deploy-evidence-* is uploaded (logs + context).',
+              '',
+              '## Verification',
+              '- Attach a link to the failed run and the evidence artifact.',
+              '- Confirm on-call followed escalation_policy.md.',
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'ops' });
+            const exists = issues.find(i => i.title.startsWith('Rehearse Rollback & Deploy Gate Failure'));
+            if (exists) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: exists.number, title, body, labels: ['ops','governance'] });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['ops','governance'] });
+            }
+
+      - name: Log recent failure count
+        env:
+          COUNT: ${{ steps.check.outputs.count }}
+        run: |
+          echo "Recent gate failures with evidence (30d): ${COUNT}"

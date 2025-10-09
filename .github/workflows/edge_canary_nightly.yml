@@ -1,0 +1,65 @@
+name: Edge Canary Nightly (Stage)
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # nightly at 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    env:
+      FUNCTIONS_URL: ${{ secrets.STAGE_FUNCTIONS_URL }}
+      SERVICE_ROLE: ${{ secrets.STAGE_SERVICE_ROLE_KEY }}
+      SLACK_WEBHOOK: ${{ secrets.STAGE_SLACK_WEBHOOK }}
+    steps:
+      - name: Preconditions
+        run: |
+          if [ -z "$FUNCTIONS_URL" ] || [ -z "$SERVICE_ROLE" ]; then
+            echo "Missing STAGE_FUNCTIONS_URL or STAGE_SERVICE_ROLE_KEY; skipping canary.";
+            exit 0;
+          fi
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+      - name: Healthz
+        id: health
+        run: |
+          set -e
+          RES=$(curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/healthz")
+          echo "$RES" | jq '.'
+          echo "ok=$(echo "$RES" | jq -r '.ok')" >> $GITHUB_OUTPUT
+      - name: Notify alerts drain
+        id: notify
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/notify-alerts")
+          echo "$RES" | jq '.'
+          echo "delivered=$(echo "$RES" | jq -r '.delivered')" >> $GITHUB_OUTPUT
+      - name: Weekly SLO report
+        id: weekly
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/weekly-slo-report")
+          echo "$RES" | jq '.'
+          echo "ok=$(echo "$RES" | jq -r '.ok')" >> $GITHUB_OUTPUT
+      - name: Assert schemas
+        run: |
+          set -e
+          if [ "${{ steps.health.outputs.ok }}" != "true" ] && [ "${{ steps.health.outputs.ok }}" != "false" ]; then
+            echo "healthz schema missing 'ok'"; exit 1; fi
+          if [ -z "${{ steps.notify.outputs.delivered }}" ]; then
+            echo "notify-alerts schema missing 'delivered'"; exit 1; fi
+          if [ "${{ steps.weekly.outputs.ok }}" != "true" ]; then
+            echo "weekly-slo-report ok!=true"; exit 1; fi
+      - name: Success Slack (optional)
+        if: success() && env.SLACK_WEBHOOK != ''
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' "$SLACK_WEBHOOK" \
+            -d "{\"text\":\"✅ Edge canary (stage) passed: $GITHUB_REPOSITORY@$GITHUB_RUN_ID\"}"
+      - name: Failure Slack (optional)
+        if: failure() && env.SLACK_WEBHOOK != ''
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' "$SLACK_WEBHOOK" \
+            -d "{\"text\":\"🚨 Edge canary (stage) FAILED for $GITHUB_REPOSITORY run $GITHUB_RUN_ID. Check logs.\"}"

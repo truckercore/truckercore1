@@ -1,0 +1,5 @@
+[functions.paywall-maintenance]
+verify_jwt = false
+
+[functions.paywall-maintenance.schedule]
+cron = "*/30 * * * *" # every 30 minutes

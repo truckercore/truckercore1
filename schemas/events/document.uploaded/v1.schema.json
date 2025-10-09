@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.truckercore.example.com/events/document.uploaded/v1.schema.json",
+  "title": "document.uploaded v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "topic",
+    "version",
+    "aggregate_type",
+    "aggregate_id",
+    "payload",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "integer" },
+    "topic": { "const": "document.uploaded" },
+    "version": { "type": "string", "pattern": "^[0-9]+$" },
+    "aggregate_type": { "type": "string", "enum": ["document"] },
+    "aggregate_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["org_id", "doc_type", "uploader_user_id", "storage_url", "sha256"],
+      "properties": {
+        "org_id": { "type": "string", "format": "uuid" },
+        "uploader_user_id": { "type": "string", "format": "uuid" },
+        "doc_type": { "type": "string", "enum": ["bol", "pod", "receipt", "other"] },
+        "storage_url": { "type": "string", "format": "uri" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "load_id": { "type": "string", "format": "uuid" },
+        "validated": { "type": "boolean" }
+      }
+    }
+  }
+}

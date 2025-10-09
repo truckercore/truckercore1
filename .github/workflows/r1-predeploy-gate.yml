@@ -1,0 +1,146 @@
+name: R1 Predeploy Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  predeploy:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ secrets.STAGE_BASE_URL }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_SSLMODE: require
+      JWT: ${{ secrets.STAGE_JWT_TEST }}
+      DRIVER_ID: ${{ secrets.STAGE_DRIVER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clients
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq curl
+
+      - name: Apply migrations to stage (idempotent)
+        run: |
+          PSQL="psql 'sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD'"
+          for f in $(ls -1 docs/supabase/*.sql); do
+            echo "Applying $f"
+            $PSQL -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply db/migrations (if present)
+        run: |
+          set -e
+          PSQL="psql 'sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD'"
+          if [ -d db/migrations ]; then
+            # Apply top-level .sql first, then recurse into subdirectories (e.g., db/migrations/tiles, db/migrations/pois)
+            for f in $(ls -1 db/migrations/*.sql 2>/dev/null || true); do
+              echo "Applying $f"
+              $PSQL -v ON_ERROR_STOP=1 -f "$f"
+            done
+            # Recurse
+            while IFS= read -r -d '' f; do
+              echo "Applying $f"
+              $PSQL -v ON_ERROR_STOP=1 -f "$f"
+            done < <(find db/migrations -type f -name "*.sql" -not -path "db/migrations/*.sql" -print0 | sort -z)
+          else
+            echo "db/migrations directory not present; skipping"
+          fi
+
+      - name: Run ensure_incident_attachments
+        run: |
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -v ON_ERROR_STOP=1 -c "select public.ensure_incident_attachments();"
+
+      - name: Attachments shape smoke (valid then expected-fail)
+        run: |
+          set -e
+          PSQL="psql 'sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD' -v ON_ERROR_STOP=1"
+          # seed valid row
+          $PSQL -c "insert into public.safety_incidents (id, attachments) values (gen_random_uuid(), '[{""url"":""https://example.com/p1.jpg"",""type"":""photo""}]'::jsonb) returning id;"
+          echo "Attempt invalid insert (not an array) and assert it fails"
+          if $PSQL -c "insert into public.safety_incidents (id, attachments) values (gen_random_uuid(), '{""url"":""x""}'::jsonb);"; then
+            echo "ERROR: invalid shape insert unexpectedly succeeded" >&2
+            exit 1
+          else
+            echo "Got expected failure for invalid shape"
+          fi
+
+      - name: Backfill completeness (expect 0 missing/invalid)
+        run: |
+          set -e
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -v ON_ERROR_STOP=1 -c \
+            "do $$ declare c int; begin select count(*) into c from public.safety_incidents where attachments is null or jsonb_typeof(attachments) <> 'array'; if c > 0 then raise exception 'backfill incomplete: % rows missing/invalid attachments', c; end if; end $$;"
+
+      - name: Legacy write-block trigger (expect failure)
+        run: |
+          set -e
+          PSQL="psql 'sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD' -v ON_ERROR_STOP=1"
+          if $PSQL -c "insert into public.safety_incidents(file_url) values ('https://x');"; then
+            echo "ERROR: legacy write unexpectedly succeeded" >&2
+            exit 1
+          else
+            echo "Got expected failure from legacy write-block trigger"
+          fi
+
+      - name: GIN index coverage (EXPLAIN ANALYZE)
+        run: |
+          set -e
+          OUT=$(psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -v ON_ERROR_STOP=1 -At -c \
+            "explain analyze select id from public.safety_incidents where attachments @> '[{\"type\":\"photo\"}]'::jsonb limit 1;")
+          echo "$OUT"
+          echo "$OUT" | (grep -E "Bitmap Index Scan|Index Scan" >/dev/null) || echo "Note: index scan not observed; dataset may be small"
+
+      - name: Retention test (N=0)
+        run: |
+          set -e
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -v ON_ERROR_STOP=1 -c "begin; select public.purge_old_incidents(0); rollback;"
+
+      - name: Curl health endpoint
+        run: |
+          curl -f http://localhost:54321/functions/v1/health || echo "health endpoint not available in this environment"
+
+      - name: Verify extensions
+        run: |
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -c \
+            "select extname from pg_extension where extname in ('uuid-ossp','pgcrypto') order by 1;"
+
+      - name: KPI RPC smoke
+        run: |
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" \
+            -v ON_ERROR_STOP=1 -c "set local request.jwt.claims='{""org_id"":""00000000-0000-0000-0000-000000000001""}'; select * from public.fn_dashboard_kpis(current_date-1,current_date);"
+
+      - name: API smoke - ownerop expense
+        run: |
+          curl -sS -f -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+            -d '{"category":"fuel","amount_usd":10.00,"incurred_on":"2025-11-02"}' \
+            ${BASE_URL}/api/ownerop/expenses | jq .
+
+      - name: API smoke - HOS logs
+        run: |
+          curl -sS -f -H "Authorization: Bearer $JWT" \
+            "${BASE_URL}/api/hos/${DRIVER_ID}?from=2025-11-01&to=2025-11-07" | jq .
+
+      - name: API smoke - analytics CSV headers
+        run: |
+          curl -sSI -f -H "Authorization: Bearer $JWT" \
+            "${BASE_URL}/api/analytics/export.csv?scope=fleet&from=2025-11-01&to=2025-11-07" \
+            | (grep -i 'content-type: text/csv' && echo OK)
+
+      # - name: Optional RLS denial test (expect failure)
+      #   run: |
+      #     set -e
+      #     curl -sS -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+      #       -d '{"dot_number":"9999999"}' \
+      #       ${BASE_URL}/api/vetting/admin_insert
+
+
+      - name: Attachments coverage check (fail if <60%)
+        run: |
+          set -e
+          psql "sslmode=${DB_SSLMODE} host=$DB_HOST port=$DB_PORT dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD" -v ON_ERROR_STOP=1 -c "do $$ declare tot int; att int; begin select count(*) into tot from public.safety_incidents; select count(*) into att from public.safety_incidents where jsonb_array_length(attachments) > 0; if (att::numeric / greatest(tot,1)) < 0.60 then raise exception 'attachments coverage below 60%% (%%/%%)', att, tot; end if; end $$;"

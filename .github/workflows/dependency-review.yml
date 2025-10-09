@@ -1,0 +1,20 @@
+name: Dependency Review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f4634a9a56a8b5f807a1f41f2d6d2c07 # v4.1.6
+      - name: Dependency Review
+        uses: actions/dependency-review-action@0c155c5e8556a497adf53f2c18edabf945ed8e70 # v4.3.3
+        with:
+          allow-licenses: ''
+          fail-on-severity: high
+          comment-summary-in-pr: true

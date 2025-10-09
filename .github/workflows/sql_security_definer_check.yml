@@ -1,0 +1,20 @@
+name: SQL Security Definer Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  sql_definer_hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run security-definer hygiene checks
+        run: |
+          node scripts/ci/sql_security_definer_check.js

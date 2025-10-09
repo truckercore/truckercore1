@@ -1,0 +1,80 @@
+name: PR Security Gates
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: read
+  id-token: write
+
+jobs:
+  build-and-test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f4634a9a56a8b5f807a1f41f2d6d2c07 # v4.1.6
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint || echo "no lint configured"
+      - name: Unit tests
+        run: npm test -- --runInBand
+      - name: Webhook canary test (HMAC/skew/replay)
+        run: npm run security:verify-webhooks
+      - name: npm audit (fail on high and critical)
+        run: |
+          set -e
+          npx npm@10 audit --omit=dev --audit-level=high || exit 1
+      - name: Block --insecure in prod/deploy workflows
+        run: |
+          set -e
+          matches=$(git grep -n -- "--insecure" -- .github/workflows ci scripts | wc -l)
+          if [ "$matches" -gt 0 ]; then
+            echo "Found --insecure in CI/prod-related paths. Remove it or allowlist explicitly." >&2
+            git grep -n -- "--insecure" -- .github/workflows ci scripts || true
+            exit 1
+          fi
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f4634a9a56a8b5f807a1f41f2d6d2c07 # v4.1.6
+      - name: Semgrep OSS scan
+        uses: returntocorp/semgrep-action@8a996e2f2a5d7af8d41b9af8c7302ac6b6c0e36a # v1.39.0
+        with:
+          config: >
+            p/ci
+            p/security-audit
+          generateSarif: true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@6a2869ea1c0f3a6a0b5f8d5b9dcbe7cbdeb18f0a # v3.26.8
+        with:
+          sarif_file: semgrep.sarif
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f4634a9a56a8b5f807a1f41f2d6d2c07 # v4.1.6
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6a2869ea1c0f3a6a0b5f8d5b9dcbe7cbdeb18f0a # v3.26.8
+        with:
+          languages: javascript
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@6a2869ea1c0f3a6a0b5f8d5b9dcbe7cbdeb18f0a # v3.26.8
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@6a2869ea1c0f3a6a0b5f8d5b9dcbe7cbdeb18f0a # v3.26.8

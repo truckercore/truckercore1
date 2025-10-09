@@ -1,0 +1,22 @@
+name: Policy Drift Publish Baseline
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract policy artifacts
+        run: |
+          mkdir -p .artifacts
+          grep -RInh --include="*.sql" -E "create policy|alter table .* enable row level security" || true > .artifacts/policies.sql
+          sed -i 's/[[:space:]]\+/ /g' .artifacts/policies.sql || true
+
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: policies-baseline
+          path: .artifacts/policies.sql

@@ -1,0 +1,18 @@
+name: nightly-verifier
+on:
+  schedule:
+    - cron: "17 3 * * *"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm i -g supabase
+      - run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Run verifier
+        run: RETENTION_DAYS=${RETENTION_DAYS:-30} supabase db query supabase/verify/edge_log_verification.sql
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          RETENTION_DAYS: 30

@@ -52,6 +52,8 @@ npm run dev
 # Visit http://localhost:3000
 ```
 
+For Git setup basics, see docs/GIT_SETUP.md
+
  
 What's Included
 1. Safety Summary Suite
@@ -1386,3 +1388,4 @@ What you’ll see
 - Production Launch Playbook: [docs/PRODUCTION_LAUNCH_PLAYBOOK.md](./docs/PRODUCTION_LAUNCH_PLAYBOOK.md)
 - Final Implementation Summary: [docs/FINAL_IMPLEMENTATION_SUMMARY.md](./docs/FINAL_IMPLEMENTATION_SUMMARY.md)
 - Quick Start: Production Deployment: [QUICK_START_PRODUCTION.md](./QUICK_START_PRODUCTION.md)
+- Fleet Manager Module README: [apps/web/README.md](./apps/web/README.md)

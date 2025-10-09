@@ -1,0 +1,27 @@
+name: Gate Clarifications
+on:
+  pull_request:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build OPA input
+        run: |
+          jq -n '{
+            module: env.MODULE,
+            answers: {
+              jwks_ttl: env.JWKS_TTL,
+              bulk_deactivate_cap: env.BULK_CAP,
+              required_factors: (env.FACTORS // "" | split(",") | map(select(length>0)))
+            }
+          }' > clarifications.json
+        env:
+          MODULE: ${{ github.event.pull_request.title }}
+          JWKS_TTL: ${{ secrets.CLAR_JWKS_TTL || '15m' }}
+          BULK_CAP: ${{ secrets.CLAR_BULK_CAP || '100' }}
+          FACTORS: ${{ secrets.CLAR_FACTORS || 'distance,price,fuel' }}
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+      - name: Run OPA policy
+        run: opa eval --fail-defined -i clarifications.json -d policy/opa 'data.truckercore.clarifications.deny'

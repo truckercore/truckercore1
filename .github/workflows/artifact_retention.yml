@@ -1,0 +1,20 @@
+name: Artifact Retention Prune
+
+on:
+  schedule:
+    - cron: "30 4 * * 0" # weekly
+  workflow_dispatch: {}
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Prune old artifacts
+        uses: c-hive/gha-remove-artifacts@v1
+        with:
+          age: 90 days
+          skip-tags: true
+          # keep latest N artifacts per workflow if desired
+          # skip-recent: 5

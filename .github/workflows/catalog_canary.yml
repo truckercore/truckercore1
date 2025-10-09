@@ -1,0 +1,21 @@
+name: Catalog Canary
+on:
+  workflow_run:
+    workflows: ["Deploy Edge Functions"]
+    types: [completed]
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe Feature Catalog
+        run: make probe-catalog
+        env:
+          FN: ${{ secrets.CATALOG_FN_URL }}
+      - name: Post Slack
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"Catalog canary OK: '${GITHUB_SHA}'"}' \
+            ${{ secrets.SLACK_WEBHOOK }}

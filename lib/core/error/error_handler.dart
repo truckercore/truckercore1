@@ -1,6 +1,6 @@
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../features/driver/data/offline_storage_provider.dart'; // only to hint caching exists (not used directly)
+// only to hint caching exists (not used directly)
 import '../../main.dart' show log; // assuming a logger named `log` exists in main.dart
 
 /// Global error handler with recovery strategies

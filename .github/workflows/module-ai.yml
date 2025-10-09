@@ -1,0 +1,36 @@
+name: ai-gates
+on: [pull_request]
+jobs:
+  ai:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      FUNC_URL: ${{ secrets.FUNC_URL }}
+      TEST_JWT: ${{ secrets.TEST_JWT }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: DB gates
+        run: ./scripts/gate_ai_sql.sh
+      - name: Probes (smoke+sql+probe)
+        run: |
+          ./scripts/run_gate.sh ai-eta full
+          ./scripts/run_gate.sh ai-match full
+          ./scripts/run_gate.sh ai-fraud full
+      - name: Health gate
+        run: ./scripts/gate_ai_health.sh
+      - name: Install OPA
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+      - name: OPA guard (health)
+        env:
+          OPA_BIN: opa
+        run: ./scripts/ai_opa_guard.sh
+      - name: Publish probe baselines
+        run: ./scripts/report_baselines.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-probes-and-policy
+          path: reports/

@@ -1,0 +1,40 @@
+name: Rerun Flaky Tests Once
+
+on:
+  workflow_run:
+    workflows: ["Flutter CI", "Node CI"] # match your CI workflow names
+    types: [completed]
+
+jobs:
+  rerun-flaky:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Check failing jobs and rerun once on test failures
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run_id = context.payload.workflow_run.id;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id
+            });
+            const failed = jobs.jobs.filter(j => j.conclusion === 'failure');
+            if (!failed.length) {
+              core.info('No failed jobs to inspect.');
+              return;
+            }
+            // Rerun only if failure likely caused by flaky tests (by name heuristics)
+            const isTestJob = (name) => /test|integration|e2e|playwright|newman/i.test(name);
+            const shouldRerun = failed.some(j => isTestJob(j.name));
+            if (!shouldRerun) {
+              core.info('Failures do not look like test jobs, skipping rerun.');
+              return;
+            }
+            core.info('Rerunning workflow once due to suspected flaky tests...');
+            await github.rest.actions.reRunWorkflow({
+              owner, repo, run_id
+            });

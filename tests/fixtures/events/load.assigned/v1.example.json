@@ -1,0 +1,16 @@
+{
+  "id": 24680,
+  "topic": "load.assigned",
+  "version": "1",
+  "aggregate_type": "load",
+  "aggregate_id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  "created_at": "2025-01-01T12:00:00Z",
+  "payload": {
+    "org_id": "00000000-0000-0000-0000-000000000001",
+    "load_id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "assigned_to_type": "driver",
+    "assigned_to_id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "eta": "2025-01-02T09:30:00Z",
+    "notes": "Pickup window narrowed by shipper"
+  }
+}

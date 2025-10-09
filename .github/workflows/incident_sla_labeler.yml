@@ -1,0 +1,29 @@
+name: Incident SLA Labeler
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+jobs:
+  sla:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) return;
+            const hasIncident = (issue.labels||[]).some(l => (l.name||'').toLowerCase() === 'incident') || /\[incident\]/i.test(issue.title||'');
+            if (!hasIncident) return;
+            const body = (issue.body||'').toLowerCase();
+            // Heuristics: Sev1 => 24h, else 72h
+            const sev1 = /sev[- ]?1|severity[: ]*1/.test(body) || /sev[- ]?1|severity[: ]*1/i.test(issue.title||'');
+            const label = sev1 ? 'sla/24h' : 'sla/72h';
+            const owner = context.repo.owner; const repo = context.repo.repo;
+            // Ensure labels exist (create if missing)
+            try { await github.rest.issues.createLabel({ owner, repo, name: 'sla/24h', color: 'B60205' }); } catch(e) {}
+            try { await github.rest.issues.createLabel({ owner, repo, name: 'sla/72h', color: '0E8A16' }); } catch(e) {}
+            await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: [label] });

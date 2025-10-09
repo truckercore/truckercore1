@@ -1,0 +1,43 @@
+name: Nightly Security Scan
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f4634a9a56a8b5f807a1f41f2d6d2c07 # v4.1.6
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test -- --runInBand
+      - name: npm audit high+
+        run: |
+          set -e
+          npx npm@10 audit --omit=dev --audit-level=high || exit 1
+      - name: Semgrep OSS scan
+        uses: returntocorp/semgrep-action@8a996e2f2a5d7af8d41b9af8c7302ac6b6c0e36a # v1.39.0
+        with:
+          config: >
+            p/ci
+            p/security-audit
+          generateSarif: true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@6a2869ea1c0f3a6a0b5f8d5b9dcbe7cbdeb18f0a # v3.26.8
+        with:
+          sarif_file: semgrep.sarif

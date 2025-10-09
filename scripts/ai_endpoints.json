@@ -1,0 +1,7 @@
+{
+  "ai_eta_predict": "ai_ct/predict_eta",
+  "ai_eta_feedback": "ai_eta_feedback",
+  "ai_match_score": "ai_match",
+  "ai_fraud_detect": "ai_fraud",
+  "xai_eta_explain": "xai/eta_explain"
+}

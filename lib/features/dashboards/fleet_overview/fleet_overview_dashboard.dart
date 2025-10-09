@@ -10,7 +10,6 @@ class FleetOverviewDashboard extends BaseDashboard {
             id: 'fleet_overview',
             title: 'Fleet Overview Dashboard',
             defaultSize: Size(1600, 900),
-            allowResize: true,
           ),
         );
 

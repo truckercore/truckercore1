@@ -1,0 +1,4 @@
+org_id,driver_user_id,start_time,end_time,status,created_at
+11111111-1111-1111-1111-111111111111,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb,2025-09-01T13:00:00Z,2025-09-01T18:00:00Z,driving,2025-09-01T18:05:00Z
+11111111-1111-1111-1111-111111111111,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb,2025-09-01T18:00:00Z,2025-09-01T19:00:00Z,on,2025-09-01T19:05:00Z
+11111111-1111-1111-1111-111111111111,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb,2025-09-01T19:00:00Z,2025-09-01T23:00:00Z,driving,2025-09-01T23:05:00Z

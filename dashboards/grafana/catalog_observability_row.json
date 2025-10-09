@@ -1,0 +1,30 @@
+{
+  "type": "row",
+  "title": "Catalog Observability",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Catalog RPS",
+      "targets": [
+        { "expr": "sum(rate(catalog_requests_total[5m]))", "legendFormat": "RPS" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "piechart",
+      "title": "Cache Mode (5m)",
+      "targets": [
+        { "expr": "sum(increase(catalog_cache_mode_total[5m])) by (mode)", "legendFormat": "{{mode}}" }
+      ],
+      "options": { "pieType": "pie", "legend": { "show": true } }
+    },
+    {
+      "type": "timeseries",
+      "title": "ETag Age by Region",
+      "targets": [
+        { "expr": "catalog_etag_age_seconds", "legendFormat": "{{region}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ]
+}

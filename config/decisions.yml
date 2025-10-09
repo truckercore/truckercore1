@@ -1,0 +1,13 @@
+iam:
+  jwks_ttl: "15m"
+  invalidate_on: "any_signature_failure" # or: kid_mismatch_only
+  scim:
+    bulk_deactivate_cap: 100
+    dry_run_required: true
+  idp_health:
+    red_days: 7
+    yellow_days: 21
+ai:
+  ranking:
+    sample_rate: 0.1
+    required_factors: ["distance","price","fuel"]

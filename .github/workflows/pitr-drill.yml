@@ -1,0 +1,18 @@
+name: PITR-Drill
+on:
+  schedule: [{cron: "0 3 * * 1"}] # weekly
+jobs:
+  pitr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore staging from latest snapshot
+        run: ./scripts/pitr_restore_staging.sh
+      - name: Run smokes after restore
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          FUNC_URL: ${{ secrets.STAGING_FUNC_URL }}
+          TEST_JWT: ${{ secrets.STAGING_TEST_JWT }}
+        run: |
+          ./scripts/run_gate.sh pois full
+          ./scripts/run_gate.sh promos full

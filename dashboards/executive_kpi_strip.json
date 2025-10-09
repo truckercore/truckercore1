@@ -1,0 +1,59 @@
+{
+  "type": "row",
+  "title": "Executive KPI Strip",
+  "collapsed": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Audit Coverage %",
+      "datasource": "Prometheus/PG",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select round(100.0 * (select count(*) from public.v_audit_trigger_coverage where has_audit_trigger) / nullif((select count(*) from public.v_audit_trigger_coverage),0),2) as coverage_pct;",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "yellow", "value": 80 }, { "color": "green", "value": 95 } ] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Breaker Stability (flips 24h)",
+      "datasource": "Prometheus/PG",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select coalesce(sum(opens + closes),0) as flips_24h from public.v_breaker_metrics;",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 10 } ] } } }
+    },
+    {
+      "type": "stat",
+      "title": "SSO Canary Pass %",
+      "datasource": "Prometheus/PG",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select round(100.0 * avg(case when success then 1 else 0 end),2) as canary_pass_pct from public.sso_canary_runs where ts >= now() - interval '24 hours';",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "yellow", "value": 90 }, { "color": "green", "value": 98 } ] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Evidence Age (hrs)",
+      "datasource": "Prometheus/PG",
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "select extract(epoch from (now() - max(created_at)))/3600.0 as hours from public.evidence_snapshots;",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "h", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 72 }, { "color": "red", "value": 168 } ] } } }
+    }
+  ]
+}
