@@ -1,6 +1,6 @@
 // apps/web/pages/enterprise/reports/risk-corridors.tsx
 import React from "react";
-import { TopRiskCorridors } from "@/src/components/TopRiskCorridors";
+import { TopRiskCorridors } from "@/components/TopRiskCorridors";
 
 // If your app exposes an enterprise org filter hook, use it here;
 // otherwise render without org filter (component handles undefined).
