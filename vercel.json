@@ -1,54 +1,6 @@
 {
-  "version": 2,
-  "installCommand": "npm ci --include=dev --legacy-peer-deps && cd apps/web && npm ci --include=dev --legacy-peer-deps",
-  "buildCommand": "npm run validate:seo && cd apps/web && npm run build",
-  "framework": "nextjs",
-  "regions": ["iad1"],
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "env": {
-    "NODE_VERSION": "18.20.4"
-  },
-  "build": {
-    "env": {
-      "NODE_OPTIONS": "--max-old-space-size=4096"
-    }
-  },
-
-  "functions": {
-    "app/api/**/*.ts": { "maxDuration": 60 },
-    "pages/api/**/*.ts": { "maxDuration": 60 }
-  },
-
-  "rewrites": [
-    {
-      "source": "/downloads/:file",
-      "destination": "https://your-project.supabase.co/storage/v1/object/public/downloads/:file"
-    }
-  ],
-
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
-      ]
-    }
-  ],
-
-  "crons": [
-    { "path": "/api/cron/daily-job", "schedule": "0 8 * * *" },
-    { "path": "/api/weekly-report", "schedule": "0 8 * * *" },
-    { "path": "/api/geofence-trigger", "schedule": "0 8 * * *" },
-    { "path": "/api/exec-report-trigger", "schedule": "0 8 * * *" },
-    { "path": "/api/safety-score-refresh", "schedule": "0 8 * * *" },
-    { "path": "/api/roi-weekly", "schedule": "0 8 * * *" },
-    { "path": "/api/ai-refresh-open-loads", "schedule": "0 8 * * *" },
-    { "path": "/api/forecast-rates", "schedule": "0 8 * * *" },
-    { "path": "/api/transaction-invoicer", "schedule": "0 8 * * *" },
-    { "path": "/api/ifta-rollup", "schedule": "0 8 * * *" },
-    { "path": "/api/stripe-billing-daily", "schedule": "0 8 * * *" }
-  ]
+  "installCommand": "npm install --include=dev --legacy-peer-deps",
+  "buildCommand": "npm run vercel-build",
+  "framework": "nextjs"
 }
+
