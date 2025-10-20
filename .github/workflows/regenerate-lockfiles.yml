@@ -1,0 +1,43 @@
+name: Regenerate package-lock.json
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - copilot/fix-git-submodule-fetch-issue
+
+jobs:
+  regen-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install root deps and regenerate root lockfile
+        run: |
+          npm install --include=dev --legacy-peer-deps
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json || true
+      - name: Install apps/web deps and regenerate apps/web lockfile
+        run: |
+          cd apps/web
+          npm install --include=dev --legacy-peer-deps
+          cd ../..
+          git add apps/web/package-lock.json || true
+      - name: Commit and push lockfile updates
+        run: |
+          if git diff --staged --quiet; then
+            echo "No lockfile changes to commit"
+          else
+            git commit -m "chore: regenerate package-lock.json files for CI (automated)" || true
+            git push origin HEAD:copilot/fix-git-submodule-fetch-issue
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
