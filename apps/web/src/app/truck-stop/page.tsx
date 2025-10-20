@@ -369,7 +369,7 @@ export default function TruckStopDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="font-semibold mb-2">No Reservations</p>
-                <p className="text-sm">You don't have any active reservations</p>
+                <p className="text-sm">You don&apos;t have any active reservations</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-700">

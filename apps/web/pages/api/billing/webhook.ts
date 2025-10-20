@@ -29,7 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const tier = s.metadata?.tier ?? "premium";
       const subId: string | undefined = s.subscription;
       if (org_id && subId) {
-        const sub = await stripe.subscriptions.retrieve(subId);
+        const subResponse = await stripe.subscriptions.retrieve(subId);
+        const sub = subResponse as any; // Type assertion for Stripe subscription
         await supabaseAdmin.from("billing_subscriptions").upsert({
           org_id,
           stripe_subscription_id: sub.id,
