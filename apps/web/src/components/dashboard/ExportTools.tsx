@@ -212,7 +212,7 @@ export const ExportTools: React.FC<ExportToolsProps> = ({ revenues, expenses }) 
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-start gap-2"><span className="text-yellow-600 font-bold">•</span><span>Export monthly for easier reconciliation with bank statements</span></li>
           <li className="flex items-start gap-2"><span className="text-yellow-600 font-bold">•</span><span>Keep PDF copies of quarterly reports for tax purposes</span></li>
-          <li className="flex items-start gap-2"><span className="text-yellow-600 font-bold">•</span><span>Use QuickBooks export to sync with your accountant's system</span></li>
+          <li className="flex items-start gap-2"><span className="text-yellow-600 font-bold">•</span><span>Use QuickBooks export to sync with your accountant&apos;s system</span></li>
           <li className="flex items-start gap-2"><span className="text-yellow-600 font-bold">•</span><span>Download year-end summaries before January 31 for 1099 preparation</span></li>
         </ul>
       </div>

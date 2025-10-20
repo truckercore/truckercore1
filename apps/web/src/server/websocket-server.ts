@@ -7,7 +7,6 @@ let io: Server | null = null;
 export function initializeWebSocketServer(res: NextApiResponse, path: string = '/api/ws') {
   // In Next.js API Routes, we attach the Server instance to the HTTP server on first call
   // to enable reuse across requests.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyRes = res as any;
   if (anyRes.socket.server.io) {
     io = anyRes.socket.server.io as Server;

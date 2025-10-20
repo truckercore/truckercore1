@@ -1,7 +1,6 @@
 import { Counter, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 
 // Ensure singleton across hot reloads
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const g: any = globalThis as any;
 
 if (!g.__TC_METRICS_REG__) {

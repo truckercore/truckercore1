@@ -44,3 +44,6 @@ Thumbs.db
 
 # Other non-web infra to skip
 scripts/mobile/
+
+# Ignore orphaned app router demo (real app router pages are in apps/web/src/app)
+apps/web/app/

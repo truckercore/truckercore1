@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Counter, Histogram, Registry } from "prom-client";
 
 // Metrics registry (local to this process)
-const registry: Registry = (global as any).__metrics_registry || new Registry();
+const registry = (global as any).__metrics_registry || new Registry();
 (global as any).__metrics_registry = registry;
 
 const reqs = new Counter({ name: "csv_export_requests_total", help: "CSV export requests", registers: [registry] });
@@ -82,7 +82,7 @@ async function checkRateLimit(orgId: string | null, userId: string | null) {
       .incr(orgKey).expire(orgKey, 120)
       .incr(userKey).expire(userKey, 120)
       .exec()
-      .then((r) => [Number(r?.[0]?.[1] ?? 0), Number(r?.[2]?.[1] ?? 0)]);
+      .then((r: any) => [Number(r?.[0]?.[1] ?? 0), Number(r?.[2]?.[1] ?? 0)]);
     await redis.quit().catch(() => {});
     if (orgCount > orgCap || userCount > userCap) {
       rateLimited.inc();
@@ -216,12 +216,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       chunks.push(b);
     }
 
-    let body = Buffer.concat(chunks as any);
+    let body: any = Buffer.concat(chunks as any);
 
     const wantGzip = String(q.gzip || "0") === "1";
     if (wantGzip) {
       const zlib = await import("zlib");
-      body = zlib.gzipSync(body, { level: 6 });
+      body = zlib.gzipSync(body, { level: 6 }) as any as Buffer;
     }
 
     const checksum = crypto.createHash("sha256").update(body).digest("hex");

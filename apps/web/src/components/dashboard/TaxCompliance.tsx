@@ -268,7 +268,7 @@ export const TaxCompliance: React.FC<TaxComplianceProps> = ({ revenues, expenses
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-700 mb-2"><strong>Year-End Requirement:</strong> Issue 1099-NEC forms to all contractors by January 31</p>
-            <p className="text-sm text-gray-600">This includes owner-operators you've hired, independent contractors, and other non-employees</p>
+            <p className="text-sm text-gray-600">This includes owner-operators you&apos;ve hired, independent contractors, and other non-employees</p>
           </div>
           <button onClick={generate1099Forms} className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
             <FileText className="h-5 w-5" />
