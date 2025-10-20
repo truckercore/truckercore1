@@ -59,3 +59,9 @@ export function getClientFeatures() {
 }
 
 export default FEATURE_FLAGS;
+
+// React hook for feature flags
+export function useFeatureFlags() {
+  return FEATURE_FLAGS;
+}
+
