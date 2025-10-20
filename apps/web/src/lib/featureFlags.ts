@@ -60,8 +60,14 @@ export function getClientFeatures() {
 
 export default FEATURE_FLAGS;
 
+// Type export
+export type FeatureFlags = typeof FEATURE_FLAGS;
+
 // React hook for feature flags
 export function useFeatureFlags() {
   return FEATURE_FLAGS;
 }
+
+// Re-export FeatureFlagsProvider from separate file
+export { FeatureFlagsProvider, useFeatureFlagsContext } from './FeatureFlagsProvider';
 
