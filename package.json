@@ -9,6 +9,8 @@
   },
   "main": "dist-electron/main.js",
   "scripts": {
+    "perf:baseline": "node scripts/perf/flutter-baseline.mjs",
+    "perf:compare": "node scripts/perf/compare-baseline.mjs",
     "validate": "node scripts/validate.js",
     "validate:quick": "node scripts/validate.js --level=basic",
     "validate:full": "node scripts/validate.js --level=comprehensive",
@@ -16,30 +18,48 @@
     "validate:report": "node scripts/validate.js --report --output=validation-report.md",
     "validate:legacy": "node scripts/validate-production.js",
     "preproduction": "npm run validate",
-    "validate:production": "./scripts/production-validation.sh", 
+    "validate:production": "./scripts/production-validation.sh",
     "dlq:export": "node scripts/dlq/export-dlq.mjs",
     "dlq:count": "node scripts/dlq/count-by-operation.mjs",
     "dlq:manual": "node scripts/dlq/manual-dlq-replay.mjs",
     "dlq:replay": "node scripts/dlq/replay-dlq.mjs",
     "configure": "ts-node scripts/configure-integrations.ts",
     "validate:env": "ts-node scripts/validate-env.ts",
-    "dev": "next dev",
-    "build:web": "next build",
-    "start:web": "next start",
-    "export:web": "next export",
-    "build": "next build",
-    "start": "next start",
+    "dev": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "start:web": "npm --prefix apps/web run start",
+    "export:web": "npm --prefix apps/web run export",
+    "build": "npm --prefix apps/web run build",
+    "start": "npm --prefix apps/web run start",
     "lint": "npm --prefix apps/web run lint",
+    "deploy": "npm run verify && vercel --prod",
+    "deploy:preview": "npm run verify && vercel",
+    "verify": "npm run lint && npm run build",
+    "diagnose": "powershell -ExecutionPolicy Bypass -File ./run-diagnostics.ps1",
+    "check:deps": "npm ls json2csv && npm ls @json2csv/plainjs",
+    "check:deploy": "powershell -ExecutionPolicy Bypass -File ./verify-deployment-setup.ps1",
+    "clean": "rimraf node_modules package-lock.json .next .vercel",
+    "fresh": "npm run clean && npm cache clean --force && npm install",
+    "logs": "vercel logs --follow",
+    "status": "powershell -ExecutionPolicy Bypass -File ./check-vercel-deployment.ps1",
+    "readiness": "powershell -ExecutionPolicy Bypass -File ./deploy-readiness.ps1",
+    "validate:vercel": "powershell -ExecutionPolicy Bypass -File ./validate-for-vercel.ps1",
+    "types:fix": "powershell -ExecutionPolicy Bypass -File ./fix-build-types.ps1",
+    "launch": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1",
+    "launch:prod": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production",
+    "launch:auto": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production -AutoConfirm",
+    "type-check": "tsc --noEmit",
+    "vercel-build": "npm --prefix apps/web run build",
     "typecheck": "npm --prefix apps/web run typecheck && tsc -p sdk/tsconfig.json",
-    "test": "jest --runInBand",
-    "test:unit": "vitest",
+    "test": "vitest",
+    "test:unit": "vitest --config vitest.config.unit.ts",
     "test:unit:watch": "vitest --watch",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:ci": "vitest run --reporter=verbose --reporter=json --outputFile=test-results.json",
+    "test:ci": "vitest run --coverage --config vitest.config.ts",
     "test:ui": "vitest --ui",
-    "test:e2e": "npm --prefix apps/web run e2e",
-    "test:integration": "node scripts/integration-test-all.mjs",
+    "test:e2e": "playwright test",
+    "test:integration": "vitest --config vitest.config.integration.ts",
     "test:api:stage": "newman run ./docs/postman/truckercore-R1-full.postman_collection.json -e ./docs/postman/truckercore-stage.postman_environment.json --timeout-request 20000 --insecure --color on --reporters cli,htmlextra --reporter-htmlextra-export ./newman/report-stage.html",
     "test:api:prod": "newman run ./docs/postman/truckercore-R1-full.postman_collection.json -e ./docs/postman/truckercore-prod.postman_environment.json --timeout-request 20000 --insecure --color on --reporters cli,htmlextra --reporter-htmlextra-export ./newman/report-prod.html",
     "test:rpcs": "node test_rpcs.js",
@@ -95,29 +115,22 @@
     "verify:safety-suite:full": "node scripts/final-verification.mjs",
     "setup:env:win": "powershell -ExecutionPolicy Bypass -File ./scripts/Setup-Environment.ps1 -Save",
     "check:homepage-assets": "node scripts/check-homepage-assets.mjs",
-
     "validate:seo": "node scripts/validate-seo.js",
     "validate:build": "npm run validate:seo && npm run typecheck && npm run build",
     "prebuild": "npm run validate:seo",
-
-    "deploy": "./deploy.sh",
-    "deploy:fast": "./deploy.sh --skip-tests",
-    "deploy:force": "./deploy.sh --force",
-
+    "deploy:legacy": "./deploy.sh",
+    "deploy:legacy:fast": "./deploy.sh --skip-tests",
+    "deploy:legacy:force": "./deploy.sh --force",
     "check:status": "bash scripts/deployment-status.sh",
     "check:debug": "bash scripts/debug-vercel-404.sh",
     "check:production": "bash scripts/verify-production.sh",
     "fix:404": "bash scripts/fix-404.sh",
-
     "test:routes": "bash scripts/test-local-routes.sh",
     "test:predeploy": "bash scripts/pre-deploy-test.sh",
-
     "monitor": "bash scripts/status-dashboard.sh",
     "monitor:logs": "vercel logs --follow",
-
     "assets:generate": "node scripts/generate-icons.js",
     "assets:check": "bash scripts/pre-production-checklist.sh",
-
     "test:local:routes": "bash scripts/test-local-routes.sh",
     "check:assets:prod": "bash scripts/preprod-asset-check.sh",
     "verify:prod": "bash scripts/verify-production.sh",
@@ -125,23 +138,22 @@
     "deploy:prod": "bash scripts/deploy.sh",
     "setup:monitoring": "bash scripts/setup-monitoring.sh",
     "generate:icons": "node scripts/generate-icons.js",
-
     "verify:homepage": "node scripts/verify-homepage.mjs",
     "verify:homepage:prod": "BASE_URL=https://truckercore.com node scripts/verify-homepage.mjs",
     "verify:homepage:local": "BASE_URL=http://localhost:3000 node scripts/verify-homepage.mjs",
     "verify:all": "npm run verify:homepage:prod && npm run verify:safety-suite:full",
-
     "precommit": "npm run lint && npm run typecheck && npm run test:unit",
     "predeploy": "npm run preflight && npm run verify:all",
-    "launch": "npm run preflight && npm run deploy:safety-suite && npm run verify:all && npm run test:integration",
-
+    "launch:legacy": "npm run preflight && npm run deploy:safety-suite && npm run verify:all && npm run test:integration",
     "checklist": "node scripts/final-checklist.mjs",
     "ready": "npm run checklist && npm run preflight && echo \"\n✅ READY FOR DEPLOYMENT\"",
     "// === DEPLOYMENT - SHIP IT! 🚢 ===": "",
     "ship": "bash scripts/ultimate-launch.sh",
     "ship:fast": "npm run deploy:fast",
-    "ship:now": "npm run deploy:preflight && npm run deploy",
-
+    "ship:preview": "npm run readiness && npm run launch",
+    "ship:production": "npm run readiness && npm run launch:prod",
+    "ship:now": "npm run launch:prod",
+    "ship:legacy:now": "npm run deploy:preflight && npm run deploy",
     "logs:vercel": "vercel logs --follow",
     "logs:ef": "supabase functions logs refresh-safety-summary",
     "rollback:git": "git revert HEAD && git push origin main",
@@ -161,7 +173,6 @@
     "deploy:now": "npm run deploy:preflight && npm run deploy",
     "verify:fix": "powershell -ExecutionPolicy Bypass -File scripts/verify-fix.ps1",
     "deploy:fix": "powershell -ExecutionPolicy Bypass -File ./deploy-fix.ps1",
-
     "build:electron": "tsc -p electron/tsconfig.json",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && ELECTRON_BUILD=1 electron .\"",
@@ -171,42 +182,42 @@
     "dist:win": "ELECTRON_BUILD=1 npm run build && npm run build:electron && npm run migrate && electron-builder --win",
     "dist:linux": "ELECTRON_BUILD=1 npm run build && npm run build:electron && npm run migrate && electron-builder --linux",
     "migrate": "ts-node electron/database/migrate-cli.ts migrate",
-      "migrate:status": "ts-node electron/database/migrate-cli.ts status",
-      "migrate:rollback": "ts-node electron/database/migrate-cli.ts rollback",
-      "postinstall": "electron-builder install-app-deps",
-
-      "db:setup": "node scripts/db/setup.mjs",
-      "db:seed": "node scripts/db/seed.mjs",
-      "db:setup:test": "node scripts/db/setup.mjs",
-
-      "test": "vitest",
-      "test:unit": "vitest --config vitest.config.unit.ts",
-      "test:integration:legacy": "node scripts/integration-test-all.mjs",
-      "test:integration": "vitest --config vitest.config.integration.ts",
-      "test:e2e": "playwright test",
-      "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-      "test:ci": "vitest run --coverage --config vitest.config.ts",
-      "test:unit:ci": "vitest run --coverage --config vitest.config.unit.ts",
-      "test:integration:ci": "vitest run --coverage --config vitest.config.integration.ts",
-      "test:watch": "vitest --watch",
-      "test:ui": "vitest --ui",
-      "test:coverage": "vitest run --coverage",
-      "test:coverage:open": "vitest run --coverage && (xdg-open coverage/index.html || open coverage/index.html || start coverage/index.html)",
-      "test:quick": "vitest run --changed",
-      "test:related": "vitest related",
-      "test:debug": "vitest --inspect-brk --inspect --single-thread",
-      "bench": "vitest bench",
-      "bench:watch": "vitest bench --watch",
-      "bench:ui": "vitest bench --ui",
-      "test:mutation": "stryker run",
-      "coverage:report": "npm run test:coverage && ts-node scripts/generate-coverage-report.ts",
-      "coverage:dashboard": "npm run coverage:report && (xdg-open coverage/dashboard.html || open coverage/dashboard.html || start coverage/dashboard.html)",
-      "test:flaky": "ts-node scripts/detect-flaky-tests.ts",
-      "test:flaky:ci": "ts-node scripts/detect-flaky-tests.ts 20",
-      "test:quality": "ts-node scripts/test-quality-metrics.ts",
-      "test:full": "npm run test:quality && npm run test:all && npm run coverage:report",
-      "test:visual": "playwright test tests/visual"
-    },
+    "migrate:status": "ts-node electron/database/migrate-cli.ts status",
+    "migrate:rollback": "ts-node electron/database/migrate-cli.ts rollback",
+    "postinstall": "electron-builder install-app-deps",
+    "db:setup": "node scripts/db/setup.mjs",
+    "db:seed": "node scripts/db/seed.mjs",
+    "db:setup:test": "node scripts/db/setup.mjs",
+    "test:integration:legacy": "node scripts/integration-test-all.mjs",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit:ci": "vitest run --coverage --config vitest.config.unit.ts",
+    "test:integration:ci": "vitest run --coverage --config vitest.config.integration.ts",
+    "test:watch": "vitest --watch",
+    "test:coverage:open": "vitest run --coverage && (xdg-open coverage/index.html || open coverage/index.html || start coverage/index.html)",
+    "test:quick": "vitest run --changed",
+    "test:related": "vitest related",
+    "test:debug": "vitest --inspect-brk --inspect --single-thread",
+    "bench": "vitest bench",
+    "bench:watch": "vitest bench --watch",
+    "bench:ui": "vitest bench --ui",
+    "test:mutation": "stryker run",
+    "coverage:report": "npm run test:coverage && ts-node scripts/generate-coverage-report.ts",
+    "coverage:dashboard": "npm run coverage:report && (xdg-open coverage/dashboard.html || open coverage/dashboard.html || start coverage/dashboard.html)",
+    "test:flaky": "ts-node scripts/detect-flaky-tests.ts",
+    "test:flaky:ci": "ts-node scripts/detect-flaky-tests.ts 20",
+    "test:quality": "ts-node scripts/test-quality-metrics.ts",
+    "test:full": "npm run test:quality && npm run test:all && npm run coverage:report",
+    "test:visual": "playwright test tests/visual",
+    "ci:win:diagnostics": "powershell -ExecutionPolicy Bypass -File ./scripts/windows/Check-Runtimes.ps1; powershell -ExecutionPolicy Bypass -File ./run-diagnostics.ps1",
+    "smoke:web": "node scripts/smoke/smoke-web.mjs",
+    "smoke:api": "node scripts/smoke/smoke-api.mjs",
+    "smoke:ci": "node scripts/smoke/smoke-web.mjs",
+    "ci:metrics": "node scripts/ci/ci-metrics.mjs --workflow windows-ci.yml",
+    "ci:metrics:summary": "node scripts/ci/ci-metrics.mjs --workflow windows-ci.yml --summary",
+    "obs:sentry:alerts": "node scripts/observability/sentry-alerts.mjs",
+    "obs:sentry:dashboard": "node scripts/observability/sentry-dashboard.mjs",
+    "obs:sentry:apply": "npm run obs:sentry:alerts && npm run obs:sentry:dashboard"
+  },
   "build": {
     "appId": "com.truckercore.desktop",
     "productName": "TruckerCore",
@@ -227,8 +238,20 @@
       "category": "public.app-category.business",
       "icon": "resources/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -237,15 +260,34 @@
     },
     "dmg": {
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "win": {
       "icon": "resources/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64", "ia32"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -257,68 +299,86 @@
     "linux": {
       "icon": "resources/icon.png",
       "category": "Office",
-      "target": ["AppImage", "deb", "rpm"]
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ]
     },
     "protocols": [
-      { "name": "TruckerCore Protocol", "schemes": ["truckercore"] }
+      {
+        "name": "TruckerCore Protocol",
+        "schemes": [
+          "truckercore"
+        ]
+      }
     ]
   },
   "dependencies": {
-    "@json2csv/plainjs": "^7.0.6",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
-    "html2canvas": "^1.4.1",
-    "xlsx": "^0.18.5",
-    "@supabase/supabase-js": "^2.57.2",
-    "express": "^4.19.2",
-    "ioredis": "^5.3.2",
-    "next": "^14.2.32",
-    "papaparse": "^5.4.1",
-    "prom-client": "^15.1.3",
+    "@json2csv/plainjs": "~7.0.6",
+    "@sendgrid/mail": "~8.1.4",
+    "@supabase/supabase-js": "~2.57.2",
+    "axios": "~1.7.7",
+    "chart.js": "~4.4.3",
+    "electron-log": "~5.1.2",
+    "electron-updater": "~6.1.7",
+    "express": "~4.19.2",
+    "html2canvas": "~1.4.1",
+    "ioredis": "~5.3.2",
+    "jspdf": "~2.5.1",
+    "jspdf-autotable": "~3.8.2",
+    "keytar": "~7.9.0",
+    "leaflet": "~1.9.4",
+    "next": "~14.2.32",
+    "papaparse": "~5.4.1",
+    "prom-client": "~15.1.3",
     "qrcode": "1.5.3",
     "react": "18.3.1",
+    "react-chartjs-2": "~5.2.0",
     "react-dom": "18.3.1",
-    "axios": "^1.7.7",
-    "stripe": "^14.25.0",
-    "uuid": "^9.0.1",
-    "zod": "^3.23.8",
-    "electron-updater": "^6.1.7",
-    "electron-log": "^5.1.2",
-    "keytar": "^7.9.0",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1",
-        "react-chartjs-2": "^5.2.0",
-        "chart.js": "^4.4.3",
-    "@sendgrid/mail": "^8.1.4",
-    "twilio": "^5.5.2"
+    "react-leaflet": "~4.2.1",
+    "stripe": "~14.25.0",
+    "twilio": "~5.5.2",
+    "uuid": "~9.0.1",
+    "xlsx": "~0.18.5",
+    "zod": "~3.23.8"
   },
   "optionalDependencies": {
-    "better-sqlite3": "^9.6.0"
+    "better-sqlite3": "~9.6.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/ioredis": "^4.28.10",
-    "@types/node": "^20.14.10",
+    "@stryker-mutator/core": "~8.0.0",
+    "@stryker-mutator/vitest-runner": "~8.0.0",
     "@types/better-sqlite3": "^7.6.9",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "jest": "^29.7.0",
-    "nock": "^13.5.0",
-    "newman": "^6.1.2",
-    "newman-reporter-htmlextra": "^1.23.0",
-    "supertest": "^6.3.4",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.6.2",
-    "vitest": "^2.0.5",
-    "concurrently": "^8.2.0",
-    "wait-on": "^7.0.1",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
-    "serve": "^14.2.0",
-    "source-map-explorer": "^2.5.3",
-    "@stryker-mutator/core": "^8.0.0",
-    "@stryker-mutator/vitest-runner": "^8.0.0"
+    "@types/express": "~4.17.21",
+    "@types/ioredis": "^4.28.10",
+    "@types/jest": "~29.5.12",
+    "@types/js-yaml": "~4.0.9",
+    "@types/node": "~20.14.10",
+    "@types/papaparse": "^5.3.14",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.26",
+    "@types/react-dom": "^18.3.7",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^7.16.1",
+    "@typescript-eslint/parser": "^7.16.1",
+    "ajv": "~8.17.1",
+    "ajv-formats": "~3.0.1",
+    "concurrently": "~8.2.0",
+    "electron": "~28.0.0",
+    "electron-builder": "~24.9.1",
+    "jest": "~29.7.0",
+    "newman": "~6.1.2",
+    "newman-reporter-htmlextra": "~1.23.0",
+    "nock": "~13.5.0",
+    "serve": "~14.2.0",
+    "source-map-explorer": "~2.5.3",
+    "supertest": "~6.3.4",
+    "ts-jest": "~29.2.5",
+    "ts-node": "~10.9.2",
+    "typescript": "~5.6.2",
+    "vitest": "~2.0.5",
+    "wait-on": "~7.0.1"
   },
   "engines": {
     "node": ">=18.0.0 <21.0.0",
