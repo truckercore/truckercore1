@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "npm ci --include=dev --legacy-peer-deps",
-  "buildCommand": "npm run build",
+  "installCommand": "npm ci --include=dev --legacy-peer-deps && cd apps/web && npm ci --include=dev --legacy-peer-deps",
+  "buildCommand": "npm run validate:seo && cd apps/web && npm run build",
   "framework": "nextjs",
   "regions": ["iad1"],
   "cleanUrls": true,
