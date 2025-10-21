@@ -1,8 +1,11 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 import { useEffect, useState } from "react";
 
 export function useRoadDoggProfile(orgId: string | null) {
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const [features, setFeatures] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 

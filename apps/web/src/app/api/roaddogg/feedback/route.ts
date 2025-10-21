@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 
 // Accepts { id: number, accepted: boolean }
 // Persists user feedback against suggestions_log with per-user/org scoping via RLS using RPC.

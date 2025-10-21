@@ -1,4 +1,4 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 import { useCallback } from "react";
 
 export type RDEventType =
@@ -11,7 +11,10 @@ export type RDEventType =
 type Payload = Record<string, any>;
 
 export function useRoadDoggEvent(orgId: string | null) {
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const track = useCallback(
     async (type: RDEventType, payload: Payload) => {
