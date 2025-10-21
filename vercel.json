@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install --include=dev --legacy-peer-deps",
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm --prefix apps/web run build",
   "framework": "nextjs"
 }
 
