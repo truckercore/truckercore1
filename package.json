@@ -1,7 +1,10 @@
 {
-  "name": "truckercore1-web",
+  "name": "truckercore1",
   "version": "1.2.0",
   "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
   "description": "TruckerCore - Smart Logistics Platform for Modern Trucking",
   "repository": {
     "type": "git",
@@ -118,7 +121,6 @@
     "check:homepage-assets": "node scripts/check-homepage-assets.mjs",
     "validate:seo": "node scripts/validate-seo.js",
     "validate:build": "npm run validate:seo && npm run typecheck && npm run build",
-    "prebuild": "npm run validate:seo",
     "deploy:legacy": "./deploy.sh",
     "deploy:legacy:fast": "./deploy.sh --skip-tests",
     "deploy:legacy:force": "./deploy.sh --force",
