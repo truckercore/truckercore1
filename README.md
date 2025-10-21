@@ -52,6 +52,8 @@ npm run dev
 # Visit http://localhost:3000
 ```
 
+**Note:** The postinstall script automatically runs `electron-builder install-app-deps` for native modules. On Vercel (web deployments), this is skipped automatically to avoid native module rebuild failures and speed up deployment.
+
 For Git setup basics, see docs/GIT_SETUP.md
 
  
