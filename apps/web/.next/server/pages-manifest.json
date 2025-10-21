@@ -1,0 +1,23 @@
+{
+  "/_app": "pages/_app.js",
+  "/admin/ops": "pages/admin/ops.js",
+  "/api/admin/billing-reconcile": "pages/api/admin/billing-reconcile.js",
+  "/_error": "pages/_error.js",
+  "/api/admin/coi-download": "pages/api/admin/coi-download.js",
+  "/api/billing/checkout": "pages/api/billing/checkout.js",
+  "/api/admin/coi-verify": "pages/api/admin/coi-verify.js",
+  "/api/admin/coi-list": "pages/api/admin/coi-list.js",
+  "/api/billing/portal": "pages/api/billing/portal.js",
+  "/api/exports/alerts.csv": "pages/api/exports/alerts.csv.js",
+  "/api/exports/corridors.csv": "pages/api/exports/corridors.csv.js",
+  "/api/exports/jobs": "pages/api/exports/jobs.js",
+  "/api/exports/jobs/[jobId]": "pages/api/exports/jobs/[jobId].js",
+  "/api/exports/safety.csv": "pages/api/exports/safety.csv.js",
+  "/api/exports/risk-corridors.csv": "pages/api/exports/risk-corridors.csv.js",
+  "/api/paywall/nonce": "pages/api/paywall/nonce.js",
+  "/billing/success": "pages/billing/success.js",
+  "/api/paywall/verify": "pages/api/paywall/verify.js",
+  "/api/billing/webhook": "pages/api/billing/webhook.js",
+  "/enterprise/reports/risk-corridors": "pages/enterprise/reports/risk-corridors.js",
+  "/_document": "pages/_document.js"
+}

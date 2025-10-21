@@ -1,6 +1,6 @@
 // apps/web/pages/enterprise/reports/risk-corridors.tsx
 import React from "react";
-import { TopRiskCorridors } from "@/src/components/TopRiskCorridors";
+import { TopRiskCorridors } from "@/components/TopRiskCorridors";
 
 // If your app exposes an enterprise org filter hook, use it here;
 // otherwise render without org filter (component handles undefined).
@@ -17,4 +17,9 @@ export default function RiskCorridorsReport() {
       <TopRiskCorridors orgId={orgId ?? ""} />
     </div>
   );
+}
+
+// Force server-side rendering to avoid build-time data requirements
+export async function getServerSideProps() {
+  return { props: {} };
 }

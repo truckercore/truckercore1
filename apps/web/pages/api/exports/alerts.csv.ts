@@ -17,7 +17,7 @@ const REDIS_TOKEN = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TO
 
 // Prometheus metrics (singleton via global cache)
 const globalAny = global as any;
-const promRegistry: Registry = globalAny.promRegistry || new Registry();
+const promRegistry: InstanceType<typeof Registry> = globalAny.promRegistry || new Registry();
 if (!globalAny.promRegistry) {
   collectDefaultMetrics({ register: promRegistry });
   globalAny.promRegistry = promRegistry;

@@ -1,0 +1,5 @@
+[
+  { "path": "/legal/dpa", "title": "Data Processing Addendum" },
+  { "path": "/legal/baa", "title": "Business Associate Agreement" },
+  { "path": "/legal/data-residency", "title": "Data Residency" }
+]

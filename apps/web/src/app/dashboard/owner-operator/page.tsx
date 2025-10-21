@@ -1,3 +1,7 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
 import { Suspense, useState } from 'react'
 import { ExpensesTab } from '@/features/ownerop/ExpensesTab'
 import { ProfitabilityTab } from '@/features/ownerop/ProfitabilityTab'

@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Counter, Histogram, Registry } from "prom-client";
 
 // Metrics registry (local to this process)
-const registry: Registry = (global as any).__metrics_registry || new Registry();
+const registry: InstanceType<typeof Registry> = (global as any).__metrics_registry || new Registry();
 (global as any).__metrics_registry = registry;
 
 const reqs = new Counter({ name: "csv_export_requests_total", help: "CSV export requests", registers: [registry] });

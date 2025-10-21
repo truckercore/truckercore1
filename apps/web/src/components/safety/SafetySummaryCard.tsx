@@ -1,12 +1,15 @@
 // TypeScript
 "use client";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 
 type SafetySummary = { summary_date: string; metrics: Record<string, number | string> };
 
 export default function SafetySummaryCard() {
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SafetySummary | null>(null);
   const [err, setErr] = useState<string | null>(null);

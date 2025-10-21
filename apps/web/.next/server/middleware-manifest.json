@@ -1,0 +1,34 @@
+{
+  "version": 3,
+  "middleware": {},
+  "functions": {
+    "/api/health/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/health/route.js"
+      ],
+      "name": "app/api/health/route",
+      "page": "/api/health/route",
+      "matchers": [
+        {
+          "regexp": "^/api/health$",
+          "originalSource": "/api/health"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "_nOMvu-4MQBwXMV36p1JU",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "LKQ2NMKtOEIVgG5AwcR8EER1QEqeMOTWNPjldDO8b70=",
+        "__NEXT_PREVIEW_MODE_ID": "8b93c862f21e3ceef7a217e09e7b9321",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "2e92284455687076f40c9dab6a6dcb8872bd727686cda08ad0892735c6aa5ba8",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "c9480511eaf17da51b18883bb19dac0b304a06df1d025d03cd4c8f2cab4d5e7e"
+      }
+    }
+  },
+  "sortedMiddleware": []
+}
