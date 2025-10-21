@@ -1,0 +1,1 @@
+{"version":1,"functions":{"/api/admin/health/billing":{},"/api/admin/license/debug":{},"/api/admin/metrics/licensing":{},"/api/admin/metrics/csv":{},"/api/health":{},"/api/webhooks/stripe":{},"/api/stripe/webhook":{},"/api/billing/webhook":{},"/enterprise/reports/risk-corridors":{},"/demo":{},"/dev/data-check":{}}}
