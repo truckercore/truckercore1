@@ -50,7 +50,7 @@
     "launch:prod": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production",
     "launch:auto": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production -AutoConfirm",
     "type-check": "tsc --noEmit",
-    "vercel-build": "npm run build --workspace=apps/web",
+    "vercel-build": "npm --prefix apps/web run build",
     "typecheck": "npm --prefix apps/web run typecheck && tsc -p sdk/tsconfig.json",
     "test": "vitest",
     "test:unit": "vitest --config vitest.config.unit.ts",
