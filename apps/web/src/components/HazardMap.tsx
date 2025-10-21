@@ -2,12 +2,12 @@
 import React, { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { Hazard, SEVERITY_COLOR, TYPE_ICON, BBox } from "@/lib/geo";
-import { AlertTriangle, CarCrash, Cone, Zap, OctagonAlert, BadgeCheck, LayoutPanelTop, Ban } from "lucide-react";
+import { AlertTriangle, Car, Cone, Zap, OctagonAlert, BadgeCheck, LayoutPanelTop, Ban } from "lucide-react";
 import ReactDOMServer from "react-dom/server";
 
 const IconByName: Record<string, React.FC<any>> = {
   "triangle-alert": AlertTriangle,
-  "car-crash": CarCrash,
+  "car-crash": Car,
   "cone": Cone,
   "cloud-lightning": Zap,
   "octagon-alert": OctagonAlert,

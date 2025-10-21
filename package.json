@@ -1,10 +1,14 @@
 {
+  "name": "truckercore1",
 
   "name": "truckercore1-web",
 
   "version": "1.2.0",
 
   "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
 
   "description": "TruckerCore - Smart Logistics Platform for Modern Trucking",
 
@@ -56,6 +60,7 @@
 
     "dev": "npm --prefix apps/web run dev",
 
+    "dev": "npm run dev --workspace=apps/web",
     "build:web": "npm --prefix apps/web run build",
 
     "start:web": "npm --prefix apps/web run start",

@@ -1,3 +1,5 @@
+'use client'
+
 import { Suspense, useState } from 'react'
 import { ExpensesTab } from '@/features/ownerop/ExpensesTab'
 import { ProfitabilityTab } from '@/features/ownerop/ProfitabilityTab'
