@@ -184,7 +184,7 @@
     "migrate": "ts-node electron/database/migrate-cli.ts migrate",
     "migrate:status": "ts-node electron/database/migrate-cli.ts status",
     "migrate:rollback": "ts-node electron/database/migrate-cli.ts rollback",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node scripts/postinstall.js",
     "db:setup": "node scripts/db/setup.mjs",
     "db:seed": "node scripts/db/seed.mjs",
     "db:setup:test": "node scripts/db/setup.mjs",
