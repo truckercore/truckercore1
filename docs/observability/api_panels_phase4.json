@@ -1,0 +1,21 @@
+{
+  "title": "TruckerCore — API Phase 4 Routes",
+  "uid": "truckercore-api-phase4",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["api", "phase4"],
+  "refresh": "30s",
+  "panels": [
+    { "type": "timeseries", "title": "p95 /api/analytics/fleet#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/analytics/fleet#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/analytics/broker#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/analytics/broker#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/analytics/export.csv#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/analytics/export.csv#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/ownerop/expenses#POST (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/ownerop/expenses#POST\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/ownerop/profit#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/ownerop/profit#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/ownerop/tax/export.csv#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/ownerop/tax/export.csv#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/hos/:driver_user_id#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/hos/:driver_user_id#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/inspection#POST (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/inspection#POST\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/alerts#GET (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/alerts#GET\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "p95 /api/alerts/:id/ack#POST (ms)", "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket{route=\"/api/alerts/:id/ack#POST\"}[5m])) by (le))" } ] },
+    { "type": "timeseries", "title": "Rate Limit 429 Count by Org", "targets": [ { "expr": "sum by (org) (rate(rate_limit_429_total[5m]))" } ] }
+  ]
+}

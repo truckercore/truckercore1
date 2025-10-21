@@ -1,0 +1,17 @@
+[
+  {
+    "type": "timeseries",
+    "title": "429 rate (by org)",
+    "targets": [{ "expr": "sum(rate(rate_limit_429_total[5m])) by (org)", "legendFormat": "{{org}}" }]
+  },
+  {
+    "type": "timeseries",
+    "title": "Scope violations (by route)",
+    "targets": [{ "expr": "sum(rate(scope_violation_total[5m])) by (route,required_scope)", "legendFormat": "{{route}} / {{required_scope}}" }]
+  },
+  {
+    "type": "timeseries",
+    "title": "Retention purged (total)",
+    "targets": [{ "expr": "sum(rate(retention_purged_total[5m]))", "legendFormat": "purged/s" }]
+  }
+]

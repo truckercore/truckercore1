@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/src/lib/stripe";
-import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
+import { stripe } from "@/lib/stripe";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const config = { api: { bodyParser: false } };
 

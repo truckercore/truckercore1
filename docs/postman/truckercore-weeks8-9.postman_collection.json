@@ -1,0 +1,318 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 8–9",
+    "_postman_id": "2c1a9a60-2b8f-4fd8-8e74-5fb0d9a5c880",
+    "description": "Collection for Accessorials, Detention, Documents & OCR v2, Geofencing v2, Advanced Trust (ACH + Watchlists), Mobile Navigation (online/offline), Market Pricing ML v1, Shipper Contracts & SLAs, Enterprise SSO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Payments & Accessorials",
+      "item": [
+        {
+          "name": "Add Accessorial to Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/finance/accessorials", "host": [ "{{baseUrl}}" ], "path": [ "api", "finance", "accessorials" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\", \"type\": \"detention\", \"amount_usd\": 125.00, \"notes\": \"2h dock delay\", \"proof_url\": \"https://files.example/bol123.pdf\" }"
+            }
+          }
+        },
+        {
+          "name": "List Accessorials by Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/finance/accessorials?load_id={{load_id}}", "host": [ "{{baseUrl}}" ], "path": [ "api", "finance", "accessorials" ], "query": [ { "key": "load_id", "value": "{{load_id}}" } ] }
+          }
+        },
+        {
+          "name": "Detention Auto-Detect (Suggest Claim)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/finance/detention/suggest", "host": [ "{{baseUrl}}" ], "path": [ "api", "finance", "detention", "suggest" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\", \"arrival_time\": \"2025-10-08T12:00:00Z\", \"departure_time\": \"2025-10-08T16:05:00Z\", \"appt_window_start\": \"2025-10-08T12:00:00Z\", \"appt_window_end\": \"2025-10-08T13:00:00Z\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents & OCR v2",
+      "item": [
+        {
+          "name": "Upload Document (BOL/RateCon)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/docs/upload", "host": [ "{{baseUrl}}" ], "path": [ "api", "docs", "upload" ] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/sample_bol.pdf" },
+                { "key": "tags", "value": "BOL,LOAD:{{load_id}}", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/docs/search?q=load%20123&limit=10",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "docs", "search" ],
+              "query": [
+                { "key": "q", "value": "load 123" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "OCR Extract (BOL Template)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/docs/ocr/extract", "host": [ "{{baseUrl}}" ], "path": [ "api", "docs", "ocr", "extract" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"doc_id\": \"{{doc_id}}\", \"template\": \"bol_v1\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Geofencing v2",
+      "item": [
+        {
+          "name": "Create/Update Geofence (Multipolygon + Hours)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/geofence/save", "host": [ "{{baseUrl}}" ], "path": [ "api", "geofence", "save" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": null,\n  \"name\": \"DC-7\",\n  \"polygons\": [[[[-73.99,40.73],[-73.98,40.73],[-73.98,40.72],[-73.99,40.72],[-73.99,40.73]]]],\n  \"hours\": {\"mon\": [\"08:00-18:00\"], \"tue\": [\"08:00-18:00\"]},\n  \"sla_minutes\": 60\n}"
+            }
+          }
+        },
+        {
+          "name": "List Geofences",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/geofence/list?limit=50", "host": [ "{{baseUrl}}" ], "path": [ "api", "geofence", "list" ], "query": [ { "key": "limit", "value": "50" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Advanced Trust (ACH + Watchlists)",
+      "item": [
+        {
+          "name": "Initiate ACH Micro-Deposits",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trust/ach/initiate", "host": [ "{{baseUrl}}" ], "path": [ "api", "trust", "ach", "initiate" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"broker_id\": \"{{broker_id}}\", \"account_token\": \"bank_tok_01H...\" }"
+            }
+          }
+        },
+        {
+          "name": "Verify ACH Micro-Deposits",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trust/ach/verify", "host": [ "{{baseUrl}}" ], "path": [ "api", "trust", "ach", "verify" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"broker_id\": \"{{broker_id}}\", \"amounts\": [0.07, 0.12] }"
+            }
+          }
+        },
+        {
+          "name": "Watchlist Screening (Broker/Carrier)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trust/watchlist/screen", "host": [ "{{baseUrl}}" ], "path": [ "api", "trust", "watchlist", "screen" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"subject_type\": \"broker\", \"subject_id\": \"{{broker_id}}\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mobile Navigation v1",
+      "item": [
+        {
+          "name": "Online Navigation Session (Start)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/navigation/start", "host": [ "{{baseUrl}}" ], "path": [ "api", "navigation", "start" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"route_id\": \"rte_01H...\", \"truck\": {\"height_ft\": 13.5, \"weight_lbs\": 80000} }"
+            }
+          }
+        },
+        {
+          "name": "Offline Fallback Navigation (Guarded)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/offline/routing/guarded", "host": [ "{{baseUrl}}" ], "path": [ "api", "offline", "routing", "guarded" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"region_key\": \"midwest\", \"origin\": {\"lat\": 41.0, \"lng\": -93.5}, \"dest\": {\"lat\": 41.8, \"lng\": -87.6}, \"truck\": {\"height_ft\": 13.5, \"weight_lbs\": 80000} }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Market Pricing ML v1",
+      "item": [
+        {
+          "name": "Price Suggestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/pricing/suggest", "host": [ "{{baseUrl}}" ], "path": [ "api", "pricing", "suggest" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"origin_zip\": \"30301\", \"dest_zip\": \"75201\", \"date\": \"2025-10-09\", \"equipment\": \"van\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shipper Contracts & SLAs",
+      "item": [
+        {
+          "name": "Create Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/contracts", "host": [ "{{baseUrl}}" ], "path": [ "api", "contracts" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"label\": \"ACME 2025\", \"lanes\": [{\"origin_zip\": \"30301\", \"dest_zip\": \"60601\", \"rate_ppm\": 2.25}], \"sla\": {\"on_time_pct\": 0.95} }"
+            }
+          }
+        },
+        {
+          "name": "Assign Load to Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/contracts/{{contract_id}}/assign_load", "host": [ "{{baseUrl}}" ], "path": [ "api", "contracts", "{{contract_id}}", "assign_load" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Enterprise SSO (OIDC)",
+      "item": [
+        {
+          "name": "Configure OIDC (Org Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/sso/oidc/config", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "sso", "oidc", "config" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"issuer\": \"https://idp.example.com\", \"client_id\": \"abc\", \"client_secret\": \"***\", \"claims\": {\"email\": \"email\", \"roles\": \"roles\"} }"
+            }
+          }
+        },
+        {
+          "name": "Test OIDC Login (Org)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/sso/oidc/test_login", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "sso", "oidc", "test_login" ] },
+            "body": { "mode": "raw", "raw": "{ \"org_id\": \"{{org_id}}\" }" }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "broker_id", "value": "b1f4c2a7-5f5a-4c5f-8a0a-3a2a5e6d9b11" },
+    { "key": "load_id", "value": "ld_123" },
+    { "key": "doc_id", "value": "doc_456" },
+    { "key": "contract_id", "value": "ct_789" }
+  ]
+}

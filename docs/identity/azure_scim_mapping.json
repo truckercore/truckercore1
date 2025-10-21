@@ -1,0 +1,15 @@
+{
+  "mappings": [
+    { "source": "userPrincipalName", "target": "userName", "required": true },
+    { "source": "mail",              "target": "emails[type eq \"work\"].value", "required": true },
+    { "source": "givenName",         "target": "name.givenName" },
+    { "source": "surname",           "target": "name.familyName" },
+    { "source": "displayName",       "target": "displayName" },
+    { "source": "accountEnabled",    "target": "active" },
+    { "source": "objectId",          "target": "externalId" }
+  ],
+  "groupMappings": [
+    { "source": "displayName", "target": "displayName" }
+  ],
+  "groupMemberSync": "push"
+}

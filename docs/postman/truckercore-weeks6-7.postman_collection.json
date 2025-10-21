@@ -1,0 +1,332 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 6–7",
+    "_postman_id": "a7c1d6f9-7a2d-4b2c-9db7-4a1a3e5290f3",
+    "description": "Collection for multi-provider ELD, parking suggest, coaching tasks, insurance OCR, guarded offline routing, pricing anomalies, shipper portal MVP, auto-assign, onboarding risk, compliance dashboard.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "ELD Provider B",
+      "item": [
+        {
+          "name": "Connect Provider B",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/eld/provider-b/connect",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "integrations", "eld", "provider-b", "connect" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"auth_code\": \"AUTH_CODE_FROM_PROVIDER_B\",\n  \"redirect_uri\": \"app://callback/eld/provider-b\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Provider B Webhook (simulate HOS update)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "X-Signature", "value": "sha256=BASE64_SIG", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/eld/provider-b/webhook",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "integrations", "eld", "provider-b", "webhook" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"{{uuid}}\",\n  \"timestamp\": \"{{now_iso}}\",\n  \"type\": \"hos.updated\",\n  \"org_external_id\": \"ACME-123\",\n  \"driver_external_id\": \"DRV-890\",\n  \"logs\": [\n    {\"start_time\":\"2025-10-01T08:00:00Z\",\"end_time\":\"2025-10-01T12:00:00Z\",\"status\":\"driving\",\"source\":\"eld\",\"violations\":[]}\n  ],\n  \"signature\": \"sha256=BASE64_SIG\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parking Suggest",
+      "item": [
+        {
+          "name": "Parking Suggestions (HOS-aware)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/parking_suggest?lat=39.0997&lng=-94.5786&hos_remaining=120",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "ai", "parking_suggest" ],
+              "query": [
+                { "key": "lat", "value": "39.0997" },
+                { "key": "lng", "value": "-94.5786" },
+                { "key": "hos_remaining", "value": "120" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Safety Coaching Tasks",
+      "item": [
+        {
+          "name": "Create Coaching Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/safety/coaching_tasks", "host": [ "{{baseUrl}}" ], "path": [ "api", "safety", "coaching_tasks" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_user_id\": \"{{driver_user_id}}\",\n  \"event_refs\": [{\"type\":\"speeding\",\"id\":\"evt-123\"}],\n  \"due_by\": \"2025-10-05T23:59:59Z\",\n  \"notes\": \"Review speeding on I-65\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Coaching Tasks (Open)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/safety/coaching_tasks?status=open&driver_user_id={{driver_user_id}}",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "safety", "coaching_tasks" ],
+              "query": [
+                { "key": "status", "value": "open" },
+                { "key": "driver_user_id", "value": "{{driver_user_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Complete Coaching Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/safety/coaching_tasks/{{task_id}}/complete", "host": [ "{{baseUrl}}" ], "path": [ "api", "safety", "coaching_tasks", "{{task_id}}", "complete" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"ack_notes\": \"Reviewed with driver; plan agreed.\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Insurance OCR",
+      "item": [
+        {
+          "name": "Upload COI for OCR",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/verification/insurance/ocr", "host": [ "{{baseUrl}}" ], "path": [ "api", "verification", "insurance", "ocr" ] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/sample_coi.pdf" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offline Guarded Routing",
+      "item": [
+        {
+          "name": "Guarded Offline Route (avoid restrictions)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/offline/routing/guarded", "host": [ "{{baseUrl}}" ], "path": [ "api", "offline", "routing", "guarded" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region_key\": \"midwest\",\n  \"origin\": {\"lat\": 39.0997, \"lng\": -94.5786},\n  \"dest\": {\"lat\": 41.8781, \"lng\": -87.6298},\n  \"truck\": {\"height_ft\": 13.5, \"weight_lbs\": 80000}\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pricing Anomalies",
+      "item": [
+        {
+          "name": "Get Lane Anomalies",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pricing/anomalies?limit=10",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "pricing", "anomalies" ],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shipper Portal MVP",
+      "item": [
+        {
+          "name": "Create Shipper Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/shipper/loads", "host": [ "{{baseUrl}}" ], "path": [ "api", "shipper", "loads" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin_zip\": \"30301\",\n  \"dest_zip\": \"75201\",\n  \"equipment\": \"van\",\n  \"pickup_date\": \"2025-10-02\",\n  \"delivery_date\": \"2025-10-04\",\n  \"offered_rate\": 1800\n}"
+            }
+          }
+        },
+        {
+          "name": "List Open Shipper Loads",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipper/loads?status=open",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "shipper", "loads" ],
+              "query": [
+                { "key": "status", "value": "open" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Bid on Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/shipper/loads/{{load_id}}/bids", "host": [ "{{baseUrl}}" ], "path": [ "api", "shipper", "loads", "{{load_id}}", "bids" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"amount_usd\": 1725, \"notes\": \"Can pickup late afternoon.\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dispatch — Auto-Assign",
+      "item": [
+        {
+          "name": "Auto-Assign Candidates",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/dispatch/auto_assign", "host": [ "{{baseUrl}}" ], "path": [ "api", "dispatch", "auto_assign" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"load_id\": \"{{load_id}}\",\n  \"constraints\": {\"equipment\": \"van\", \"min_hos_minutes\": 240}\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding Risk & Review",
+      "item": [
+        {
+          "name": "Compute Onboarding Risk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/onboarding/risk_score", "host": [ "{{baseUrl}}" ], "path": [ "api", "onboarding", "risk_score" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ops@acme-broker.com\",\n  \"domain\": \"acme-broker.com\",\n  \"fingerprint\": \"fp_01H...\",\n  \"geo_ip\": \"198.51.100.7\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve/Deny Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/onboarding/review/{{subject_id}}/decision", "host": [ "{{baseUrl}}" ], "path": [ "api", "onboarding", "review", "{{subject_id}}", "decision" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"decision\": \"approve\", \"notes\": \"Matched known good domain and bank verified.\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Compliance Dashboard",
+      "item": [
+        {
+          "name": "Compliance Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/compliance/summary?from=2025-10-01&to=2025-10-07",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "compliance", "summary" ],
+              "query": [
+                { "key": "from", "value": "2025-10-01" },
+                { "key": "to", "value": "2025-10-07" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "driver_user_id", "value": "5f5c78fe-6a2c-4a7b-97a3-63b5bfbaf3b6" },
+    { "key": "load_id", "value": "ld_123" },
+    { "key": "subject_id", "value": "subj_abc" },
+    { "key": "now_iso", "value": "2025-10-01T16:00:00Z" },
+    { "key": "uuid", "value": "9b8d54a2-f3a0-49f2-9d5a-e2e194b7c2c0" }
+  ]
+}

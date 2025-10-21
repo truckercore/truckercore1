@@ -1,0 +1,518 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 12–13 API
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    Pagination:
+      type: object
+      properties:
+        next_cursor: { type: string, nullable: true }
+    ChatMessage:
+      type: object
+      properties:
+        id: { type: string }
+        thread_id: { type: string }
+        sender_user_id: { type: string }
+        text: { type: string }
+        created_at: { type: string, format: date-time }
+    Claim:
+      type: object
+      properties:
+        id: { type: string }
+        load_id: { type: string }
+        type: { type: string, enum: [incident, accident, cargo_damage, other] }
+        status: { type: string, enum: [open, in_review, submitted, paid, denied] }
+        occurred_at: { type: string, format: date-time }
+        summary: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ScorecardV2:
+      type: object
+      properties:
+        driver_user_id: { type: string }
+        period: { type: string, example: '30d' }
+        score: { type: number, minimum: 0, maximum: 100 }
+        metrics:
+          type: object
+          properties:
+            speeding: { type: integer }
+            harsh_brake: { type: integer }
+            harsh_accel: { type: integer }
+            cornering: { type: integer }
+            dwell_over_sla: { type: integer }
+            on_time_pct: { type: number }
+        streaks:
+          type: object
+          properties:
+            on_time_days: { type: integer }
+            no_speeding_days: { type: integer }
+        peer_rank:
+          type: object
+          properties:
+            percentile: { type: number }
+            group_size: { type: integer }
+    UsageSummary:
+      type: object
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        totals:
+          type: object
+          additionalProperties: { type: integer }
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              event: { type: string }
+              count: { type: integer }
+              day: { type: string, format: date }
+    CapacityForecast:
+      type: object
+      properties:
+        lane: { type: string, example: '30301-75201' }
+        horizon_days: { type: integer }
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              supply_index: { type: number }
+              demand_index: { type: number }
+              confidence: { type: number }
+    EtaCommitment:
+      type: object
+      properties:
+        load_id: { type: string }
+        appointment_window:
+          type: object
+          properties:
+            start: { type: string, format: date-time }
+            end: { type: string, format: date-time }
+        buffer_minutes: { type: integer }
+        risk_band: { type: string, enum: [low, medium, high] }
+        notes: { type: array, items: { type: string } }
+    GraphRisk:
+      type: object
+      properties:
+        subject_type: { type: string, enum: [broker, carrier, driver, user] }
+        subject_id: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        reasons: { type: array, items: { type: string } }
+        related:
+          type: array
+          items:
+            type: object
+            properties:
+              relation: { type: string }
+              id: { type: string }
+              weight: { type: number }
+    I18nBundle:
+      type: object
+      properties:
+        locale: { type: string, example: 'es-MX' }
+        version: { type: string }
+        messages:
+          type: object
+          additionalProperties: { type: string }
+security:
+  - bearerAuth: []
+paths:
+  # Carrier Marketplace
+  /api/marketplace/trucks:
+    post:
+      summary: Post truck availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [equipment, available_from, origin_zip]
+              properties:
+                equipment: { type: string, enum: [van, reefer, flatbed, stepdeck, power_only, other] }
+                available_from: { type: string, format: date-time }
+                origin_zip: { type: string }
+                radius_miles: { type: integer, default: 50 }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/schemas/ApiError' }
+  /api/marketplace/loads/search:
+    get:
+      summary: Search loads
+      parameters:
+        - in: query
+          name: origin_zip
+          schema: { type: string }
+        - in: query
+          name: dest_zip
+          schema: { type: string }
+        - in: query
+          name: equipment
+          schema: { type: string }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+        - in: query
+          name: rate_min
+          schema: { type: number }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { type: object } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+  /api/marketplace/match:
+    post:
+      summary: Express interest / bid on a load
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id]
+              properties:
+                load_id: { type: string }
+                bid_usd: { type: number }
+                message: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/schemas/ApiError' }
+  /api/marketplace/chat/threads:
+    get:
+      summary: List chat threads
+      parameters:
+        - in: query
+          name: context
+          schema: { type: string, enum: [load, truck] }
+        - in: query
+          name: context_id
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  threads:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        context: { type: string }
+                        context_id: { type: string }
+                        last_message_at: { type: string, format: date-time }
+  /api/marketplace/chat/{thread_id}/message:
+    post:
+      summary: Send message in a thread
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChatMessage' }
+
+  # Claims
+  /api/claims:
+    post:
+      summary: Create a claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id, type, occurred_at, summary]
+              properties:
+                load_id: { type: string }
+                type: { type: string, enum: [incident, accident, cargo_damage, other] }
+                occurred_at: { type: string, format: date-time }
+                summary: { type: string }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Claim' } } }
+    get:
+      summary: List claims by status
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, in_review, submitted, paid, denied] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Claim' } }
+  /api/claims/{claim_id}/document:
+    post:
+      summary: Upload claim document
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                label:
+                  type: string
+      responses:
+        '200': { description: OK }
+  /api/claims/{claim_id}/status:
+    post:
+      summary: Update claim status
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [open, in_review, submitted, paid, denied]
+      responses:
+        '200': { description: OK }
+
+  # Driver Scorecards v2
+  /api/driver/scorecard/{driver_user_id}:
+    get:
+      summary: Get driver scorecard v2
+      parameters:
+        - in: path
+          name: driver_user_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: period
+          schema: { type: string, example: '30d' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ScorecardV2' } } }
+  /api/driver/scorecards/rank:
+    get:
+      summary: Peer rank summary
+      parameters:
+        - in: query
+          name: period
+          schema: { type: string, example: '30d' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        percentile: { type: number }
+                        count: { type: integer }
+
+  # Billing & Metering
+  /api/billing/meter:
+    post:
+      summary: Record metered event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event, count]
+              properties:
+                event: { type: string, example: 'ai_calls' }
+                count: { type: integer, minimum: 1 }
+                context: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: OK }
+  /api/billing/usage:
+    get:
+      summary: Usage summary
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/UsageSummary' } } }
+  /api/billing/invoices/generate:
+    post:
+      summary: Generate invoices for period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [period]
+              properties:
+                period: { type: string, example: '2025-11' }
+      responses:
+        '200': { description: OK }
+
+  # Capacity Forecasting
+  /api/capacity/forecast:
+    get:
+      summary: Lane capacity forecast
+      parameters:
+        - in: query
+          name: lane
+          required: true
+          schema: { type: string, example: '30301-75201' }
+        - in: query
+          name: horizon_days
+          schema: { type: integer, default: 14 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/CapacityForecast' } } }
+
+  # Dynamic ETA Commitments
+  /api/eta/commitment:
+    post:
+      summary: Compute ETA commitment buffer + risk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id, appointment_window]
+              properties:
+                load_id: { type: string }
+                appointment_window:
+                  type: object
+                  required: [start, end]
+                  properties:
+                    start: { type: string, format: date-time }
+                    end: { type: string, format: date-time }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/EtaCommitment' } } }
+
+  # Fraud Graph Analytics
+  /api/fraud/graph/score:
+    post:
+      summary: Graph-based fraud risk score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id]
+              properties:
+                subject_type: { type: string, enum: [broker, carrier, driver, user] }
+                subject_id: { type: string }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/GraphRisk' } } }
+
+  # Accessibility & Localization
+  /api/i18n/messages:
+    get:
+      summary: Fetch i18n bundle
+      parameters:
+        - in: query
+          name: locale
+          required: true
+          schema: { type: string, example: 'es-MX' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/I18nBundle' } } }
+  /api/a11y/feedback:
+    post:
+      summary: Submit accessibility feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [screen, wcag_issue]
+              properties:
+                screen: { type: string }
+                wcag_issue: { type: string }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }

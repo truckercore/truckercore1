@@ -4,6 +4,27 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../providers/vehicles_provider.dart';
 
+// Test helper functions (exported for tests)
+double clusterSizeForCount(int count) {
+  if (count < 10) return 0.8;
+  if (count < 100) return 1.0;
+  if (count < 1000) return 1.2;
+  return 1.5;
+}
+
+String vehicleIconForStatus(String? status) {
+  switch (status) {
+    case 'active':
+      return 'vehicle-active';
+    case 'idle':
+      return 'vehicle-idle';
+    case 'maintenance':
+      return 'vehicle-maintenance';
+    default:
+      return 'vehicle-default';
+  }
+}
+
 /// High-performance map for 1000+ vehicles using clustering and viewport filtering
 class OptimizedFleetMap extends ConsumerStatefulWidget {
   const OptimizedFleetMap({super.key});

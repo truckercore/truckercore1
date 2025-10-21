@@ -1,0 +1,1 @@
+Shared AI UI helpers live here (avatars, shared widgets). Placeholder for now.

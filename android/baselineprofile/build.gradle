@@ -1,0 +1,26 @@
+plugins {
+  id 'com.android.library'
+  id 'kotlin-android'
+}
+
+android {
+  namespace "com.truckercore.baselineprofile"
+  compileSdk 34
+
+  defaultConfig {
+    minSdk 24
+  }
+
+  testOptions {
+    unitTests.includeAndroidResources = true
+  }
+
+  sourceSets {
+    main.assets.srcDirs += file("$projectDir/src/main/baseline")
+  }
+}
+
+dependencies {
+  implementation "androidx.annotation:annotation:1.8.1"
+  implementation "androidx.profileinstaller:profileinstaller:1.3.1"
+}

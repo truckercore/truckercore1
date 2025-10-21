@@ -1,0 +1,5 @@
+{
+  "lanes": [
+    {"lane_key":"30301->75201","series":[{"date":"2025-06-01","spot":2.18,"contract":1.98},{"date":"2025-07-01","spot":2.21,"contract":1.99},{"date":"2025-08-01","spot":2.25,"contract":2.00}]}
+  ]
+}

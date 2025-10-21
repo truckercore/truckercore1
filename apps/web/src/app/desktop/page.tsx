@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getRoleFromURL } from "@/src/lib/roleFromDesktop";
+import { getRoleFromURL } from "@/lib/roleFromDesktop";
 
 export default function DesktopEntry() {
   const router = useRouter();

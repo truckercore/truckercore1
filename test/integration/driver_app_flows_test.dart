@@ -45,14 +45,9 @@ void main() {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
-      // Look for offline banner or connectivity indicator
-      // This should be visible if connectivity provider detects offline state
-      final offlineBanner = find.text('Offline').evaluate().isNotEmpty ||
-                           find.text('No connection').evaluate().isNotEmpty;
-      
-      // Just verify the banner system exists (it may not show if online)
+      // Look for offline banner or connectivity indicator.
+      // We avoid asserting presence here to prevent flaky tests; only ensure app renders.
       expect(find.byType(MaterialApp), findsOneWidget);
-      // Note: we don't assert on offlineBanner to avoid flakes
     });
   });
 }

@@ -2,10 +2,12 @@ import React from "react";
 import maplibregl, { Map as MLMap } from "maplibre-gl";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = typeof window === "undefined"
+  ? null
+  : createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+    );
 
 function useDebounced<T>(value: T, delay = 250): T {
   const [v, setV] = React.useState(value);
@@ -59,6 +61,9 @@ export const TopRiskCorridors: React.FC<{ orgId: string }> = ({ orgId }) => {
     const bbox: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
 
     (async () => {
+      if (!supabase) {
+        return; // Skip on server/build
+      }
       const { data, error } = await supabase.rpc("rpc_corridors_bounded", {
         p_org: orgId,
         p_bbox: bbox.join(","),

@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 14–15 API
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    ModerationFlag:
+      type: object
+      properties:
+        id: { type: string }
+        subject_type: { type: string, enum: [chat_message, listing, profile] }
+        subject_id: { type: string }
+        reason: { type: string }
+        severity: { type: string, enum: [low, medium, high] }
+        flagged_by: { type: string }
+        created_at: { type: string, format: date-time }
+        status: { type: string, enum: [open, reviewed, actioned, dismissed] }
+    NotificationPref:
+      type: object
+      properties:
+        channel: { type: string, enum: [email, push, sms] }
+        topic: { type: string, enum: [marketplace,claims,chat,dispatch,billing,alerts] }
+        enabled: { type: boolean }
+    BillingUsageAlert:
+      type: object
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        feature: { type: string }
+        threshold: { type: integer }
+        period: { type: string, enum: [daily, weekly, monthly] }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+    ClaimsSlaRule:
+      type: object
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        type: { type: string, enum: [incident, accident, cargo_damage, other] }
+        target_days: { type: integer }
+        auto_escalate_days: { type: integer }
+        active: { type: boolean }
+    AdjusterAssignment:
+      type: object
+      properties:
+        claim_id: { type: string }
+        adjuster_user_id: { type: string }
+        assigned_at: { type: string, format: date-time }
+    ScorecardBenchmark:
+      type: object
+      properties:
+        group: { type: string, example: "terminal:ATL" }
+        period: { type: string, example: "30d" }
+        percentile_bands:
+          type: array
+          items:
+            type: object
+            properties:
+              p50: { type: number }
+              p75: { type: number }
+              p90: { type: number }
+    CoachingTask:
+      type: object
+      properties:
+        id: { type: string }
+        driver_user_id: { type: string }
+        metric: { type: string, enum: [speeding, harsh_brake, harsh_accel, cornering, on_time_pct] }
+        context: { type: object, additionalProperties: true }
+        due_by: { type: string, format: date-time }
+        status: { type: string, enum: [open, completed, dismissed] }
+        ack_notes: { type: string }
+    CapacityForecastV2:
+      type: object
+      properties:
+        lane: { type: string }
+        horizon_days: { type: integer }
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              supply_index: { type: number }
+              demand_index: { type: number }
+              weather_factor: { type: number }
+              blended_from:
+                type: array
+                items: { type: string }
+              confidence: { type: number }
+    EtaPolicy:
+      type: object
+      properties:
+        id: { type: string }
+        scope: { type: string, enum: [contract, carrier, global] }
+        scope_id: { type: string, nullable: true }
+        buffer_minutes: { type: integer }
+        rules:
+          type: array
+          items:
+            type: object
+            properties:
+              matcher: { type: string, example: "lane:30301-75201 OR equipment:reefer" }
+              buffer_minutes: { type: integer }
+        active: { type: boolean }
+    EtaBreachAlert:
+      type: object
+      properties:
+        id: { type: string }
+        load_id: { type: string }
+        predicted_at: { type: string, format: date-time }
+        risk_band: { type: string, enum: [low, medium, high] }
+        reason: { type: string }
+    FraudGraphFeedback:
+      type: object
+      properties:
+        subject_type: { type: string, enum: [broker, carrier, driver, user] }
+        subject_id: { type: string }
+        label: { type: string, enum: [false_positive, confirmed_fraud] }
+        notes: { type: string }
+        created_at: { type: string, format: date-time }
+    I18nRtlSupport:
+      type: object
+      properties:
+        locales: { type: array, items: { type: string, example: "ar", } }
+        supported: { type: boolean }
+    A11yIssue:
+      type: object
+      properties:
+        id: { type: string }
+        screen: { type: string }
+        wcag: { type: string }
+        severity: { type: string, enum: [low, medium, high] }
+        count: { type: integer }
+        first_seen: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time }
+security:
+  - bearerAuth: []
+paths:
+  # Marketplace Moderation & Abuse
+  /api/moderation/flags:
+    post:
+      summary: Flag content for moderation (auto or manual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id, reason]
+              properties:
+                subject_type: { type: string, enum: [chat_message, listing, profile] }
+                subject_id: { type: string }
+                reason: { type: string }
+                severity: { type: string, enum: [low, medium, high], default: medium }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ModerationFlag' } } } }
+        '400': { $ref: '#/components/schemas/ApiError' }
+    get:
+      summary: List moderation flags (admin)
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, reviewed, actioned, dismissed] }
+        - in: query
+          name: subject_type
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ModerationFlag' } }
+  /api/moderation/flags/{id}/resolve:
+    post:
+      summary: Resolve or action a flag (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [reviewed, actioned, dismissed] }
+                action: { type: string, nullable: true }
+                notes: { type: string, nullable: true }
+      responses:
+        '200': { description: OK }
+
+  # Notifications & Subscriptions
+  /api/notify/prefs:
+    get:
+      summary: Get notification preferences for current user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NotificationPref' }
+    post:
+      summary: Upsert notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/NotificationPref' }
+      responses:
+        '200': { description: OK }
+  /api/notify/test:
+    post:
+      summary: Send test notification to current user
+      responses:
+        '200': { description: OK }
+
+  # Escrow Stubs (Design Only, no-op)
+  /api/escrow/hold:
+    post:
+      summary: Place funds on hold (stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id, amount_usd]
+              properties:
+                load_id: { type: string }
+                amount_usd: { type: number }
+      responses:
+        '200': { description: OK }
+  /api/escrow/release:
+    post:
+      summary: Release funds (stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id]
+              properties:
+                load_id: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Claims v2 (SLAs + Adjuster)
+  /api/claims/slas:
+    post:
+      summary: Create/Update claims SLA rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClaimsSlaRule' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List SLA rules
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClaimsSlaRule' } } } }
+  /api/claims/{claim_id}/assign_adjuster:
+    post:
+      summary: Assign adjuster to claim
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adjuster_user_id]
+              properties:
+                adjuster_user_id: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AdjusterAssignment' } } } }
+
+  # Scorecards Benchmarks & Coaching Integration
+  /api/driver/scorecards/benchmarks:
+    get:
+      summary: Scorecard benchmarks by cohort
+      parameters:
+        - in: query
+          name: cohort
+          schema: { type: string, example: "terminal:ATL|equipment:van" }
+        - in: query
+          name: period
+          schema: { type: string, example: "30d" }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ScorecardBenchmark' } } }
+  /api/safety/coaching_tasks/from_metric:
+    post:
+      summary: Create coaching task from low metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [driver_user_id, metric]
+              properties:
+                driver_user_id: { type: string }
+                metric: { type: string, enum: [speeding, harsh_brake, harsh_accel, cornering, on_time_pct] }
+                context: { type: object, additionalProperties: true }
+                due_by: { type: string, format: date-time }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CoachingTask' } } } }
+
+  # Billing Alerts & CSV
+  /api/billing/alerts:
+    post:
+      summary: Create/Update usage alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BillingUsageAlert' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List usage alerts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/BillingUsageAlert' } }
+  /api/billing/usage/export.csv:
+    get:
+      summary: Export usage CSV
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: CSV
+          headers:
+            Content-Type:
+              schema: { type: string, example: text/csv; charset=utf-8 }
+            Content-Disposition:
+              schema: { type: string, example: attachment; filename="billing_usage.csv" }
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+
+  # Capacity Forecasting v2
+  /api/capacity/forecast/v2:
+    get:
+      summary: Lane capacity forecast with blending and weather adjustments
+      parameters:
+        - in: query
+          name: lane
+          required: true
+          schema: { type: string }
+        - in: query
+          name: horizon_days
+          schema: { type: integer, default: 14 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/CapacityForecastV2' } } }
+
+  # ETA Commitments v2
+  /api/eta/policies:
+    post:
+      summary: Upsert ETA buffer policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EtaPolicy' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List ETA policies
+      responses:
+        '200': { description: OK }
+  /api/eta/breach_alerts:
+    post:
+      summary: Create ETA breach alert (system)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EtaBreachAlert' }
+      responses:
+        '200': { description: OK }
+
+  # Fraud Graph v2
+  /api/fraud/graph/feedback:
+    post:
+      summary: Submit feedback on fraud scoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FraudGraphFeedback' }
+      responses:
+        '200': { description: OK }
+  /api/fraud/graph/recompute:
+    post:
+      summary: Trigger graph recompute (admin)
+      responses:
+        '202': { description: Accepted }
+
+  # i18n RTL & A11y Reports
+  /api/i18n/rtl:
+    get:
+      summary: Check RTL locale support
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/I18nRtlSupport' }
+  /api/a11y/reports/export.csv:
+    get:
+      summary: Export weekly accessibility issues CSV
+      parameters:
+        - in: query
+          name: week
+          required: true
+          schema: { type: string, example: "2025-W45" }
+      responses:
+        '200':
+          description: CSV
+          headers:
+            Content-Type:
+              schema: { type: string, example: text/csv; charset=utf-8 }
+            Content-Disposition:
+              schema: { type: string, example: attachment; filename="a11y_weekly.csv" }
+          content:
+            text/csv:
+              schema: { type: string, format: binary }

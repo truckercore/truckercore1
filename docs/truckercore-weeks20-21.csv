@@ -1,0 +1,16 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Dynamic Pricing Experiments (Band A/B),Story,"POST /api/pricing/experiment/run; bucket loads into control/variant price bands and log outcomes.",backend;pricing;experiments,8,Revenue & Pricing,"Price Suggest API"
+Bid Guidance API,Story,"POST /api/pricing/bid_guidance {lane,scorecards,credit} → target price w/ confidence.",backend;pricing;ai,5,Revenue & Pricing,"Dynamic Pricing Experiments (Band A/B)"
+Win/Loss Attribution,Story,"Log responses to offers/bids; correlate to price band and trust factors.",backend;pricing;analytics,5,Revenue & Pricing,Dynamic Pricing Experiments (Band A/B)
+Partner Carrier Network API,Story,"POST /api/network/invite; accept/decline; share capacity by region/equipment.",backend;network;security,8,Partner Network,
+Lane Sharing (Secure),Story,"Share read-only lane/offer visibility to partners per contract.",backend;network;security,5,Partner Network,Partner Carrier Network API
+SLA Reports per Contract,Story,"GET /api/contracts/{id}/sla/report?from&to returns KPI snapshot + breaches.",backend;contracts;reports,5,Ops & Reporting,"Contracts & SLAs"
+Yard KPIs Snapshot,Story,"GET /api/yard/kpis?site_id&from&to: dwell, utilization, turns.",backend;yard;analytics,5,Ops & Reporting,"Yard Flow — API"
+Data Quality SLAs,Story,"Define dq_rules (null %, range, timeliness) + /api/dq/run; emit alerts.",backend;data;quality,8,Data Quality,
+Audit Log Streaming,Story,"Stream audit events to external sink (webhook/kafka) with backoff & DLQ.",backend;security;audits,8,Observability,Audits API
+Multi-Region Readiness,Story,"Add read replicas config, health checks, and failover toggles; stale-read tolerant endpoints.",backend;infra;reliability,8,Resilience,
+Driver App Perf Profiling,Task,"Profile startup, map memory, offline queue metrics; set budgets and alerts.",app;mobile;performance,5,Mobile Polish,
+Background Uploads (Stable),Story,"Reliable background file/receipt uploads with retries; user-visible progress.",app;mobile;uploads,5,Mobile Polish,
+Actionable Notifications,Story,"Tap-to-action for bids, claims, coaching; deep link routes.",app;ux;notifications,5,Mobile Polish,Notifications & Subscriptions
+A/B Framework (lightweight),Story,"/api/experiments/assign + exposure logging; JS/mobile SDK hooks.",backend;experiments;analytics,5,Experimentation,
+Experiment Control Panel (Admin),Story,"Start/stop experiments, traffic split, guardrails.",app;admin;experiments,5,Experimentation,A/B Framework (lightweight)

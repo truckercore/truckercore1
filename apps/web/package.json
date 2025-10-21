@@ -17,7 +17,8 @@
     "test:type": "tsc --noEmit",
     "test:all": "npm run type-check && npm run test:verify && npm run test:smoke && npm run test:integration",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

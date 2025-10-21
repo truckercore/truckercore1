@@ -1,0 +1,124 @@
+openapi: 3.0.3
+info: { title: TruckerCore Phase 20–21 API, version: 1.0.0 }
+servers:
+  - url: https://{env}.yourdomain.com
+    variables: { env: { default: stage, enum: [stage, app] } }
+components:
+  securitySchemes: { bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT } }
+  schemas:
+    PricingExperimentResult:
+      type: object
+      properties:
+        experiment_id: { type: string }
+        assigned_bucket: { type: string, enum: [control, variant] }
+        price_band: { type: object, properties: { low: {type:number}, mid: {type:number}, high: {type:number} } }
+    BidGuidance:
+      type: object
+      properties:
+        target_usd: { type: number }
+        confidence: { type: number }
+        reasons: { type: array, items: { type: string } }
+    NetworkInvite:
+      type: object
+      properties:
+        id: { type: string }
+        from_org: { type: string }
+        to_org: { type: string }
+        status: { type: string, enum: [pending, accepted, declined] }
+    SlaReport:
+      type: object
+      properties:
+        contract_id: { type: string }
+        period: { type: object, properties: { from: {type:string,format:date}, to: {type:string,format:date} } }
+        kpis:
+          type: object
+          properties:
+            on_time_pct: { type: number }
+            breaches: { type: integer }
+            avg_delay_min: { type: number }
+    YardKpis:
+      type: object
+      properties:
+        site_id: { type: string }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        dwell_avg_min: { type: number }
+        utilization_pct: { type: number }
+        turns: { type: number }
+    DqRunResult:
+      type: object
+      properties:
+        rule: { type: string }
+        status: { type: string, enum: [ok, warn, fail] }
+        details: { type: object }
+security: [{ bearerAuth: [] }]
+paths:
+  /api/pricing/experiment/run:
+    post:
+      summary: Run dynamic pricing experiment assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { load_id: {type:string}, lane: {type:string}, org_id: {type:string} } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PricingExperimentResult' } } } }
+  /api/pricing/bid_guidance:
+    post:
+      summary: Bid guidance for a lane
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { lane: {type:string}, trust: {type:number}, scorecard: {type:number} } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BidGuidance' } } } }
+  /api/network/invite:
+    post:
+      summary: Invite partner carrier org
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [to_org], properties: { to_org: {type:string}, regions: {type:array, items:{type:string}}, equipment: {type:array, items:{type:string}} } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NetworkInvite' } } } }
+  /api/network/invite/{id}/respond:
+    post:
+      summary: Accept/decline invite
+      parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [action], properties: { action: {type:string, enum:[accept,decline]} } }
+      responses:
+        '200': { description: OK }
+  /api/contracts/{id}/sla/report:
+    get:
+      summary: SLA report for contract
+      parameters:
+        - { in: path, name: id, required: true, schema: {type:string} }
+        - { in: query, name: from, schema: {type:string, format: date} }
+        - { in: query, name: to, schema: {type:string, format: date} }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/SlaReport' } } } }
+  /api/yard/kpis:
+    get:
+      summary: Yard KPIs snapshot
+      parameters:
+        - { in: query, name: site_id, required: true, schema: {type:string} }
+        - { in: query, name: from, schema: {type:string, format: date} }
+        - { in: query, name: to, schema: {type:string, format: date} }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/YardKpis' } } } }
+  /api/dq/run:
+    post:
+      summary: Run data quality rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { rules: {type:array, items:{type:string}} } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DqRunResult' } } } }

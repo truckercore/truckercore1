@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "LINKED_RESOURCES_BINARY_FORMAT",
+    "kind": "Directory"
+  },
+  "applicationId": "com.example.truckercore1.stage",
+  "variantName": "stageRelease",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "attributes": [],
+      "versionCode": 1,
+      "versionName": "1.0.0-stage",
+      "outputFile": "linked-resources-binary-format-stageRelease.ap_"
+    }
+  ],
+  "elementType": "File"
+}

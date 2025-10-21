@@ -1,0 +1,310 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 12–13",
+    "_postman_id": "de2e0c4a-0a9f-46f1-8b9b-4e2b9c31c2a5",
+    "description": "Carrier Marketplace v1, Claims Workflow, Driver Scorecards v2, Billing/Metering, Capacity Forecasting, Dynamic ETA Commitments, Fraud Graph Analytics, Accessibility & Localization.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Carrier Marketplace",
+      "item": [
+        {
+          "name": "Post Truck Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/marketplace/trucks", "host": [ "{{baseUrl}}" ], "path": [ "api", "marketplace", "trucks" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"equipment\": \"van\", \"available_from\": \"2025-11-01T08:00:00Z\", \"origin_zip\": \"30301\", \"radius_miles\": 75, \"notes\": \"Team driver\" }"
+            }
+          }
+        },
+        {
+          "name": "Search Loads",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/marketplace/loads/search?origin_zip=30301&dest_zip=75201&equipment=van&date=2025-11-02",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "marketplace", "loads", "search" ],
+              "query": [
+                { "key": "origin_zip", "value": "30301" },
+                { "key": "dest_zip", "value": "75201" },
+                { "key": "equipment", "value": "van" },
+                { "key": "date", "value": "2025-11-02" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Match/Bid on Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/marketplace/match", "host": [ "{{baseUrl}}" ], "path": [ "api", "marketplace", "match" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\", \"bid_usd\": 1750, \"message\": \"Ready today, can do no-touch.\" }"
+            }
+          }
+        },
+        {
+          "name": "List Chat Threads (Marketplace)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/marketplace/chat/threads?context=load&context_id={{load_id}}",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "marketplace", "chat", "threads" ],
+              "query": [
+                { "key": "context", "value": "load" },
+                { "key": "context_id", "value": "{{load_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Chat Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/marketplace/chat/{{thread_id}}/message", "host": [ "{{baseUrl}}" ], "path": [ "api", "marketplace", "chat", "{{thread_id}}", "message" ] },
+            "body": { "mode": "raw", "raw": "{ \"text\": \"Can you confirm pickup window?\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "item": [
+        {
+          "name": "Create Claim (Incident/Accident)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/claims", "host": [ "{{baseUrl}}" ], "path": [ "api", "claims" ] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\": \"{{load_id}}\", \"type\": \"incident\", \"occurred_at\": \"2025-11-03T14:10:00Z\", \"summary\": \"Pallet shifted, minor damage\" }" }
+          }
+        },
+        {
+          "name": "Upload Claim Document",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/claims/{{claim_id}}/document", "host": [ "{{baseUrl}}" ], "path": [ "api", "claims", "{{claim_id}}", "document" ] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/photo.jpg" },
+                { "key": "label", "value": "Damage photo", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Claim Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/claims/{{claim_id}}/status", "host": [ "{{baseUrl}}" ], "path": [ "api", "claims", "{{claim_id}}", "status" ] },
+            "body": { "mode": "raw", "raw": "{ \"status\": \"submitted\" }" }
+          }
+        },
+        {
+          "name": "List Claims (by status)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/claims?status=open", "host": [ "{{baseUrl}}" ], "path": [ "api", "claims" ], "query": [ { "key": "status", "value": "open" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver Scorecards v2",
+      "item": [
+        {
+          "name": "Get Driver Scorecard (v2)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/scorecard/{{driver_user_id}}?period=30d",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "scorecard", "{{driver_user_id}}" ],
+              "query": [ { "key": "period", "value": "30d" } ]
+            }
+          }
+        },
+        {
+          "name": "Get Peer Rank (v2)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/driver/scorecards/rank?period=30d", "host": [ "{{baseUrl}}" ], "path": [ "api", "driver", "scorecards", "rank" ], "query": [ { "key": "period", "value": "30d" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing & Metering",
+      "item": [
+        {
+          "name": "Record Metered Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/billing/meter", "host": [ "{{baseUrl}}" ], "path": [ "api", "billing", "meter" ] },
+            "body": { "mode": "raw", "raw": "{ \"event\": \"ai_calls\", \"count\": 1, \"context\": {\"feature\": \"assistant\"} }" }
+          }
+        },
+        {
+          "name": "Get Usage Summary",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/billing/usage?from=2025-11-01&to=2025-11-07",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "billing", "usage" ],
+              "query": [
+                { "key": "from", "value": "2025-11-01" },
+                { "key": "to", "value": "2025-11-07" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Invoices (Billing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/billing/invoices/generate", "host": [ "{{baseUrl}}" ], "path": [ "api", "billing", "invoices", "generate" ] },
+            "body": { "mode": "raw", "raw": "{ \"period\": \"2025-11\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capacity Forecasting",
+      "item": [
+        {
+          "name": "Lane Forecast (Supply vs Demand)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/capacity/forecast?lane=30301-75201&horizon_days=14",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "capacity", "forecast" ],
+              "query": [
+                { "key": "lane", "value": "30301-75201" },
+                { "key": "horizon_days", "value": "14" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dynamic ETA Commitments",
+      "item": [
+        {
+          "name": "Commitment Buffer & Risk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/eta/commitment", "host": [ "{{baseUrl}}" ], "path": [ "api", "eta", "commitment" ] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\": \"{{load_id}}\", \"appointment_window\": {\"start\": \"2025-11-04T18:00:00Z\", \"end\": \"2025-11-04T20:00:00Z\"} }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud Graph Analytics",
+      "item": [
+        {
+          "name": "Graph Risk Score",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/fraud/graph/score", "host": [ "{{baseUrl}}" ], "path": [ "api", "fraud", "graph", "score" ] },
+            "body": { "mode": "raw", "raw": "{ \"subject_type\": \"broker\", \"subject_id\": \"{{broker_id}}\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accessibility & Localization",
+      "item": [
+        {
+          "name": "Fetch i18n Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/i18n/messages?locale=es-MX",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "i18n", "messages" ],
+              "query": [
+                { "key": "locale", "value": "es-MX" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Accessibility Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/a11y/feedback", "host": [ "{{baseUrl}}" ], "path": [ "api", "a11y", "feedback" ] },
+            "body": { "mode": "raw", "raw": "{ \"screen\": \"marketplace_search\", \"wcag_issue\": \"contrast\", \"notes\": \"Grey text too light on dark bg.\" }" }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "load_id", "value": "ld_123" },
+    { "key": "driver_user_id", "value": "5f5c78fe-6a2c-4a7b-97a3-63b5bfbaf3b6" },
+    { "key": "thread_id", "value": "thr_987" },
+    { "key": "claim_id", "value": "clm_456" },
+    { "key": "broker_id", "value": "b1f4c2a7-5f5a-4c5f-8a0a-3a2a5e6d9b11" }
+  ]
+}

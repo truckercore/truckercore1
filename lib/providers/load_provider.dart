@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/load.dart';
 import '../services/api_service.dart';
-
-final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
+import 'api_provider.dart';
+export 'api_provider.dart' show apiServiceProvider;
 
 final loadsProvider = FutureProvider<List<Load>>((ref) async {
   final apiService = ref.watch(apiServiceProvider);

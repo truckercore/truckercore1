@@ -1,0 +1,43 @@
+<variant
+    name="devRelease"
+    package="com.example.truckercore1"
+    minSdkVersion="24"
+    targetSdkVersion="36"
+    shrinking="true"
+    mergedManifest="build\intermediates\merged_manifest\devRelease\processDevReleaseMainManifest\AndroidManifest.xml"
+    proguardFiles="build\intermediates\default_proguard_files\global\proguard-android-optimize.txt-8.6.1;C:\src\flutter\packages\flutter_tools\gradle\flutter_proguard_rules.pro;proguard-rules.pro;build\intermediates\default_proguard_files\global\proguard-android-optimize.txt-8.6.1;proguard-rules.pro"
+    partialResultsDir="build\intermediates\lint_vital_partial_results\devRelease\lintVitalAnalyzeDevRelease\out"
+    desugaredMethodsFiles="C:\Users\moise\.gradle\caches\8.10.2\transforms\30a912a897b6fddb9e80bcb4d0536fe0\transformed\D8BackportedDesugaredMethods.txt">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src\main\AndroidManifest.xml"
+        javaDirectories="src\main\java;src\dev\java;src\release\java;src\devRelease\java;src\main\kotlin;src\dev\kotlin;src\release\kotlin;src\devRelease\kotlin"
+        resDirectories="src\main\res;src\dev\res;src\release\res;src\devRelease\res"
+        assetsDirectories="src\main\assets;src\dev\assets;src\release\assets;src\devRelease\assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <resValues>
+    <resValue
+        type="string"
+        name="app_name"
+        value="TruckerCore (Dev)" />
+  </resValues>
+  <manifestPlaceholders>
+    <placeholder
+        name="applicationName"
+        value="android.app.Application" />
+  </manifestPlaceholders>
+  <artifact
+      classOutputs="build\intermediates\javac\devRelease\compileDevReleaseJavaWithJavac\classes;build\tmp\kotlin-classes\devRelease;build\kotlinToolingMetadata;build\intermediates\compile_and_runtime_not_namespaced_r_class_jar\devRelease\processDevReleaseResources\R.jar"
+      type="MAIN"
+      applicationId="com.example.truckercore1.dev"
+      generatedSourceFolders="build\generated\ap_generated_sources\devRelease\out;build\generated\source\buildConfig\dev\release"
+      generatedResourceFolders="build\generated\res\resValues\dev\release"
+      desugaredMethodsFiles="C:\Users\moise\.gradle\caches\8.10.2\transforms\30a912a897b6fddb9e80bcb4d0536fe0\transformed\D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

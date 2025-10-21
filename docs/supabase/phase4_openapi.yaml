@@ -1,0 +1,356 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 4 API
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AnalyticsKpis:
+      type: object
+      properties:
+        loads: { type: integer }
+        miles: { type: number }
+        revenue: { type: number }
+        cost: { type: number }
+        avg_ppm: { type: number, nullable: true }
+        on_time_pct: { type: number, nullable: true }
+      required: [loads, miles, revenue, cost]
+    AnalyticsSeriesPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        loads: { type: integer }
+        miles: { type: number }
+        avg_ppm: { type: number, nullable: true }
+        on_time_pct: { type: number, nullable: true }
+    AnalyticsResponse:
+      type: object
+      properties:
+        kpis:
+          $ref: '#/components/schemas/AnalyticsKpis'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyticsSeriesPoint'
+    OwnerOpExpense:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        load_id: { type: string, format: uuid, nullable: true }
+        category: { type: string, enum: [fuel,tolls,repairs,tires,insurance,permits,parking,detention,lumper,other] }
+        amount_usd: { type: number }
+        miles: { type: number, nullable: true }
+        notes: { type: string, nullable: true }
+        incurred_on: { type: string, format: date }
+        created_at: { type: string, format: date-time }
+    OwnerOpProfitResponse:
+      type: object
+      properties:
+        totals:
+          type: object
+          properties:
+            revenue_usd: { type: number }
+            expense_usd: { type: number }
+            miles: { type: number }
+            net_usd: { type: number }
+            cpm_net: { type: number, nullable: true }
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+    HosLog:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        driver_user_id: { type: string, format: uuid }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        status: { type: string, enum: [off,sleeper,driving,on] }
+    InspectionReport:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        driver_user_id: { type: string, format: uuid }
+        vehicle_id: { type: string, format: uuid }
+        type: { type: string, enum: [pre_trip,post_trip] }
+        defects:
+          type: array
+          items:
+            type: object
+            properties:
+              component: { type: string }
+              severity: { type: string, enum: [minor,major] }
+              note: { type: string, nullable: true }
+        certified_safe: { type: boolean }
+        signed_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    AlertEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        severity: { type: string, enum: [info,warning,critical] }
+        code: { type: string, enum: [LATE_ETA,HOS_NEAR_LIMIT,INSPECTION_WEEK] }
+        payload: { type: object }
+        triggered_at: { type: string, format: date-time }
+        acknowledged: { type: boolean }
+        acknowledged_by:
+          type: string
+          format: uuid
+          nullable: true
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+security:
+  - bearerAuth: []
+paths:
+  /api/analytics/fleet:
+    get:
+      summary: Fleet analytics KPIs and time series
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsResponse' }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+  /api/analytics/broker:
+    get:
+      summary: Broker analytics KPIs and time series
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsResponse' }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+  /api/analytics/export.csv:
+    get:
+      summary: Export analytics as CSV
+      parameters:
+        - in: query
+          name: scope
+          schema: { type: string, enum: [fleet,broker] }
+          required: true
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200':
+          description: CSV
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: text/csv; charset=utf-8
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="analytics.csv"
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+  /api/ownerop/expenses:
+    post:
+      summary: Create an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, amount_usd, incurred_on]
+              properties:
+                load_id: { type: string, format: uuid }
+                category: { type: string, enum: [fuel,tolls,repairs,tires,insurance,permits,parking,detention,lumper,other] }
+                amount_usd: { type: number }
+                miles: { type: number }
+                notes: { type: string }
+                incurred_on: { type: string, format: date }
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnerOpExpense' }
+        '400': { description: Validation error }
+        '403': { description: Forbidden }
+  /api/ownerop/profit:
+    get:
+      summary: Owner-Operator profit summary
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnerOpProfitResponse' }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+  /api/ownerop/tax/export.csv:
+    get:
+      summary: Export quarterly CSV for taxes
+      parameters:
+        - in: query
+          name: quarter
+          schema: { type: string, example: 'Q3-2025' }
+          required: true
+      responses:
+        '200':
+          description: CSV
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: text/csv; charset=utf-8
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="ownerop_tax_Q3-2025.csv"
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+  /api/hos/{driver_user_id}:
+    get:
+      summary: Get HOS logs (7–30 days)
+      parameters:
+        - in: path
+          name: driver_user_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items: { $ref: '#/components/schemas/HosLog' }
+        '400': { description: Bad request }
+        '403': { description: Forbidden }
+        '404': { description: Driver not found }
+  /api/inspection:
+    post:
+      summary: Submit pre/post trip inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vehicle_id, type, defects, certified_safe, signed_at]
+              properties:
+                vehicle_id: { type: string, format: uuid }
+                type: { type: string, enum: [pre_trip,post_trip] }
+                defects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      component: { type: string }
+                      severity: { type: string, enum: [minor,major] }
+                      note: { type: string }
+                certified_safe: { type: boolean }
+                signed_at: { type: string, format: date-time }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InspectionReport' }
+        '400': { description: Validation error }
+        '403': { description: Forbidden }
+  /api/alerts:
+    get:
+      summary: List current alerts for org
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string, enum: [LATE_ETA,HOS_NEAR_LIMIT,INSPECTION_WEEK] }
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AlertEvent' }
+        '403': { description: Forbidden }
+  /api/alerts/{id}/ack:
+    post:
+      summary: Acknowledge an alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledged: { type: boolean }
+        '403': { description: Forbidden }
+        '404': { description: Not found }

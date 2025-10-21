@@ -1,0 +1,758 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 4 API
+  version: 1.0.0
+servers:
+- url: "https://{env}.yourdomain.com"
+  variables:
+    env:
+      default: stage
+      enum:
+      - stage
+      - app
+security:
+- bearerAuth: []
+paths:
+  /api/analytics/fleet:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: from
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: to
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+          description: OK
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+      summary: Fleet analytics KPIs and time series
+      x-accepts:
+      - application/json
+  /api/analytics/broker:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: from
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: to
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+          description: OK
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+      summary: Broker analytics KPIs and time series
+      x-accepts:
+      - application/json
+  /api/analytics/export.csv:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: scope
+        required: true
+        schema:
+          enum:
+          - fleet
+          - broker
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: from
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: to
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            text/csv:
+              schema:
+                format: binary
+                type: string
+          description: CSV
+          headers:
+            Content-Type:
+              explode: false
+              schema:
+                example: text/csv; charset=utf-8
+                type: string
+              style: simple
+            Content-Disposition:
+              explode: false
+              schema:
+                example: attachment; filename="analytics.csv"
+                type: string
+              style: simple
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+      summary: Export analytics as CSV
+      x-accepts:
+      - text/csv
+  /api/ownerop/expenses:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_api_ownerop_expenses_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerOpExpense'
+          description: Created
+        "400":
+          description: Validation error
+        "403":
+          description: Forbidden
+      summary: Create an expense
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/ownerop/profit:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: from
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: to
+        required: true
+        schema:
+          format: date
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerOpProfitResponse'
+          description: OK
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+      summary: Owner-Operator profit summary
+      x-accepts:
+      - application/json
+  /api/ownerop/tax/export.csv:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: quarter
+        required: true
+        schema:
+          example: Q3-2025
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            text/csv:
+              schema:
+                format: binary
+                type: string
+          description: CSV
+          headers:
+            Content-Type:
+              explode: false
+              schema:
+                example: text/csv; charset=utf-8
+                type: string
+              style: simple
+            Content-Disposition:
+              explode: false
+              schema:
+                example: attachment; filename="ownerop_tax_Q3-2025.csv"
+                type: string
+              style: simple
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+      summary: Export quarterly CSV for taxes
+      x-accepts:
+      - text/csv
+  /api/hos/{driver_user_id}:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: driver_user_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: true
+        in: query
+        name: from
+        required: false
+        schema:
+          format: date
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: to
+        required: false
+        schema:
+          format: date
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_api_hos__driver_user_id__get_200_response'
+          description: OK
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+        "404":
+          description: Driver not found
+      summary: Get HOS logs (7–30 days)
+      x-accepts:
+      - application/json
+  /api/inspection:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_api_inspection_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionReport'
+          description: OK
+        "400":
+          description: Validation error
+        "403":
+          description: Forbidden
+      summary: Submit pre/post trip inspection
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/alerts:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: code
+        required: false
+        schema:
+          enum:
+          - LATE_ETA
+          - HOS_NEAR_LIMIT
+          - INSPECTION_WEEK
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/AlertEvent'
+                type: array
+          description: OK
+        "403":
+          description: Forbidden
+      summary: List current alerts for org
+      x-accepts:
+      - application/json
+  /api/alerts/{id}/ack:
+    post:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_api_alerts__id__ack_post_200_response'
+          description: OK
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+      summary: Acknowledge an alert
+      x-accepts:
+      - application/json
+components:
+  schemas:
+    AnalyticsKpis:
+      example:
+        avg_ppm: 5.637376656633329
+        revenue: 1.4658129805029452
+        cost: 5.962133916683182
+        loads: 0
+        miles: 6.027456183070403
+        on_time_pct: 2.3021358869347655
+      properties:
+        loads:
+          type: integer
+        miles:
+          type: number
+        revenue:
+          type: number
+        cost:
+          type: number
+        avg_ppm:
+          nullable: true
+          type: number
+        on_time_pct:
+          nullable: true
+          type: number
+      required:
+      - cost
+      - loads
+      - miles
+      - revenue
+      type: object
+    AnalyticsSeriesPoint:
+      example:
+        date: 2000-01-23
+        avg_ppm: 3.616076749251911
+        loads: 7
+        miles: 9.301444243932576
+        on_time_pct: 2.027123023002322
+      properties:
+        date:
+          format: date
+          type: string
+        loads:
+          type: integer
+        miles:
+          type: number
+        avg_ppm:
+          nullable: true
+          type: number
+        on_time_pct:
+          nullable: true
+          type: number
+      type: object
+    AnalyticsResponse:
+      example:
+        series:
+        - date: 2000-01-23
+          avg_ppm: 3.616076749251911
+          loads: 7
+          miles: 9.301444243932576
+          on_time_pct: 2.027123023002322
+        - date: 2000-01-23
+          avg_ppm: 3.616076749251911
+          loads: 7
+          miles: 9.301444243932576
+          on_time_pct: 2.027123023002322
+        kpis:
+          avg_ppm: 5.637376656633329
+          revenue: 1.4658129805029452
+          cost: 5.962133916683182
+          loads: 0
+          miles: 6.027456183070403
+          on_time_pct: 2.3021358869347655
+      properties:
+        kpis:
+          $ref: '#/components/schemas/AnalyticsKpis'
+        series:
+          items:
+            $ref: '#/components/schemas/AnalyticsSeriesPoint'
+          type: array
+      type: object
+    OwnerOpExpense:
+      example:
+        incurred_on: 2000-01-23
+        notes: notes
+        load_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        user_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        org_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        amount_usd: 0.8008281904610115
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        category: fuel
+        miles: 6.027456183070403
+      properties:
+        id:
+          format: uuid
+          type: string
+        org_id:
+          format: uuid
+          type: string
+        user_id:
+          format: uuid
+          type: string
+        load_id:
+          format: uuid
+          nullable: true
+          type: string
+        category:
+          enum:
+          - fuel
+          - tolls
+          - repairs
+          - tires
+          - insurance
+          - permits
+          - parking
+          - detention
+          - lumper
+          - other
+          type: string
+        amount_usd:
+          type: number
+        miles:
+          nullable: true
+          type: number
+        notes:
+          nullable: true
+          type: string
+        incurred_on:
+          format: date
+          type: string
+        created_at:
+          format: date-time
+          type: string
+      type: object
+    OwnerOpProfitResponse:
+      example:
+        breakdown:
+          key: 2.3021358869347655
+        totals:
+          revenue_usd: 0.8008281904610115
+          net_usd: 5.962133916683182
+          expense_usd: 6.027456183070403
+          cpm_net: 5.637376656633329
+          miles: 1.4658129805029452
+      properties:
+        totals:
+          $ref: '#/components/schemas/OwnerOpProfitResponse_totals'
+        breakdown:
+          additionalProperties:
+            type: number
+          type: object
+      type: object
+    HosLog:
+      example:
+        start_time: 2000-01-23T04:56:07.000+00:00
+        driver_user_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        end_time: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        status: "false"
+      properties:
+        id:
+          format: uuid
+          type: string
+        driver_user_id:
+          format: uuid
+          type: string
+        start_time:
+          format: date-time
+          type: string
+        end_time:
+          format: date-time
+          type: string
+        status:
+          enum:
+          - "false"
+          - sleeper
+          - driving
+          - "true"
+          type: string
+      type: object
+    InspectionReport:
+      example:
+        defects:
+        - severity: minor
+          note: note
+          component: component
+        - severity: minor
+          note: note
+          component: component
+        driver_user_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        signed_at: 2000-01-23T04:56:07.000+00:00
+        certified_safe: true
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        type: pre_trip
+        vehicle_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        driver_user_id:
+          format: uuid
+          type: string
+        vehicle_id:
+          format: uuid
+          type: string
+        type:
+          enum:
+          - pre_trip
+          - post_trip
+          type: string
+        defects:
+          items:
+            $ref: '#/components/schemas/InspectionReport_defects_inner'
+          type: array
+        certified_safe:
+          type: boolean
+        signed_at:
+          format: date-time
+          type: string
+        created_at:
+          format: date-time
+          type: string
+      type: object
+    AlertEvent:
+      example:
+        severity: info
+        code: LATE_ETA
+        acknowledged: true
+        payload: "{}"
+        triggered_at: 2000-01-23T04:56:07.000+00:00
+        acknowledged_by: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        acknowledged_at: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          format: uuid
+          type: string
+        severity:
+          enum:
+          - info
+          - warning
+          - critical
+          type: string
+        code:
+          enum:
+          - LATE_ETA
+          - HOS_NEAR_LIMIT
+          - INSPECTION_WEEK
+          type: string
+        payload:
+          type: object
+        triggered_at:
+          format: date-time
+          type: string
+        acknowledged:
+          type: boolean
+        acknowledged_by:
+          format: uuid
+          nullable: true
+          type: string
+        acknowledged_at:
+          format: date-time
+          nullable: true
+          type: string
+      type: object
+    _api_ownerop_expenses_post_request:
+      properties:
+        load_id:
+          format: uuid
+          type: string
+        category:
+          enum:
+          - fuel
+          - tolls
+          - repairs
+          - tires
+          - insurance
+          - permits
+          - parking
+          - detention
+          - lumper
+          - other
+          type: string
+        amount_usd:
+          type: number
+        miles:
+          type: number
+        notes:
+          type: string
+        incurred_on:
+          format: date
+          type: string
+      required:
+      - amount_usd
+      - category
+      - incurred_on
+      type: object
+    _api_hos__driver_user_id__get_200_response:
+      example:
+        logs:
+        - start_time: 2000-01-23T04:56:07.000+00:00
+          driver_user_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          end_time: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          status: "false"
+        - start_time: 2000-01-23T04:56:07.000+00:00
+          driver_user_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          end_time: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          status: "false"
+      properties:
+        logs:
+          items:
+            $ref: '#/components/schemas/HosLog'
+          type: array
+      type: object
+    _api_inspection_post_request_defects_inner:
+      properties:
+        component:
+          type: string
+        severity:
+          enum:
+          - minor
+          - major
+          type: string
+        note:
+          type: string
+      type: object
+    _api_inspection_post_request:
+      properties:
+        vehicle_id:
+          format: uuid
+          type: string
+        type:
+          enum:
+          - pre_trip
+          - post_trip
+          type: string
+        defects:
+          items:
+            $ref: '#/components/schemas/_api_inspection_post_request_defects_inner'
+          type: array
+        certified_safe:
+          type: boolean
+        signed_at:
+          format: date-time
+          type: string
+      required:
+      - certified_safe
+      - defects
+      - signed_at
+      - type
+      - vehicle_id
+      type: object
+    _api_alerts__id__ack_post_200_response:
+      example:
+        acknowledged: true
+      properties:
+        acknowledged:
+          type: boolean
+      type: object
+    OwnerOpProfitResponse_totals:
+      example:
+        revenue_usd: 0.8008281904610115
+        net_usd: 5.962133916683182
+        expense_usd: 6.027456183070403
+        cpm_net: 5.637376656633329
+        miles: 1.4658129805029452
+      properties:
+        revenue_usd:
+          type: number
+        expense_usd:
+          type: number
+        miles:
+          type: number
+        net_usd:
+          type: number
+        cpm_net:
+          nullable: true
+          type: number
+      type: object
+    InspectionReport_defects_inner:
+      example:
+        severity: minor
+        note: note
+        component: component
+      properties:
+        component:
+          type: string
+        severity:
+          enum:
+          - minor
+          - major
+          type: string
+        note:
+          nullable: true
+          type: string
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+

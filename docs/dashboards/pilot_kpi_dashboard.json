@@ -1,0 +1,68 @@
+{
+  "title": "Pilot KPI Dashboard",
+  "version": 1,
+  "defaultDateRange": "last_30_days",
+  "filters": [
+    { "id": "date_range", "type": "enum", "label": "Date Range", "options": ["last_7_days","last_14_days","last_30_days"], "default": "last_30_days" },
+    { "id": "scope_chain", "type": "org", "label": "Chain (Org)" },
+    { "id": "scope_region", "type": "region", "label": "Region" },
+    { "id": "scope_location", "type": "location", "label": "Location" },
+    { "id": "pilot_tag", "type": "boolean", "label": "Include Pilot Locations", "default": true }
+  ],
+  "layout": [
+    {
+      "section": "KPI Ribbon",
+      "widgets": [
+        { "id": "fuel_gallons_vs_baseline", "type": "metricDelta", "title": "Fuel Gallons vs Baseline", "value": {"sql": "select * from kpi_fuel_uplift_summary"}, "delta": {"field": "pct_delta"} },
+        { "id": "promo_redemptions", "type": "metricDelta", "title": "Promo Redemptions", "value": {"sql": "select * from kpi_promo_redemptions_summary"}, "delta": {"field": "conversion_rate"} },
+        { "id": "parking_freshness", "type": "metric", "title": "Parking Freshness", "value": {"sql": "select * from kpi_parking_freshness"} },
+        { "id": "uptime", "type": "metric", "title": "Uptime (pilot components)", "value": {"sql": "select * from kpi_uptime_summary"} },
+        { "id": "best_stop_lift", "type": "metric", "title": "Best Stop Lift", "value": {"sql": "select * from kpi_best_stop_lift"} }
+      ]
+    },
+    {
+      "section": "Promo Performance",
+      "widgets": [
+        { "id": "funnel", "type": "funnel", "title": "Impressions → Saves → Scans → Approvals → Gallons (est)", "value": {"sql": "select * from kpi_promo_funnel"} },
+        { "id": "top_promos", "type": "table", "title": "Top Promos", "columns": ["promo_name","redemptions","approval_pct","est_revenue_uplift","cost","roi"], "value": {"sql": "select * from kpi_top_promos"} }
+      ]
+    },
+    {
+      "section": "Fuel & Pricing",
+      "widgets": [
+        { "id": "fuel_competitiveness", "type": "line", "title": "Fuel Competitiveness (this stop vs nearby median)", "value": {"sql": "select * from kpi_fuel_competitiveness"} },
+        { "id": "uplift_compare", "type": "bar", "title": "Uplift Compare (before/after gallons per day)", "value": {"sql": "select * from kpi_uplift_compare"} }
+      ]
+    },
+    {
+      "section": "Parking & Utilization",
+      "widgets": [
+        { "id": "parking_heatmap", "type": "heatmap", "title": "Avg fill % by hour x day", "value": {"sql": "select * from kpi_parking_heatmap"} },
+        { "id": "freshness_gauge", "type": "gauge", "title": "Freshness Gauge", "value": {"sql": "select * from kpi_parking_freshness"}, "thresholds": {"good": 0.85, "warn": 0.7} },
+        { "id": "source_mix", "type": "pie", "title": "Source Mix", "value": {"sql": "select * from kpi_parking_source_mix"} }
+      ]
+    },
+    {
+      "section": "Driver Behavior",
+      "widgets": [
+        { "id": "dwell_time", "type": "distribution", "title": "Dwell time: quick fuel vs park", "value": {"sql": "select * from kpi_dwell_time"} },
+        { "id": "redeemer_segments", "type": "bar", "title": "Redeemer Segments", "value": {"sql": "select * from kpi_redeemer_segments"} }
+      ]
+    },
+    {
+      "section": "Reliability & Ops",
+      "widgets": [
+        { "id": "uptime_timeline", "type": "timeline", "title": "Uptime Timeline", "value": {"sql": "select * from kpi_uptime_timeline"} },
+        { "id": "incidents_list", "type": "table", "title": "Incidents", "columns": ["severity","opened_at","closed_at","mtta","mttr","link"], "value": {"sql": "select * from kpi_incidents"} }
+      ]
+    },
+    {
+      "section": "Geo & Reach",
+      "visibleIf": { "minLocations": 2 },
+      "widgets": [
+        { "id": "flow_map", "type": "flowMap", "title": "Where drivers came from", "value": {"sql": "select * from kpi_geo_flow"} },
+        { "id": "lane_contribution", "type": "bar", "title": "Top corridors feeding pilot locations", "value": {"sql": "select * from kpi_lane_contribution"} }
+      ]
+    }
+  ]
+}

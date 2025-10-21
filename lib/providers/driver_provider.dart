@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/driver.dart';
 import '../services/api_service.dart';
-import 'load_provider.dart' show apiServiceProvider; // reuse same instance
+import 'package:truckercore1/providers/api_provider.dart';
+export 'api_provider.dart' show apiServiceProvider;
 
 final driversProvider = FutureProvider<List<Driver>>((ref) async {
   final apiService = ref.watch(apiServiceProvider);

@@ -1,0 +1,43 @@
+<variant
+    name="stageRelease"
+    package="com.example.truckercore1"
+    minSdkVersion="24"
+    targetSdkVersion="36"
+    shrinking="true"
+    mergedManifest="build\intermediates\merged_manifest\stageRelease\processStageReleaseMainManifest\AndroidManifest.xml"
+    proguardFiles="build\intermediates\default_proguard_files\global\proguard-android-optimize.txt-8.6.1;C:\src\flutter\packages\flutter_tools\gradle\flutter_proguard_rules.pro;proguard-rules.pro;build\intermediates\default_proguard_files\global\proguard-android-optimize.txt-8.6.1;proguard-rules.pro"
+    partialResultsDir="build\intermediates\lint_vital_partial_results\stageRelease\lintVitalAnalyzeStageRelease\out"
+    desugaredMethodsFiles="C:\Users\moise\.gradle\caches\8.10.2\transforms\30a912a897b6fddb9e80bcb4d0536fe0\transformed\D8BackportedDesugaredMethods.txt">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src\main\AndroidManifest.xml"
+        javaDirectories="src\main\java;src\stage\java;src\release\java;src\stageRelease\java;src\main\kotlin;src\stage\kotlin;src\release\kotlin;src\stageRelease\kotlin"
+        resDirectories="src\main\res;src\stage\res;src\release\res;src\stageRelease\res"
+        assetsDirectories="src\main\assets;src\stage\assets;src\release\assets;src\stageRelease\assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <resValues>
+    <resValue
+        type="string"
+        name="app_name"
+        value="TruckerCore (Stage)" />
+  </resValues>
+  <manifestPlaceholders>
+    <placeholder
+        name="applicationName"
+        value="android.app.Application" />
+  </manifestPlaceholders>
+  <artifact
+      classOutputs="build\intermediates\javac\stageRelease\compileStageReleaseJavaWithJavac\classes;build\tmp\kotlin-classes\stageRelease;build\kotlinToolingMetadata;build\intermediates\compile_and_runtime_not_namespaced_r_class_jar\stageRelease\processStageReleaseResources\R.jar"
+      type="MAIN"
+      applicationId="com.example.truckercore1.stage"
+      generatedSourceFolders="build\generated\ap_generated_sources\stageRelease\out;build\generated\source\buildConfig\stage\release"
+      generatedResourceFolders="build\generated\res\resValues\stage\release"
+      desugaredMethodsFiles="C:\Users\moise\.gradle\caches\8.10.2\transforms\30a912a897b6fddb9e80bcb4d0536fe0\transformed\D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

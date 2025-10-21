@@ -12,18 +12,16 @@ import 'package:http/http.dart' as http;
 /// - Timeouts and headers are centralized.
 /// - Methods return parsed JSON (Map/List) and throw on non-2xx.
 class ApiService {
-  // Singleton
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+  final String baseUrl;
+
+  ApiService({required this.baseUrl});
 
   static const Duration defaultTimeout = Duration(seconds: 30);
 
-  /// Resolve base URL from (in order):
-  /// 1) Dart define: API_BASE_URL
-  /// 2) .env: API_BASE_URL (mobile) or REACT_APP_API_URL (shared)
-  /// 3) Fallback to localhost
+  /// Resolve base URL preferring the provided constructor value; if empty, fall back to env.
   String get _baseUrl {
+    if (baseUrl.isNotEmpty) return baseUrl;
+
     // 1) dart-define
     const dd = String.fromEnvironment('API_BASE_URL');
     if (dd.isNotEmpty) return dd;
@@ -60,12 +58,11 @@ class ApiService {
         'Accept': 'application/json',
       };
 
-  Uri _uri(String endpoint) => Uri.parse('${_baseUrl.replaceAll(RegExp(r'/+
-?
-?
-?
-?
-?$'), '')}/$endpoint');
+  Uri _uri(String endpoint) {
+    final cleanedBase = _baseUrl.replaceAll(RegExp(r'/+$'), '');
+    final ep = endpoint.replaceFirst(RegExp(r'^/+'), '');
+    return Uri.parse("${cleanedBase}/${ep}");
+  }
 
   // Generic GET request
   Future<Map<String, dynamic>> get(String endpoint, {Map<String, String>? headers}) async {
@@ -124,6 +121,15 @@ class ApiService {
   Future<List<dynamic>> fetchDrivers() async {
     final res = await get('drivers');
     final v = res['drivers'];
+    return v is List ? v : <dynamic>[];
+  }
+
+  Future<List<dynamic>> fetchExpenses({String? driverId}) async {
+    final endpoint = driverId != null && driverId.isNotEmpty
+        ? 'expenses?driverId=$driverId'
+        : 'expenses';
+    final res = await get(endpoint);
+    final v = res['expenses'];
     return v is List ? v : <dynamic>[];
   }
 

@@ -1,0 +1,21 @@
+{
+  "user": {
+    "mappings": [
+      { "okta": "user.profile.login",       "scim": "userName" },
+      { "okta": "user.profile.email",       "scim": "emails[type eq \"work\"].value", "constant": null },
+      { "okta": "user.profile.firstName",   "scim": "name.givenName" },
+      { "okta": "user.profile.lastName",    "scim": "name.familyName" },
+      { "okta": "user.profile.displayName", "scim": "displayName", "fallback": "{{firstName}} {{lastName}}" },
+      { "okta": "user.profile.locale",      "scim": "locale", "optional": true },
+      { "okta": "user.status",              "scim": "active", "transform": { "type": "enum", "map": { "ACTIVE": true, "PROVISIONED": true, "DEPROVISIONED": false } } },
+      { "okta": "appuser.externalId",       "scim": "externalId", "source": "OktaUser.id" }
+    ],
+    "groups": {
+      "enabled": true,
+      "delivery": "push",
+      "mapping": [
+        { "oktaGroupFilter": "startsWith(\"TC-\")", "scim": "Groups[value]" }
+      ]
+    }
+  }
+}

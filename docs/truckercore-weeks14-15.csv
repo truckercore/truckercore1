@@ -1,0 +1,20 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Moderation & Abuse Controls,Story,"Auto-flag spam/abuse; 429 rate-limits; admin resolve endpoint.",backend;marketplace;security,5,Marketplace v1 Hardening,
+Notifications & Subscriptions,Story,"User prefs (email/push/sms); topics; test-send endpoint.",backend;notifications,5,Marketplace v1 Hardening,
+Escrow Readiness (Stubs),Story,"Hold/release API stubs; audit scaffolding.",backend;finance;design,3,Marketplace v1 Hardening,
+Claims SLAs (Org Rules),Story,"CRUD SLA rules (target_days, auto_escalate); apply to claims.",backend;claims,5,Claims Workflow v2,
+Adjuster Assignments,Story,"Assign adjuster to claim; audit trail.",backend;claims,3,Claims Workflow v2,Claims SLAs (Org Rules)
+Benchmarks API (Scorecards v2),Story,"Cohort benchmarks; percentile bands; period selector.",backend;safety;analytics,5,Driver Scorecards v2 Enhancements,
+Coaching From Metric,Story,"Create coaching task from low metric with context.",backend;safety,3,Driver Scorecards v2 Enhancements,"Benchmarks API (Scorecards v2)"
+Billing Usage Alerts,Story,"Create/list usage alerts; thresholds; monthly/daily periods.",backend;billing,3,Billing & Metering,
+Billing Usage CSV Export,Story,"CSV endpoint for usage by period; headers + pagination.",backend;billing;exports,3,Billing & Metering,Billing Usage Alerts
+Capacity Forecast v2 (Blend+Wx),Story,"Forecast with weather factors, blended lanes; confidence.",backend;forecast;pricing,8,Capacity Forecasting v2,
+Capacity v2 Visualization,Story,"Area chart overlays and tightening bands in UI.",app;forecast;ux,5,Capacity Forecasting v2,Capacity Forecast v2 (Blend+Wx)
+ETA Policies (Contract/Carrier),Story,"Upsert policy rules; buffer by scope; list policies.",backend;eta;contracts,5,ETA Commitments v2,
+ETA Breach Alerts + Playbooks,Story,"Create breach alerts; hook into playbooks.",backend;eta;ops,5,ETA Commitments v2,ETA Policies (Contract/Carrier)
+Fraud Feedback Loop,Story,"Submit false_positive/confirmed_fraud; store reasons.",backend;fraud;security,3,Fraud Graph Analytics v2,
+Graph Recompute (Nightly/Admin),Story,"Recompute graph with decay; admin trigger.",backend;fraud;analytics,5,Fraud Graph Analytics v2,Fraud Feedback Loop
+RTL & Plural Rules,Story,"Implement RTL locales; verify pluralization rules.",backend;i18n,3,Accessibility & Localization,
+A11y Weekly Reports CSV,Story,"Export weekly accessibility issues CSV; aggregates.",backend;a11y;exports,3,Accessibility & Localization,RTL & Plural Rules
+API Load Tests (Marketplace/Claims),Task,"p95 ≤ 1.2s under target QPS; dashboards.",performance;testing,3,Quality & Perf,
+Security Review (AuthZ,RLS,PII),Task,"Verify scopes/roles; ensure no PII in logs.",security;review,3,Quality & Perf,

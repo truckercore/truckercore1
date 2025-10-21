@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 14–15",
+    "_postman_id": "c0b4aa0a-2b67-4a0e-8e1d-bc1e42df6d33",
+    "description": "Marketplace moderation, notifications, escrow stubs, claims v2, scorecards benchmarks & coaching integration, billing alerts & CSV, capacity v2, ETA policies & breach alerts, fraud graph v2, i18n RTL & a11y reports.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Moderation",
+      "item": [
+        {
+          "name": "Flag Content",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/moderation/flags", "host": ["{{baseUrl}}"], "path": ["api","moderation","flags"] },
+            "body": { "mode": "raw", "raw": "{ \"subject_type\":\"chat_message\",\"subject_id\":\"msg_01H...\",\"reason\":\"abuse\",\"severity\":\"high\" }" }
+          }
+        },
+        {
+          "name": "Resolve Flag (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/moderation/flags/{{flag_id}}/resolve", "host": ["{{baseUrl}}"], "path": ["api","moderation","flags","{{flag_id}}","resolve"] },
+            "body": { "mode": "raw", "raw": "{ \"status\":\"actioned\",\"action\":\"mute_user_7d\",\"notes\":\"hate speech\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Prefs",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/notify/prefs", "host": ["{{baseUrl}}"], "path": ["api","notify","prefs"] } }
+        },
+        {
+          "name": "Set Prefs",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/notify/prefs", "host": ["{{baseUrl}}"], "path": ["api","notify","prefs"] },
+            "body": { "mode": "raw", "raw": "[{\"channel\":\"email\",\"topic\":\"marketplace\",\"enabled\":true},{\"channel\":\"push\",\"topic\":\"chat\",\"enabled\":true}]" }
+          }
+        },
+        {
+          "name": "Send Test Notification",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/notify/test", "host": ["{{baseUrl}}"], "path": ["api","notify","test"] } }
+        }
+      ]
+    },
+    {
+      "name": "Escrow (Stubs)",
+      "item": [
+        {
+          "name": "Hold Funds",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/escrow/hold", "host": ["{{baseUrl}}"], "path": ["api","escrow","hold"] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"{{load_id}}\", \"amount_usd\": 500.00 }" }
+          }
+        },
+        {
+          "name": "Release Funds",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/escrow/release", "host": ["{{baseUrl}}"], "path": ["api","escrow","release"] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"{{load_id}}\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims v2",
+      "item": [
+        {
+          "name": "Upsert SLA Rule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/claims/slas", "host": ["{{baseUrl}}"], "path": ["api","claims","slas"] },
+            "body": { "mode": "raw", "raw": "{ \"org_id\":\"{{org_id}}\",\"type\":\"cargo_damage\",\"target_days\":7,\"auto_escalate_days\":10,\"active\":true }" }
+          }
+        },
+        {
+          "name": "Assign Adjuster",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/claims/{{claim_id}}/assign_adjuster", "host": ["{{baseUrl}}"], "path": ["api","claims","{{claim_id}}","assign_adjuster"] },
+            "body": { "mode": "raw", "raw": "{ \"adjuster_user_id\":\"{{user_id}}\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scorecards & Coaching",
+      "item": [
+        {
+          "name": "Benchmarks",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/driver/scorecards/benchmarks?cohort=terminal:ATL|equipment:van&period=30d", "host": ["{{baseUrl}}"], "path": ["api","driver","scorecards","benchmarks"], "query": [ { "key": "cohort", "value": "terminal:ATL|equipment:van" }, { "key": "period", "value": "30d" } ] }
+          }
+        },
+        {
+          "name": "Create Coaching from Metric",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/safety/coaching_tasks/from_metric", "host": ["{{baseUrl}}"], "path": ["api","safety","coaching_tasks","from_metric"] },
+            "body": { "mode": "raw", "raw": "{ \"driver_user_id\":\"{{driver_user_id}}\",\"metric\":\"speeding\",\"context\":{\"period\":\"7d\",\"count\":3},\"due_by\":\"2025-11-10T23:59:59Z\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Create Usage Alert",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/billing/alerts", "host": ["{{baseUrl}}"], "path": ["api","billing","alerts"] },
+            "body": { "mode": "raw", "raw": "{ \"org_id\":\"{{org_id}}\",\"feature\":\"ai_calls\",\"threshold\":1000,\"period\":\"monthly\",\"active\":true }" }
+          }
+        },
+        {
+          "name": "Export Usage CSV",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/billing/usage/export.csv?from=2025-11-01&to=2025-11-07", "host": ["{{baseUrl}}"], "path": ["api","billing","usage","export.csv"], "query": [ { "key": "from", "value": "2025-11-01" }, { "key": "to", "value": "2025-11-07" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "Capacity v2",
+      "item": [
+        {
+          "name": "Forecast with Blending + Weather",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/capacity/forecast/v2?lane=30301-75201&horizon_days=14", "host": ["{{baseUrl}}"], "path": ["api","capacity","forecast","v2"], "query": [ { "key": "lane", "value": "30301-75201" }, { "key": "horizon_days", "value": "14" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "ETA Commitments v2",
+      "item": [
+        {
+          "name": "Upsert ETA Policy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/eta/policies", "host": ["{{baseUrl}}"], "path": ["api","eta","policies"] },
+            "body": { "mode": "raw", "raw": "{ \"scope\":\"contract\",\"scope_id\":\"ct_789\",\"buffer_minutes\":30,\"rules\":[{\"matcher\":\"equipment:reefer\",\"buffer_minutes\":45}],\"active\":true }" }
+          }
+        },
+        {
+          "name": "Create Breach Alert (System)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/eta/breach_alerts", "host": ["{{baseUrl}}"], "path": ["api","eta","breach_alerts"] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"{{load_id}}\",\"predicted_at\":\"2025-11-04T17:30:00Z\",\"risk_band\":\"high\",\"reason\":\"p80 beyond window\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud Graph v2",
+      "item": [
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/fraud/graph/feedback", "host": ["{{baseUrl}}"], "path": ["api","fraud","graph","feedback"] },
+            "body": { "mode": "raw", "raw": "{ \"subject_type\":\"broker\",\"subject_id\":\"{{broker_id}}\",\"label\":\"false_positive\",\"notes\":\"Mismatch on device fingerprint\" }" }
+          }
+        },
+        {
+          "name": "Trigger Recompute (Admin)",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/fraud/graph/recompute", "host": ["{{baseUrl}}"], "path": ["api","fraud","graph","recompute"] } }
+        }
+      ]
+    },
+    {
+      "name": "i18n RTL & A11y Reports",
+      "item": [
+        {
+          "name": "Check RTL Support",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/i18n/rtl", "host": ["{{baseUrl}}"], "path": ["api","i18n","rtl"] } }
+        },
+        {
+          "name": "Export A11y Weekly CSV",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/a11y/reports/export.csv?week=2025-W45", "host": ["{{baseUrl}}"], "path": ["api","a11y","reports","export.csv"], "query": [ { "key": "week", "value": "2025-W45" } ] } }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "load_id", "value": "ld_123" },
+    { "key": "flag_id", "value": "flg_456" },
+    { "key": "claim_id", "value": "clm_789" },
+    { "key": "user_id", "value": "usr_001" },
+    { "key": "driver_user_id", "value": "5f5c78fe-6a2c-4a7b-97a3-63b5bfbaf3b6" },
+    { "key": "broker_id", "value": "b1f4c2a7-5f5a-4c5f-8a0a-3a2a5e6d9b11" }
+  ]
+}

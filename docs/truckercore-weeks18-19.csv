@@ -1,0 +1,20 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Load Board Syndication — Export,Story,"POST /api/syndication/loads/export to partner format (CSV/JSON); signed URLs; per-org mapping.",backend;integrations;loads,5,Load Board Syndication,
+Load Board Syndication — Ingest,Story,"POST /api/syndication/loads/ingest to accept inbound partner postings; validation + dedupe.",backend;integrations;loads,8,Load Board Syndication,
+Syndication UI & Mapping,Story,"Admin UI to map internal fields to partner schema; test export/ingest with sample.",app;integrations;ux,5,Load Board Syndication,"Load Board Syndication — Export,Load Board Syndication — Ingest"
+Carbon & ESG — API,Story,"GET /api/esg/carbon?from&to returns fuel->CO2e, idle, route emissions; factors configurable.",backend;analytics;esg,5,Carbon & ESG Reporting,
+Carbon Dashboard,Story,"Org-wide emissions trend, per-lane view, export CSV.",app;analytics;esg;ux,5,Carbon & ESG Reporting,Carbon & ESG — API
+Carrier Scorecards (Fleet-level),Story,"GET /api/fleet/scorecards with composite safety/ontime/fuel indices; cohort compare.",backend;safety;analytics,8,Carrier Scorecards,
+Carrier Scorecards UI,Story,"Fleet scorecards list with filters and drill-down to divisions; badges.",app;safety;ux,5,Carrier Scorecards,Carrier Scorecards (Fleet-level)
+Doc eSigning — Create Envelope,Story,"POST /api/docs/esign/envelope with recipients; webhook on status; store signed copy.",backend;documents;esign,8,Document eSigning,
+Doc eSigning UI,Story,"Send for signature from claim/contract/load; status timeline; resend/cancel.",app;documents;ux,5,Document eSigning,Doc eSigning — Create Envelope
+Data Retention & Privacy,Story,"Policies to purge PII/logs after N days by role/region; legal hold; export user data.",backend;security;privacy,8,Data Retention & Privacy,
+Tenant Data Export (DSR),Story,"Self-serve download of user/org data; zip + manifest; expires in 7d.",backend;privacy;exports,5,Data Retention & Privacy,Data Retention & Privacy
+Dispatch Optimizer (Multi-load),Story,"POST /api/dispatch/optimize multiplies loads and drivers into assignments respecting HOS, equipment, windows.",backend;dispatch;optimization,13,Dispatch Optimizer,
+Assign Board — Optimizer UI,Story,"Interactive accept/override suggestions; impact deltas (miles, on-time).",app;dispatch;ux,8,Dispatch Optimizer,Dispatch Optimizer (Multi-load)
+Assistant Skills Pack — Actions,Story,"AI assistant can trigger actions (ack alert, create coaching task, request ETA recompute) via safe allowlist.",backend;ai;assistant,8,Assistant Skills Pack,
+Assistant UI — Actions,Story,"Quick actions in thread; confirmation modals; audit trails.",app;ai;ux,5,Assistant Skills Pack,Assistant Skills Pack — Actions
+Warehouse/Yard Flow — API,Story,"Ingress/egress prediction, dock assignment suggestions, yard dwell heatmap endpoints.",backend;yard;analytics,8,Warehouse & Yard Flow,
+Warehouse/Yard UI,Story,"Dock timeline view; assign bay; dwell alerts; suggested sequencing.",app;yard;ux,8,Warehouse & Yard Flow,Warehouse/Yard Flow — API
+Multi-Org Branching Tenants,Story,"Support parent/child orgs; inherit policies; per-branch analytics scopes.",backend;tenancy;security,8,Multi-Org/Branch, 
+Permissions Map & Secrets Review,Task,"Inventory endpoints and scopes; rotate secrets; enforce per-feature RBAC and token scopes.",security;review,5,Security Hardening,Multi-Org Branching Tenants

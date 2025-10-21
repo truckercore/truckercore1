@@ -1,7 +1,7 @@
 // TypeScript
 "use client";
 import React from "react";
-import { AboutUpdatesPanel } from "@/src/components/AboutUpdatesPanel";
+import { AboutUpdatesPanel } from "@/components/AboutUpdatesPanel";
 
 export default function AboutPage() {
   const appVersion = process.env.NEXT_PUBLIC_SHELL_VERSION || "";

@@ -1,42 +1,11 @@
-/** @type {import('next').NextConfig} */
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.supabase.co",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "connect-src 'self' https://*.supabase.co https://events.pagerduty.com https://hooks.slack.com",
-  "frame-ancestors 'self'",
-].join('; ');
+// Proxy to the root Next.js configuration so Vercel (and local builds) work from the apps/web directory.
+// This allows monorepo builds that execute within apps/web to pick up shared settings.
+const path = require('path');
 
-const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "geolocation=(self)" },
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-];
+// Resolve the root next.config.js relative to this file
+const rootNextConfigPath = path.resolve(__dirname, '..', '..', 'next.config.js');
 
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  fallbacks: { document: '/offline' },
-});
+// eslint-disable-next-line import/no-dynamic-require, global-require
+const rootConfig = require(rootNextConfigPath);
 
-const nextConfig = {
-  reactStrictMode: true,
-  experimental: {
-    typedRoutes: true,
-    scrollRestoration: true,
-  },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-    ];
-  },
-};
-module.exports = withPWA(nextConfig);
+module.exports = rootConfig;

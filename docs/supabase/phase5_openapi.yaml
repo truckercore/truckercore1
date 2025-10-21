@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 5 API
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /api/ai_assistant:
+    post:
+      summary: Role-aware AI assistant endpoint (proxy to Edge Function)
+      description: |
+        Orchestrates AI responses using org-scoped data (HOS, inspections, expenses, alerts, analytics).
+        Reads org_id, user_id, plan_tier from JWT or server-side claims. Returns text answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, prompt]
+              properties:
+                role:
+                  type: string
+                  enum: [driver, ownerop, fleet_manager, broker]
+                prompt:
+                  type: string
+                driver_user_id:
+                  type: string
+                  format: uuid
+                load_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer: { type: string }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden (plan gating) }
+        '500': { description: Server error }

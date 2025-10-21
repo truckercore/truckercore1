@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 20–21",
+    "_postman_id": "5d6f2c35-2b6e-4a94-9b6e-51f5b4c7e621",
+    "description": "Dynamic pricing experiments, bid guidance, partner network, SLA reports, yard KPIs, data quality runs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    { "name": "Pricing",
+      "item": [
+        {
+          "name": "Run Pricing Experiment",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/pricing/experiment/run", "host": [ "{{baseUrl}}" ], "path": [ "api","pricing","experiment","run" ] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"ld_1\",\"lane\":\"30301-75201\",\"org_id\":\"{{org_id}}\" }" }
+          }
+        },
+        {
+          "name": "Bid Guidance",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/pricing/bid_guidance", "host": [ "{{baseUrl}}" ], "path": [ "api","pricing","bid_guidance" ] },
+            "body": { "mode": "raw", "raw": "{ \"lane\":\"30301-75201\",\"trust\":0.82,\"scorecard\":0.71 }" }
+          }
+        }
+      ]
+    },
+    { "name": "Partner Network",
+      "item": [
+        {
+          "name": "Invite Partner",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/network/invite", "host": [ "{{baseUrl}}" ], "path": [ "api","network","invite" ] },
+            "body": { "mode": "raw", "raw": "{ \"to_org\":\"org_abc\",\"regions\":[\"SE\"],\"equipment\":[\"van\"] }" }
+          }
+        }
+      ]
+    },
+    { "name": "Reports",
+      "item": [
+        {
+          "name": "Contract SLA Report",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/contracts/{{contract_id}}/sla/report?from=2025-11-01&to=2025-11-07", "host": [ "{{baseUrl}}" ], "path": [ "api","contracts","{{contract_id}}","sla","report" ], "query": [ { "key": "from", "value": "2025-11-01" }, { "key": "to", "value": "2025-11-07" } ] }
+          }
+        },
+        {
+          "name": "Yard KPIs",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/yard/kpis?site_id=DC-7&from=2025-11-01&to=2025-11-07", "host": [ "{{baseUrl}}" ], "path": [ "api","yard","kpis" ], "query": [ { "key": "site_id", "value": "DC-7" }, { "key": "from", "value": "2025-11-01" }, { "key": "to", "value": "2025-11-07" } ] }
+          }
+        }
+      ]
+    },
+    { "name": "Data Quality",
+      "item": [
+        {
+          "name": "Run DQ Rules",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/dq/run", "host": [ "{{baseUrl}}" ], "path": [ "api","dq","run" ] },
+            "body": { "mode": "raw", "raw": "{ \"rules\": [\"loads.not_null(org_id)\", \"positions.timeliness<5m\"] }" }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "contract_id", "value": "ct_789" }
+  ]
+}

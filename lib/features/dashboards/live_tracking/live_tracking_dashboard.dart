@@ -194,7 +194,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -346,7 +346,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
             height: isSelected ? 48 : 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
             ),
           ),
         ),
@@ -359,7 +359,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: isSelected ? 4 : 3),
               boxShadow: [
-                BoxShadow(color: statusColor.withOpacity(0.5), blurRadius: isSelected ? 12 : 8, spreadRadius: isSelected ? 3 : 2),
+                BoxShadow(color: statusColor.withValues(alpha: 0.5), blurRadius: isSelected ? 12 : 8, spreadRadius: isSelected ? 3 : 2),
               ],
             ),
             child: const Icon(Icons.local_shipping, color: Colors.white, size: 20),
@@ -373,7 +373,7 @@ class _LiveTrackingContentState extends State<_LiveTrackingContent> {
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(4)),
                 child: Text(
                   vehicle.unitNumber,
                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/pod.dart';
 import '../services/api_service.dart';
-import 'load_provider.dart' show apiServiceProvider; // reuse
+import 'package:truckercore1/providers/api_provider.dart';
 
 class PODNotifier extends StateNotifier<AsyncValue<List<POD>>> {
   PODNotifier(this.apiService) : super(const AsyncValue.loading());

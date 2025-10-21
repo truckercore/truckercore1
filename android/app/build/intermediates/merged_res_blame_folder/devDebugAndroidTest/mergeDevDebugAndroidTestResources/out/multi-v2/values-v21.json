@@ -1,0 +1,28 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.truckercore1.test.app-mergeDevDebugAndroidTestResources-3:/values-v21/values-v21.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\moise\\.gradle\\caches\\8.13\\transforms\\d50b4ea4909dd58b0e4feb1d3787b2a3\\transformed\\jetified-core-1.6.1\\res\\values-v21\\values.xml",
+                    "from": {
+                        "startLines": "4,13",
+                        "startColumns": "0,0",
+                        "startOffsets": "146,621",
+                        "endLines": "12,21",
+                        "endColumns": "8,8",
+                        "endOffsets": "620,1093"
+                    },
+                    "to": {
+                        "startLines": "2,11",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,534",
+                        "endLines": "10,19",
+                        "endColumns": "8,8",
+                        "endOffsets": "529,1006"
+                    }
+                }
+            ]
+        }
+    ]
+}

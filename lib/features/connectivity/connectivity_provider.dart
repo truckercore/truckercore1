@@ -29,3 +29,7 @@ class ConnectivityNotifier extends StateNotifier<bool> {
     super.dispose();
   }
 }
+
+bool isOnlineFromResults(List<ConnectivityResult> results) {
+  return !results.contains(ConnectivityResult.none);
+}

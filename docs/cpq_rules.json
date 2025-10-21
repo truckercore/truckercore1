@@ -1,0 +1,18 @@
+{
+  "bands": [
+    { "name": "Local", "price_per_location_usd": 199 },
+    { "name": "Regional", "price_per_location_usd": 349 },
+    { "name": "National", "price_per_location_usd": 499 }
+  ],
+  "multi_location_discounts": [
+    { "min": 10, "max": 49, "discount_pct": 5 },
+    { "min": 50, "max": 249, "discount_pct": 10 },
+    { "min": 250, "max": null, "discount_pct": 15 }
+  ],
+  "prepay_discounts": [
+    { "term_months": 12, "discount_pct": 8 },
+    { "term_months": 3, "discount_pct": 3 }
+  ],
+  "max_sales_override_pct": 20,
+  "requires_approval_above_pct": 10
+}

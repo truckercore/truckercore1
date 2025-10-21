@@ -1,0 +1,28 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+QuickBooks Connect (OAuth) + Token Store,Story,"Connect org to QuickBooks; store tokens; test sync.",backend;integrations;accounting,5,Accounting Integrations,
+Xero Connect (OAuth) + Token Store,Story,"Connect org to Xero; store tokens; test sync.",backend;integrations;accounting,5,Accounting Integrations,
+Journal Entry API,Story,"Create journal entries via API; simple validation.",backend;accounting,3,Accounting Integrations,QuickBooks Connect (OAuth) + Token Store
+Invoice Sync Job,Story,"Push/pull invoices to provider; idempotent; retry on 429/5xx.",backend;integrations;accounting,5,Accounting Integrations,QuickBooks Connect (OAuth) + Token Store
+Load Board Connectors List,Story,"Expose connectors and connection status.",backend;marketplace;integrations,2,Load Board Syndication,
+Publish Load to DAT/Truckstop (Stub),Story,"Publish/update/close load; capture external_id; status.",backend;marketplace;integrations,5,Load Board Syndication,Load Board Connectors List
+Auto-Replan v2,Story,"Replan with constraints and disruptions; diff-style output.",backend;dispatch;optimization,8,Dispatch Automation v2,
+Predictive Maintenance v2,Story,"Return risk-ranked components with MTBF estimates and actions.",backend;maintenance;ml,5,Maintenance v2,
+Vision Events Ingest + List,Story,"Ingest dashcam events; list by driver/time; severity levels.",backend;safety;vision,5,Vision Safety,
+E-sign Send + Status,Story,"Send envelope using template or file; track status.",backend;docs;esign,5,E-sign,
+Emissions Calc + CSV Export,Story,"Compute CO2e by period or trip; export CSV.",backend;sustainability;exports,5,Sustainability,
+Retention Policies CRUD,Story,"Upsert/list data retention policies; datasets & days_to_keep.",backend;privacy;governance,3,Data Governance,
+Deletion Requests,Story,"Create/list data deletion requests (DSR); status workflow.",backend;privacy;governance,5,Data Governance,Retention Policies CRUD
+Admin Audit Queries,Story,"Submit long-running audit queries; store result URL; RBAC admin.",backend;security;audit,5,Admin Tooling,
+Notification Routing Rules,Story,"Event-based conditions/actions (email/push) per rule; enable/disable.",backend;notifications,5,Routing Center,
+Navigation Waypoints,Story,"Upsert/get waypoint plans for routes (fuel/parking/service).",backend;navigation;offline,3,Navigation Enhancements,
+Shipper Shortlist (v3),Story,"Shortlist carriers for a load; return scores + reasons.",backend;shipper;marketplace,5,Shipper Portal v3,
+Shipper Counteroffers,Story,"Send counteroffer to bidder with message; audit trail.",backend;shipper;marketplace,3,Shipper Portal v3,Shipper Shortlist (v3)
+App — Accounting Settings UI,Story,"Connect QB/Xero; show status and last sync; disconnect.",app;integrations;ux,5,Accounting Integrations,QuickBooks Connect (OAuth) + Token Store
+App — Load Publishing UI,Story,"Publish/close load to board; show status and external_id.",app;marketplace;ux,3,Load Board Syndication,Publish Load to DAT/Truckstop (Stub)
+App — Vision Review Queue,Story,"Review vision events; filter by severity; add notes/coaching.",app;safety;ux,5,Vision Safety,Vision Events Ingest + List
+App — E-sign Dashboard,Story,"Send envelopes; track status; resend/cancel.",app;docs;esign;ux,5,E-sign,E-sign Send + Status
+App — Emissions Panel,Story,"Show period emissions and per-load breakdown; export CSV.",app;sustainability;ux,5,Sustainability,Emissions Calc + CSV Export
+App — Privacy Center,Story,"Manage retention policies and DSRs; status + audit.",app;privacy;ux,5,Data Governance,Deletion Requests
+App — Notification Routing UI,Story,"CRUD rules; test route; toggle active.",app;notifications;ux,5,Routing Center,Notification Routing Rules
+App — Waypoints Overlay,Story,"Display waypoints on route map; offline-friendly icons.",app;navigation;ux,3,Navigation Enhancements,Navigation Waypoints
+App — Shipper v3 (Shortlist + Counteroffers),Story,"Show shortlist with reasons; send counteroffers.",app;shipper;ux,5,Shipper Portal v3,"Shipper Shortlist (v3),Shipper Counteroffers"
