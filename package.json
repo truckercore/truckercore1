@@ -217,7 +217,8 @@
     "ci:metrics:summary": "node scripts/ci/ci-metrics.mjs --workflow windows-ci.yml --summary",
     "obs:sentry:alerts": "node scripts/observability/sentry-alerts.mjs",
     "obs:sentry:dashboard": "node scripts/observability/sentry-dashboard.mjs",
-    "obs:sentry:apply": "npm run obs:sentry:alerts && npm run obs:sentry:dashboard"
+    "obs:sentry:apply": "npm run obs:sentry:alerts && npm run obs:sentry:dashboard",
+    "lockfile:regen:win": "powershell -ExecutionPolicy Bypass -File ./scripts/Regenerate-Lockfile.ps1"
   },
   "build": {
     "appId": "com.truckercore.desktop",
