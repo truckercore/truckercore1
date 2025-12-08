@@ -1,10 +1,9 @@
 # Ignore Flutter/Dart projects so Vercel only builds the Next.js web app
-lib/
+lib/C
 android/
 ios/
 macos/
 windows/
-linux/
 web/ios/
 web/android/
 
@@ -44,3 +43,7 @@ Thumbs.db
 
 # Other non-web infra to skip
 scripts/mobile/
+
+# --- FIX FOR VER CEL BUILD ---
+# Explicitly include the apps/web directory required for the build command
+!apps/web/
