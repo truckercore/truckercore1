@@ -26,13 +26,14 @@
     "dlq:replay": "node scripts/dlq/replay-dlq.mjs",
     "configure": "ts-node scripts/configure-integrations.ts",
     "validate:env": "ts-node scripts/validate-env.ts",
-    "dev": "npm --prefix apps/web run dev",
-    "build:web": "npm --prefix apps/web run build",
-    "start:web": "npm --prefix apps/web run start",
-    "export:web": "npm --prefix apps/web run export",
-    "build": "npm run build --workspace=apps/web",
-    "start": "npm --prefix apps/web run start",
-    "lint": "npm --prefix apps/web run lint",
+
+    "dev": "next dev",
+    "build:web": "next build",
+    "start:web": "next start",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+
     "deploy": "npm run verify && vercel --prod",
     "deploy:preview": "npm run verify && vercel",
     "verify": "npm run lint && npm run build",
@@ -50,8 +51,9 @@
     "launch:prod": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production",
     "launch:auto": "powershell -ExecutionPolicy Bypass -File ./launch-deployment.ps1 -Environment production -AutoConfirm",
     "type-check": "tsc --noEmit",
-    "vercel-build": "npm --prefix apps/web run build",
-    "typecheck": "npm --prefix apps/web run typecheck && tsc -p sdk/tsconfig.json",
+    "vercel-build": "next build",
+    "typecheck": "tsc --noEmit && tsc -p sdk/tsconfig.json",
+
     "test": "vitest",
     "test:unit": "vitest --config vitest.config.unit.ts",
     "test:unit:watch": "vitest --watch",
@@ -147,7 +149,8 @@
     "predeploy": "npm run preflight && npm run verify:all",
     "launch:legacy": "npm run preflight && npm run deploy:safety-suite && npm run verify:all && npm run test:integration",
     "checklist": "node scripts/final-checklist.mjs",
-    "ready": "npm run checklist && npm run preflight && echo \"\n✅ READY FOR DEPLOYMENT\"",
+    "ready": "npm run checklist && npm run preflight && echo \"\n✅ READY FOR DE
+PLOYMENT\"",
     "// === DEPLOYMENT - SHIP IT! 🚢 ===": "",
     "ship": "bash scripts/ultimate-launch.sh",
     "ship:fast": "npm run deploy:fast",
@@ -392,3 +395,4 @@
     "json2csv": "npm:@json2csv/plainjs@^7.0.6"
   }
 }
+
