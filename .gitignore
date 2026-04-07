@@ -1,14 +1,3 @@
-# dependencies
-node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
 
 # production
 /build
@@ -39,3 +28,29 @@ next-env.d.ts
 .vscode
 *.swp
 *.swo
+
+# Android local machine config
+android/local.properties
+
+# Flutter/Android build outputs (prevent huge binaries in repo)
+android/.gradle/
+android/app/build/
+**/build/
+.dart_tool/
+*.apk
+*.aab
+*.ipa
+
+# Next.js
+apps/web/.next/
+.next/
+
+# Monorepo web app
+apps/web/node_modules/
+
+# Flutter/Dart generated files
+*.g.dart
+*.freezed.dart
+
+# Generic build output (in addition to **/build/)
+build/

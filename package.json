@@ -1,8 +1,5 @@
 {
   "name": "truckercore1",
-
-  "name": "truckercore1-web",
-
   "version": "1.2.0",
 
   "private": true,
@@ -57,9 +54,6 @@
     "configure": "ts-node scripts/configure-integrations.ts",
 
     "validate:env": "ts-node scripts/validate-env.ts",
-
-    "dev": "npm --prefix apps/web run dev",
-
     "dev": "npm run dev --workspace=apps/web",
     "build:web": "npm --prefix apps/web run build",
 
@@ -67,7 +61,7 @@
 
     "export:web": "npm --prefix apps/web run export",
 
-    "build": "npm run build --workspace=apps/web",
+    "build": "npm run build -w apps/web",
 
     "start": "npm --prefix apps/web run start",
 
