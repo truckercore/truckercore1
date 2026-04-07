@@ -1,3 +1,7 @@
+"use client";
+
+export const dynamic = "force-dynamic";
+
 export default function UpgradePage() {
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 48 }}>
