@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/lib/stripe";
+import Stripe from 'stripe';
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const config = { api: { bodyParser: false } };
@@ -11,6 +11,9 @@ async function rawBody(req: NextApiRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2024-06-20',
+  });
   const sig = req.headers["stripe-signature"] as string | undefined;
   if (!sig) return res.status(400).send("Missing signature");
   const buf = await rawBody(req);

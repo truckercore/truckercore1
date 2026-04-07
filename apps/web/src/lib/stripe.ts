@@ -1,5 +1,13 @@
-import Stripe from "stripe";
+import Stripe from 'stripe';
 
-export const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2024-06-20",
+// Factory function for use inside handlers
+export function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2024-06-20',
+  });
+}
+
+// Keep named export for backward compatibility with existing imports
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_for_build', {
+  apiVersion: '2024-06-20',
 });

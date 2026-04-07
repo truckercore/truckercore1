@@ -1,8 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/lib/stripe";
+import Stripe from 'stripe';
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2024-06-20',
+  });
   if (req.method !== "POST") return res.status(405).end();
   const { org_id } = req.body ?? {};
   if (!org_id) return res.status(400).json({ error: "missing" });
