@@ -252,6 +252,26 @@ GoRouter buildAppRouter({required bool supabaseReady}) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
+        path: '/offline',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off, size: 64, color: Colors.orange),
+                const SizedBox(height: 16),
+                const Text('Backend not connected'),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () => context.go('/auth/get-started'),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/home',
         builder: (context, state) => const _HomeGate(),
       ),
