@@ -371,7 +371,7 @@
 
     "migrate:rollback": "ts-node electron/database/migrate-cli.ts rollback",
 
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node -e \"if(process.env.CI !== 'true' && !process.env.VERCEL) require('child_process').execSync('electron-builder install-app-deps', {stdio:'inherit'})\" || true",
 
     "db:setup": "node scripts/db/setup.mjs",
 
