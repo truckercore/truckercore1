@@ -1,0 +1,55 @@
+name: Quarterly Incident Tabletop Drill
+
+on:
+  schedule:
+    # 09:30 UTC on the 1st day of Jan/Apr/Jul/Oct
+    - cron: "30 9 1 1,4,7,10 *"
+  workflow_dispatch: {}
+
+jobs:
+  tabletop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      SLACK_WEBHOOK: ${{ secrets.OPs_SLACK_WEBHOOK }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Open/Update Tabletop Drill Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0,10);
+            const title = `Quarterly Tabletop Drill – ${today}`;
+            const body = [
+              '# Quarterly Incident Tabletop Drill',
+              'Scenarios to rehearse using runbooks:',
+              '',
+              '- [ ] Auth outage (see runbooks/ONCALL_RUNBOOK.md → Auth outage)',
+              '- [ ] Slow queries / p95 spikes (SLO dashboards; tune queries; see docs/SLOs.md)',
+              '- [ ] Scheduler failure (cron stale; see ONCALL_RUNBOOK.md → Scheduler failures)',
+              '',
+              'Artifacts/links:',
+              '- Ops Dashboard: /admin/ops',
+              '- Health: supabase/functions/healthz',
+              '- Feature Activation/Rollback Quickstart: runbooks/FEATURE_ACTIVATION_ROLLBACK_QUICKSTART.md',
+              '- Postmortem template: POSTMORTEM_TEMPLATE.md',
+              '',
+              'Record outcomes, gaps, and follow-ups as comments on this issue.'
+            ].join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.find(i => i.title.startsWith('Quarterly Tabletop Drill'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['governance','ops'] });
+            }
+      - name: Notify Slack (optional)
+        if: env.SLACK_WEBHOOK != ''
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' "$SLACK_WEBHOOK" \
+            -d '{"text":"📋 Quarterly tabletop drill scheduled. See repo issues for details."}'

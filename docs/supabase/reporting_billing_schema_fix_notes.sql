@@ -1,0 +1,15 @@
+-- Notes: This script supersedes reporting_billing_schema.sql where DECLARE at top-level caused error 42601.
+-- Use only DECLARE inside plpgsql blocks (DO $$ ... $$ or CREATE FUNCTION ... LANGUAGE plpgsql).
+-- The reporting_billing_schema.sql has been reviewed; all DECLARE sections are already scoped within DO/PLPGSQL blocks.
+-- If you previously saw: ERROR 42601: syntax error at or near "declare" around line ~458,
+-- it likely came from running a different (older) copy or pasting partial blocks without DO/BEGIN.
+-- Please run the updated file: docs/supabase/reporting_billing_schema.sql (committed in repo) in psql or Supabase SQL editor.
+-- If you need to wrap any ad-hoc procedural code, use this pattern:
+--
+-- DO $$
+-- DECLARE
+--   v_count integer := 0;
+-- BEGIN
+--   -- statements
+-- END;
+-- $$ LANGUAGE plpgsql;

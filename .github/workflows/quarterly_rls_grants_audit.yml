@@ -1,0 +1,41 @@
+name: Quarterly RLS & Grants Revalidation
+
+on:
+  schedule:
+    - cron: '30 8 1 1,4,7,10 *' # Quarterly, 08:30 UTC on the 1st of Jan/Apr/Jul/Oct
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Export RLS, grants, and SLO targets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p quarterly
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo '{}' > quarterly/rls.json
+            echo '{}' > quarterly/grants.json
+            echo '[]' > quarterly/slo_targets.json
+            exit 0
+          fi
+          # RLS audit
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select * from public.rls_audit order by table) t" > quarterly/rls.json
+          # Grants (table + function)
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select grantee, table_name, privilege_type from information_schema.role_table_grants where table_schema='public' order by table_name, grantee) t" > quarterly/grants_tables.json
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select n.nspname as schema, p.proname as name, has_function_privilege(p.oid,'EXECUTE') as has_exec from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' order by 1,2) t" > quarterly/grants_functions.json
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select * from public.slo_targets order by fn) t" > quarterly/slo_targets.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarterly-rls-grants-${{ github.run_id }}
+          path: quarterly

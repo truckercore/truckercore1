@@ -1,0 +1,9 @@
+{
+  "probe": "tenant_health|scim_write|sales_bundle|pos_hmac|synthetic_invoice|rate_limit",
+  "status": "pass|fail|degraded",
+  "ts": "ISO-8601",
+  "tenant": "uuid-or-slug",
+  "latency_ms": 0,
+  "details": { "hint": "..." },
+  "evidence": { "ids": ["..."], "hash": "sha256:..." }
+}

@@ -1,0 +1,80 @@
+name: Release Sign & Publish
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  sign-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+      MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+      WIN_CERT_PFX: ${{ secrets.WIN_CERT_PFX }}
+      WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+      LINUX_GPG_PRIVATE_KEY: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
+      LINUX_GPG_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
+      RPC_LATENCY_BUDGET_MS: 250
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: CI latency check (risk_corridors)
+        run: npm run ci:explain:corridors
+
+      - name: Build desktop artifacts
+        run: npm run desktop:tauri:build
+
+      - name: Notarize & Staple macOS
+        run: |
+          npm run desktop:tauri:sign
+        env:
+          APPLE_ID: ${{ env.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ env.APPLE_APP_SPECIFIC_PASSWORD }}
+          MAC_CERT_P12: ${{ env.MAC_CERT_P12 }}
+          MAC_CERT_PASSWORD: ${{ env.MAC_CERT_PASSWORD }}
+
+      - name: Sign Windows (MSIX)
+        run: node scripts/desktop/sign_win.mjs
+        env:
+          WIN_CERT_PFX: ${{ env.WIN_CERT_PFX }}
+          WIN_CERT_PASSWORD: ${{ env.WIN_CERT_PASSWORD }}
+
+      - name: Sign Linux (DEB/RPM)
+        run: node scripts/desktop/sign_linux.mjs
+        env:
+          LINUX_GPG_PRIVATE_KEY: ${{ env.LINUX_GPG_PRIVATE_KEY }}
+          LINUX_GPG_PASSPHRASE: ${{ env.LINUX_GPG_PASSPHRASE }}
+
+      - name: Generate SHA256SUMS
+        run: |
+          find ./src-tauri/target/release -type f \( -name "*.msix" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print0 | xargs -0 sha256sum > SHA256SUMS.txt
+
+      - name: Upload artifacts to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/*.msix
+            src-tauri/target/release/*.dmg
+            src-tauri/target/release/*.AppImage
+            src-tauri/target/release/*.deb
+            src-tauri/target/release/*.rpm
+            SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

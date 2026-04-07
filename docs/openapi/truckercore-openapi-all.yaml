@@ -1,0 +1,1637 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Unified API (Consolidated)
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+tags:
+  - name: Analytics
+  - name: Owner-Operator
+  - name: HOS & Compliance
+  - name: Inspections & Maintenance
+  - name: Alerts & Exceptions
+  - name: AI Assistant
+  - name: AI Routing
+  - name: Vetting & Trust
+  - name: Pricing & Forecasts
+  - name: Marketplace
+  - name: Claims
+  - name: Safety & Coaching
+  - name: Billing & Invoicing
+  - name: Offline & Navigation
+  - name: Enterprise & Admin
+  - name: Integrations (ELD/Accounting/Loadboard)
+  - name: Security, Fraud & Audits
+  - name: Localization & Accessibility
+  - name: Sustainability
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    AnalyticsKpis:
+      type: object
+      properties:
+        loads: { type: integer }
+        miles: { type: number }
+        revenue: { type: number }
+        cost: { type: number }
+        avg_ppm: { type: number, nullable: true }
+        on_time_pct: { type: number, nullable: true }
+      required: [loads, miles, revenue, cost]
+    AnalyticsSeriesPoint:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        loads: { type: integer }
+        miles: { type: number }
+        avg_ppm: { type: number, nullable: true }
+        on_time_pct: { type: number, nullable: true }
+    AnalyticsResponse:
+      type: object
+      properties:
+        kpis: { $ref: '#/components/schemas/AnalyticsKpis' }
+        series:
+          type: array
+          items: { $ref: '#/components/schemas/AnalyticsSeriesPoint' }
+    OwnerOpExpense:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        load_id: { type: string, format: uuid, nullable: true }
+        category: { type: string, enum: [fuel,tolls,repairs,tires,insurance,permits,parking,detention,lumper,other] }
+        amount_usd: { type: number }
+        miles: { type: number, nullable: true }
+        notes: { type: string, nullable: true }
+        incurred_on: { type: string, format: date }
+        created_at: { type: string, format: date-time }
+    OwnerOpProfitResponse:
+      type: object
+      properties:
+        totals:
+          type: object
+          properties:
+            revenue_usd: { type: number }
+            expense_usd: { type: number }
+            miles: { type: number }
+            net_usd: { type: number }
+            cpm_net: { type: number, nullable: true }
+        breakdown:
+          type: object
+          additionalProperties: { type: number }
+    HosLog:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        driver_user_id: { type: string, format: uuid }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        status: { type: string, enum: [off,sleeper,driving,on] }
+    InspectionReport:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        driver_user_id: { type: string, format: uuid }
+        vehicle_id: { type: string, format: uuid }
+        type: { type: string, enum: [pre_trip,post_trip] }
+        defects:
+          type: array
+          items:
+            type: object
+            properties:
+              component: { type: string }
+              severity: { type: string, enum: [minor,major] }
+              note: { type: string, nullable: true }
+        certified_safe: { type: boolean }
+        signed_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    AlertEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        severity: { type: string, enum: [info,warning,critical] }
+        code: { type: string, enum: [LATE_ETA,HOS_NEAR_LIMIT,INSPECTION_WEEK] }
+        payload: { type: object }
+        triggered_at: { type: string, format: date-time }
+        acknowledged: { type: boolean }
+        acknowledged_by:
+          type: string
+          format: uuid
+          nullable: true
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+    VettingResult:
+      type: object
+      properties:
+        dot_number: { type: string }
+        mc_number: { type: string, nullable: true }
+        authority_status: { type: string, enum: [active,inactive,pending,unknown] }
+        safety_rating: { type: string, enum: [satisfactory,conditional,unsatisfactory,unknown] }
+        insurance_expiry: { type: string, format: date, nullable: true }
+        fraud_flag: { type: boolean }
+        reasons: { type: array, items: { type: string } }
+        last_verified_at: { type: string, format: date-time }
+    BehaviorSummary:
+      type: object
+      properties:
+        driver_user_id: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        counts_by_type:
+          type: object
+          additionalProperties: { type: integer }
+        recent:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              occurred_at: { type: string, format: date-time }
+              details: { type: object }
+        demo: { type: boolean }
+    ScorecardV2:
+      type: object
+      properties:
+        driver_user_id: { type: string }
+        period: { type: string, example: '30d' }
+        score: { type: number, minimum: 0, maximum: 100 }
+        metrics:
+          type: object
+          properties:
+            speeding: { type: integer }
+            harsh_brake: { type: integer }
+            harsh_accel: { type: integer }
+            cornering: { type: integer }
+            dwell_over_sla: { type: integer }
+            on_time_pct: { type: number }
+        streaks:
+          type: object
+          properties:
+            on_time_days: { type: integer }
+            no_speeding_days: { type: integer }
+        peer_rank:
+          type: object
+          properties:
+            percentile: { type: number }
+            group_size: { type: integer }
+    CoachingTask:
+      type: object
+      properties:
+        id: { type: string }
+        driver_user_id: { type: string }
+        metric: { type: string, enum: [speeding, harsh_brake, harsh_accel, cornering, on_time_pct] }
+        context: { type: object }
+        due_by: { type: string, format: date-time }
+        status: { type: string, enum: [open, completed, dismissed] }
+        ack_notes: { type: string, nullable: true }
+    MaintenanceSchedule:
+      type: object
+      properties:
+        vehicle_id: { type: string }
+        schedule: { type: string }
+        next_due: { type: string, format: date }
+        due_in_miles: { type: number, nullable: true }
+        due_in_days: { type: number, nullable: true }
+        overdue: { type: boolean }
+    WorkOrder:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [open,in_progress,completed,cancelled] }
+        vehicle_id: { type: string }
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              status: { type: string, enum: [pending,done] }
+        created_at: { type: string, format: date-time }
+    TrihaulResponse:
+      type: object
+      properties:
+        itineraries:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              legs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    origin_zip: { type: string }
+                    dest_zip: { type: string }
+                    est_miles: { type: number }
+                    est_rate_ppm: { type: number }
+              est_miles_total: { type: number }
+              est_revenue_total: { type: number }
+              est_ppm: { type: number }
+              score: { type: number }
+              reasons: { type: array, items: { type: string } }
+        generated_at: { type: string, format: date-time }
+    EtaPredictResponse:
+      type: object
+      properties:
+        legs:
+          type: array
+          items:
+            type: object
+            properties:
+              from: { type: string }
+              to: { type: string }
+              eta_p50_minutes: { type: integer }
+              eta_p80_minutes: { type: integer }
+              reasons: { type: array, items: { type: string } }
+        total:
+          type: object
+          properties:
+            p50_minutes: { type: integer }
+            p80_minutes: { type: integer }
+            risk: { type: string, enum: [none,low,medium,high] }
+    RouteOptimizeResponse:
+      type: object
+      properties:
+        ordered_stops: { type: array, items: { type: string } }
+        summary:
+          type: object
+          properties:
+            total_miles: { type: number }
+            eta_minutes: { type: number }
+            windows_met: { type: boolean }
+            notes: { type: array, items: { type: string } }
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              from: { type: string }
+              to: { type: string }
+              polyline: { type: string }
+              eta_minutes: { type: number }
+    ParkingSuggestion:
+      type: object
+      properties:
+        name: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        availability_confidence: { type: number }
+        fit_score: { type: number }
+        phone: { type: string, nullable: true }
+    CostsEstimate:
+      type: object
+      properties:
+        lane_key: { type: string }
+        est_fuel_usd: { type: number }
+        est_tolls_usd: { type: number }
+        cpm_cost: { type: number }
+        assumptions:
+          type: object
+          properties:
+            mpg: { type: number }
+            fuel_price_usd_per_gal: { type: number }
+            toll_coverage_pct: { type: number }
+    BrokerTrust:
+      type: object
+      properties:
+        broker_id: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        reasons: { type: array, items: { type: string } }
+        last_updated: { type: string, format: date-time }
+    AuditEvent:
+      type: object
+      properties:
+        id: { type: string }
+        action: { type: string }
+        actor: { type: string }
+        created_at: { type: string, format: date-time }
+        payload: { type: object }
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        last_used_at: { type: string, format: date-time, nullable: true }
+        revoked: { type: boolean }
+    WebhookConfig:
+      type: object
+      properties:
+        id: { type: string }
+        event: { type: string }
+        url: { type: string }
+        secret: { type: string }
+        created_at: { type: string, format: date-time }
+    OfflineTilesManifest:
+      type: object
+      properties:
+        region_key: { type: string }
+        version: { type: integer }
+        size_bytes: { type: integer }
+        parts:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              size: { type: integer }
+        checksum: { type: string }
+    Poi:
+      type: object
+      properties:
+        id: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        type: { type: string, enum: [weigh_station,low_clearance,restricted_route,parking,service] }
+        props: { type: object }
+        version: { type: integer }
+    NotificationPref:
+      type: object
+      properties:
+        channel: { type: string, enum: [email,push,sms] }
+        topic: { type: string, enum: [marketplace,claims,chat,dispatch,billing,alerts] }
+        enabled: { type: boolean }
+    ModerationFlag:
+      type: object
+      properties:
+        id: { type: string }
+        subject_type: { type: string, enum: [chat_message,listing,profile] }
+        subject_id: { type: string }
+        reason: { type: string }
+        severity: { type: string, enum: [low,medium,high] }
+        status: { type: string, enum: [open,reviewed,actioned,dismissed] }
+        created_at: { type: string, format: date-time }
+    EmissionsReport:
+      type: object
+      properties:
+        scope: { type: string, enum: [trip, period, org] }
+        period_from: { type: string, format: date }
+        period_to: { type: string, format: date }
+        total_co2e_kg: { type: number }
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              load_id: { type: string }
+              miles: { type: number }
+              fuel_gal: { type: number }
+              co2e_kg: { type: number }
+security:
+  - bearerAuth: []
+paths:
+  # Analytics
+  /api/analytics/fleet:
+    get:
+      tags: [Analytics]
+      summary: Fleet analytics KPIs and time series
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AnalyticsResponse' } } } }
+  /api/analytics/broker:
+    get:
+      tags: [Analytics]
+      summary: Broker analytics KPIs and time series
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AnalyticsResponse' } } } }
+  /api/analytics/export.csv:
+    get:
+      tags: [Analytics]
+      summary: Export analytics as CSV
+      parameters:
+        - in: query
+          name: scope
+          schema: { type: string, enum: [fleet,broker] }
+          required: true
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+
+  # Owner-Operator
+  /api/ownerop/expenses:
+    post:
+      tags: [Owner-Operator]
+      summary: Create an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, amount_usd, incurred_on]
+              properties:
+                load_id: { type: string, format: uuid }
+                category: { type: string, enum: [fuel,tolls,repairs,tires,insurance,permits,parking,detention,lumper,other] }
+                amount_usd: { type: number }
+                miles: { type: number }
+                notes: { type: string }
+                incurred_on: { type: string, format: date }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OwnerOpExpense' } } } }
+  /api/ownerop/profit:
+    get:
+      tags: [Owner-Operator]
+      summary: Owner-Operator profit summary
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          required: true
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OwnerOpProfitResponse' } } } }
+  /api/ownerop/tax/export.csv:
+    get:
+      tags: [Owner-Operator]
+      summary: Export quarterly CSV for taxes
+      parameters:
+        - in: query
+          name: quarter
+          schema: { type: string, example: 'Q3-2025' }
+          required: true
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+
+  # HOS & Compliance
+  /api/hos/{driver_user_id}:
+    get:
+      tags: [HOS & Compliance]
+      summary: Get HOS logs (7–30 days)
+      parameters:
+        - in: path
+          name: driver_user_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items: { $ref: '#/components/schemas/HosLog' }
+  /api/compliance/hos/export.csv:
+    get:
+      tags: [HOS & Compliance]
+      summary: Export HOS CSV
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+
+  # Inspections & Maintenance
+  /api/inspection:
+    post:
+      tags: [Inspections & Maintenance]
+      summary: Submit pre/post trip inspection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vehicle_id, type, defects, certified_safe, signed_at]
+              properties:
+                vehicle_id: { type: string, format: uuid }
+                type: { type: string, enum: [pre_trip,post_trip] }
+                defects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      component: { type: string }
+                      severity: { type: string, enum: [minor,major] }
+                      note: { type: string }
+                certified_safe: { type: boolean }
+                signed_at: { type: string, format: date-time }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/InspectionReport' } } } }
+  /api/maintenance/schedules:
+    get:
+      tags: [Inspections & Maintenance]
+      summary: Get maintenance schedules
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [upcoming,overdue,all] }
+        - in: query
+          name: within_days
+          schema: { type: integer, default: 30 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/MaintenanceSchedule' } } } } } } }
+  /api/maintenance/workorders:
+    post:
+      tags: [Inspections & Maintenance]
+      summary: Create work order (from DVIR or manual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vehicle_id]
+              properties:
+                vehicle_id: { type: string }
+                source: { type: string, enum: [dvir,manual], default: manual }
+                defects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      component: { type: string }
+                      severity: { type: string, enum: [minor,major] }
+                      note: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/WorkOrder' } } } }
+
+  # Alerts & Exceptions
+  /api/alerts:
+    get:
+      tags: [Alerts & Exceptions]
+      summary: List current alerts for org
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string, enum: [LATE_ETA,HOS_NEAR_LIMIT,INSPECTION_WEEK] }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AlertEvent' } } } } }
+  /api/alerts/{id}/ack:
+    post:
+      tags: [Alerts & Exceptions]
+      summary: Acknowledge an alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { acknowledged: { type: boolean } } } } } }
+
+  # AI Assistant
+  /api/ai_assistant:
+    post:
+      tags: [AI Assistant]
+      summary: Role-aware AI assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, prompt]
+              properties:
+                role: { type: string, enum: [driver, ownerop, fleet_manager, broker] }
+                prompt: { type: string }
+                driver_user_id: { type: string, format: uuid }
+                load_id: { type: string, format: uuid }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { answer: { type: string } } } } } }
+
+  # AI Routing (ETA, Optimize, Parking, Tri-haul, Costs)
+  /api/ai/eta_predict:
+    post:
+      tags: [AI Routing]
+      summary: Predict ETA with P50/P80 per leg
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                origin: { type: object, properties: { lat: { type: number }, lng: { type: number } } }
+                dest: { type: object, properties: { lat: { type: number }, lng: { type: number } } }
+                departure_time: { type: string, format: date-time }
+                polyline: { type: string }
+                truck: { type: object }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EtaPredictResponse' } } } }
+  /api/ai/route_optimize:
+    post:
+      tags: [AI Routing]
+      summary: Optimize multi-stop route with constraints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stops]
+              properties:
+                stops: { type: array, items: { type: object } }
+                truck: { type: object }
+                constraints: { type: object }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RouteOptimizeResponse' } } } }
+  /api/ai/parking_suggest:
+    get:
+      tags: [AI Routing]
+      summary: HOS-aware parking suggestions
+      parameters:
+        - in: query
+          name: lat
+          schema: { type: number }
+          required: true
+        - in: query
+          name: lng
+          schema: { type: number }
+          required: true
+        - in: query
+          name: hos_remaining
+          schema: { type: integer }
+          required: true
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ParkingSuggestion' } } } } }
+  /api/trihaul/suggest:
+    post:
+      tags: [AI Routing, Pricing & Forecasts]
+      summary: Suggest profit-optimized tri-hauls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [origin_zip, dest_zip, date, equipment]
+              properties:
+                origin_zip: { type: string }
+                dest_zip: { type: string }
+                date: { type: string, format: date }
+                equipment: { type: string }
+                constraints: { type: object }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TrihaulResponse' } } } }
+  /api/costs/estimate:
+    get:
+      tags: [AI Routing, Owner-Operator]
+      summary: Estimate fuel/toll costs and CPM impact
+      parameters:
+        - in: query
+          name: lane_key
+          schema: { type: string }
+          required: true
+        - in: query
+          name: equipment
+          schema: { type: string }
+          required: true
+        - in: query
+          name: weight
+          schema: { type: number }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CostsEstimate' } } } }
+
+  # Vetting & Trust
+  /api/vetting/lookup:
+    get:
+      tags: [Vetting & Trust]
+      summary: Lookup DOT/MC/authority/insurance/safety
+      parameters:
+        - in: query
+          name: dot
+          schema: { type: string }
+        - in: query
+          name: mc
+          schema: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/VettingResult' } } } }
+  /api/broker/trust/{broker_id}:
+    get:
+      tags: [Vetting & Trust]
+      summary: Broker trust score and reasons
+      parameters:
+        - in: path
+          name: broker_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BrokerTrust' } } } }
+  /api/audit/event:
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Append audit event (service role)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id, action]
+              properties:
+                subject_type: { type: string }
+                subject_id: { type: string }
+                action: { type: string }
+                payload: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/audit/{subject_type}/{subject_id}:
+    get:
+      tags: [Security, Fraud & Audits]
+      summary: List recent audit events
+      parameters:
+        - in: path
+          name: subject_type
+          required: true
+          schema: { type: string }
+        - in: path
+          name: subject_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { events: { type: array, items: { $ref: '#/components/schemas/AuditEvent' } } } } } } }
+
+  # Pricing & Forecasts
+  /api/pricing/anomalies:
+    get:
+      tags: [Pricing & Forecasts]
+      summary: Lane anomalies
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+      responses:
+        '200': { description: OK }
+  /api/pricing/suggest:
+    post:
+      tags: [Pricing & Forecasts]
+      summary: Price suggestion for lane
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [origin_zip, dest_zip, date, equipment]
+              properties:
+                origin_zip: { type: string }
+                dest_zip: { type: string }
+                date: { type: string, format: date }
+                equipment: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Marketplace
+  /api/marketplace/trucks:
+    post:
+      tags: [Marketplace]
+      summary: Post truck availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [equipment, available_from, origin_zip]
+              properties:
+                equipment: { type: string }
+                available_from: { type: string, format: date-time }
+                origin_zip: { type: string }
+                radius_miles: { type: integer, default: 50 }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/marketplace/loads/search:
+    get:
+      tags: [Marketplace]
+      summary: Search loads
+      parameters:
+        - in: query
+          name: origin_zip
+          schema: { type: string }
+        - in: query
+          name: dest_zip
+          schema: { type: string }
+        - in: query
+          name: equipment
+          schema: { type: string }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/marketplace/match:
+    post:
+      tags: [Marketplace]
+      summary: Express interest/bid on a load
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id]
+              properties:
+                load_id: { type: string }
+                bid_usd: { type: number }
+                message: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/marketplace/chat/threads:
+    get:
+      tags: [Marketplace]
+      summary: List chat threads
+      parameters:
+        - in: query
+          name: context
+          schema: { type: string, enum: [load, truck] }
+        - in: query
+          name: context_id
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/marketplace/chat/{thread_id}/message:
+    post:
+      tags: [Marketplace]
+      summary: Send message in thread
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Claims
+  /api/claims:
+    post:
+      tags: [Claims]
+      summary: Create claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id, type, occurred_at, summary]
+              properties:
+                load_id: { type: string }
+                type: { type: string, enum: [incident, accident, cargo_damage, other] }
+                occurred_at: { type: string, format: date-time }
+                summary: { type: string }
+      responses:
+        '200': { description: OK }
+    get:
+      tags: [Claims]
+      summary: List claims
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open,in_review,submitted,paid,denied] }
+      responses:
+        '200': { description: OK }
+  /api/claims/{claim_id}/document:
+    post:
+      tags: [Claims]
+      summary: Upload claim document
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                label: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/claims/{claim_id}/status:
+    post:
+      tags: [Claims]
+      summary: Update claim status
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open,in_review,submitted,paid,denied] }
+      responses:
+        '200': { description: OK }
+  /api/claims/slas:
+    get:
+      tags: [Claims]
+      summary: List claim SLA rules
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Claims]
+      summary: Upsert claim SLA rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/claims/{claim_id}/assign_adjuster:
+    post:
+      tags: [Claims]
+      summary: Assign adjuster to claim
+      parameters:
+        - in: path
+          name: claim_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adjuster_user_id]
+              properties:
+                adjuster_user_id: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Safety & Coaching
+  /api/driver/behavior:
+    get:
+      tags: [Safety & Coaching]
+      summary: Driver behavior summary
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: driver_id
+          schema: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BehaviorSummary' } } } }
+  /api/driver/scorecard/{driver_user_id}:
+    get:
+      tags: [Safety & Coaching]
+      summary: Get driver scorecard v2
+      parameters:
+        - in: path
+          name: driver_user_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: period
+          schema: { type: string, example: '30d' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ScorecardV2' } } } }
+  /api/driver/scorecards/benchmarks:
+    get:
+      tags: [Safety & Coaching]
+      summary: Cohort benchmarks
+      parameters:
+        - in: query
+          name: cohort
+          schema: { type: string }
+        - in: query
+          name: period
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/safety/coaching_tasks:
+    get:
+      tags: [Safety & Coaching]
+      summary: List coaching tasks
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open,completed,dismissed] }
+        - in: query
+          name: driver_user_id
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Safety & Coaching]
+      summary: Create coaching task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CoachingTask' }
+      responses:
+        '200': { description: OK }
+  /api/safety/coaching_tasks/{task_id}/complete:
+    post:
+      tags: [Safety & Coaching]
+      summary: Complete coaching task
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ack_notes: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/safety/coaching_tasks/from_metric:
+    post:
+      tags: [Safety & Coaching]
+      summary: Create coaching task from metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [driver_user_id, metric]
+              properties:
+                driver_user_id: { type: string }
+                metric: { type: string }
+                context: { type: object }
+                due_by: { type: string, format: date-time }
+      responses:
+        '200': { description: OK }
+
+  # Billing & Invoicing
+  /api/billing/meter:
+    post:
+      tags: [Billing & Invoicing]
+      summary: Record metered event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event, count]
+              properties:
+                event: { type: string }
+                count: { type: integer, minimum: 1 }
+                context: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/billing/usage:
+    get:
+      tags: [Billing & Invoicing]
+      summary: Usage summary
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: OK }
+  /api/billing/usage/export.csv:
+    get:
+      tags: [Billing & Invoicing]
+      summary: Export usage CSV
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+  /api/invoices/generate:
+    post:
+      tags: [Billing & Invoicing]
+      summary: Generate invoice from load
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id]
+              properties:
+                load_id: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/invoices:
+    get:
+      tags: [Billing & Invoicing]
+      summary: List invoices
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open,paid,void] }
+      responses:
+        '200': { description: OK }
+  /api/integrations/payments/webhook:
+    post:
+      tags: [Billing & Invoicing, Integrations (ELD/Accounting/Loadboard)]
+      summary: Payments webhook (PSP)
+      responses:
+        '200': { description: OK }
+
+  # Offline & Navigation
+  /api/offline/tiles/manifest:
+    get:
+      tags: [Offline & Navigation]
+      summary: Tiles manifest for region
+      parameters:
+        - in: query
+          name: region_key
+          schema: { type: string }
+          required: true
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OfflineTilesManifest' } } } }
+  /api/offline/pois:
+    get:
+      tags: [Offline & Navigation]
+      summary: Offline POIs bundle
+      parameters:
+        - in: query
+          name: region_key
+          schema: { type: string }
+          required: true
+        - in: query
+          name: since
+          schema: { type: integer }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Poi' } } } } }
+  /api/offline/pois/diff:
+    get:
+      tags: [Offline & Navigation]
+      summary: Differential POI updates
+      parameters:
+        - in: query
+          name: region_key
+          schema: { type: string }
+          required: true
+        - in: query
+          name: since_version
+          schema: { type: integer }
+          required: true
+      responses:
+        '200': { description: OK }
+  /api/offline/routing/guarded:
+    post:
+      tags: [Offline & Navigation]
+      summary: Offline guarded routing (avoid restrictions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [region_key, origin, dest]
+              properties:
+                region_key: { type: string }
+                origin: { type: object }
+                dest: { type: object }
+                truck: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/navigation/start:
+    post:
+      tags: [Offline & Navigation]
+      summary: Start online navigation session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                route_id: { type: string }
+                truck: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/navigation/waypoints:
+    post:
+      tags: [Offline & Navigation]
+      summary: Upsert waypoint plan for route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                route_id: { type: string }
+                waypoints: { type: array, items: { type: object } }
+      responses:
+        '200': { description: OK }
+    get:
+      tags: [Offline & Navigation]
+      summary: Get waypoint plan
+      parameters:
+        - in: query
+          name: route_id
+          schema: { type: string }
+          required: true
+      responses:
+        '200': { description: OK }
+
+  # Enterprise & Admin
+  /api/admin/apikeys:
+    post:
+      tags: [Enterprise & Admin]
+      summary: Create API key (returns token once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string }
+                scopes: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ApiKey' } } } }
+    get:
+      tags: [Enterprise & Admin]
+      summary: List API keys (org admin)
+      responses:
+        '200': { description: OK }
+  /api/admin/webhooks:
+    post:
+      tags: [Enterprise & Admin]
+      summary: Create outbound webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebhookConfig' }
+      responses:
+        '200': { description: OK }
+  /api/admin/sso/oidc/config:
+    post:
+      tags: [Enterprise & Admin]
+      summary: Configure OIDC SSO for org
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                issuer: { type: string }
+                client_id: { type: string }
+                client_secret: { type: string }
+                claims: { type: object }
+      responses:
+        '200': { description: OK }
+  /api/admin/sso/oidc/test_login:
+    post:
+      tags: [Enterprise & Admin]
+      summary: Test OIDC login for org
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                org_id: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Integrations (ELD)
+  /api/integrations/eld/provider-a/connect:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Connect ELD Provider A
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_id, auth_code, redirect_uri]
+              properties:
+                org_id: { type: string }
+                auth_code: { type: string }
+                redirect_uri: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/integrations/eld/provider-a/webhook:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: ELD webhook (Provider A)
+      responses:
+        '200': { description: OK }
+  /api/integrations/eld/provider-b/connect:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Connect ELD Provider B
+      responses:
+        '200': { description: OK }
+  /api/integrations/eld/provider-b/webhook:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: ELD webhook (Provider B)
+      responses:
+        '200': { description: OK }
+  /api/integrations/eld/provider-c/connect:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Connect ELD Provider C
+      responses:
+        '200': { description: OK }
+
+  # Integrations (Accounting)
+  /api/integrations/accounting/quickbooks/connect:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Connect QuickBooks
+      responses:
+        '200': { description: OK }
+  /api/integrations/accounting/xero/connect:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Connect Xero
+      responses:
+        '200': { description: OK }
+  /api/integrations/accounting/journal_entries:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Create journal entry
+      responses:
+        '200': { description: OK }
+  /api/integrations/accounting/invoices/sync:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Sync invoices with accounting provider
+      responses:
+        '202': { description: Accepted }
+
+  # Integrations (Loadboard)
+  /api/loadboard/connectors:
+    get:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: List loadboard connectors and status
+      responses:
+        '200': { description: OK }
+  /api/loadboard/publish:
+    post:
+      tags: [Integrations (ELD/Accounting/Loadboard)]
+      summary: Publish/update/close load to provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, load_id]
+              properties:
+                provider: { type: string, enum: [dat,truckstop,other] }
+                load_id: { type: string }
+                action: { type: string, enum: [create,update,close], default: create }
+      responses:
+        '200': { description: OK }
+
+  # Security, Fraud & Audits
+  /api/fraud/graph/score:
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Graph-based fraud risk score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id]
+              properties:
+                subject_type: { type: string, enum: [broker,carrier,driver,user] }
+                subject_id: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/fraud/graph/feedback:
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Submit feedback on fraud scoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id, label]
+              properties:
+                subject_type: { type: string }
+                subject_id: { type: string }
+                label: { type: string, enum: [false_positive,confirmed_fraud] }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/fraud/graph/recompute:
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Trigger graph recompute (admin)
+      responses:
+        '202': { description: Accepted }
+  /api/moderation/flags:
+    get:
+      tags: [Security, Fraud & Audits]
+      summary: List moderation flags (admin)
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Flag content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id, reason]
+              properties:
+                subject_type: { type: string, enum: [chat_message,listing,profile] }
+                subject_id: { type: string }
+                reason: { type: string }
+                severity: { type: string, enum: [low,medium,high] }
+      responses:
+        '200': { description: OK }
+  /api/moderation/flags/{id}/resolve:
+    post:
+      tags: [Security, Fraud & Audits]
+      summary: Resolve moderation flag
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [reviewed,actioned,dismissed] }
+                action: { type: string }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Localization & Accessibility
+  /api/i18n/messages:
+    get:
+      tags: [Localization & Accessibility]
+      summary: Fetch i18n bundle
+      parameters:
+        - in: query
+          name: locale
+          schema: { type: string }
+          required: true
+      responses:
+        '200': { description: OK }
+  /api/i18n/rtl:
+    get:
+      tags: [Localization & Accessibility]
+      summary: Check RTL locale support
+      responses:
+        '200': { description: OK }
+  /api/a11y/feedback:
+    post:
+      tags: [Localization & Accessibility]
+      summary: Submit accessibility feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [screen, wcag_issue]
+              properties:
+                screen: { type: string }
+                wcag_issue: { type: string }
+                notes: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/a11y/reports/export.csv:
+    get:
+      tags: [Localization & Accessibility]
+      summary: Export weekly a11y CSV
+      parameters:
+        - in: query
+          name: week
+          schema: { type: string, example: '2025-W45' }
+          required: true
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }
+
+  # Sustainability
+  /api/sustainability/emissions:
+    post:
+      tags: [Sustainability]
+      summary: Calculate emissions for trip/period/org
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope]
+              properties:
+                scope: { type: string, enum: [trip,period,org] }
+                load_ids: { type: array, items: { type: string } }
+                from: { type: string, format: date }
+                to: { type: string, format: date }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EmissionsReport' } } } }
+  /api/sustainability/emissions/export.csv:
+    get:
+      tags: [Sustainability]
+      summary: Export emissions CSV
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: CSV, content: { text/csv: { schema: { type: string, format: binary } } } }

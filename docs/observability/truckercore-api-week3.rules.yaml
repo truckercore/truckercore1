@@ -1,0 +1,24 @@
+groups:
+  - name: truckercore-api-week3
+    rules:
+      - alert: ApiLatencyP95High
+        expr: histogram_quantile(0.95, sum(rate(http_server_duration_ms_bucket[5m])) by (le, route)) > 300
+        for: 10m
+        labels: { severity: page, env: nonprod }
+        annotations:
+          summary: "API p95 > 300ms (route {{ $labels.route }})"
+          runbook: "https://runbooks/api-latency"
+      - alert: RateLimitSpike
+        expr: sum(rate(rate_limit_429_total[5m])) by (org) > 5
+        for: 10m
+        labels: { severity: warn, env: nonprod }
+        annotations:
+          summary: "Sustained 429s for org {{ $labels.org }}"
+          runbook: "https://runbooks/rate-limit"
+      - alert: ScopeViolationSpike
+        expr: sum(rate(scope_violation_total[5m])) by (route, required_scope) > 3
+        for: 10m
+        labels: { severity: warn, env: nonprod }
+        annotations:
+          summary: "Scope violations on {{ $labels.route }} (required {{ $labels.required_scope }})"
+          runbook: "https://runbooks/scope-violations"

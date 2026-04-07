@@ -1,0 +1,37 @@
+[
+  {
+    "name": "SSOFailureRateWarn",
+    "expr": "(sum(rate(sso_failures_total[15m])) by (org_id)) / clamp_min(sum(rate(sso_attempts_total[15m])) by (org_id), 1) > 0.05",
+    "for": "10m",
+    "labels": { "severity": "warning" },
+    "annotations": { "summary": "SSO failure rate >5% (15m)", "runbook": "link://runbooks/sso" }
+  },
+  {
+    "name": "SSOFailureRatePage",
+    "expr": "(sum(rate(sso_failures_total[15m])) by (org_id)) / clamp_min(sum(rate(sso_attempts_total[15m])) by (org_id), 1) > 0.10",
+    "for": "10m",
+    "labels": { "severity": "critical" },
+    "annotations": { "summary": "SSO failure rate >10% (15m)", "runbook": "link://runbooks/sso" }
+  },
+  {
+    "name": "CanaryDrift",
+    "expr": "sum_over_time((1 - sso_canary_success)[15d:1w]) by (org_id,idp) >= 2",
+    "for": "0m",
+    "labels": { "severity": "critical" },
+    "annotations": { "summary": "OIDC canary failed twice in a row", "runbook": "link://runbooks/sso-canary" }
+  },
+  {
+    "name": "SCIMRunFailedOrPartial",
+    "expr": "sum(increase(scim_runs_total{status=~\"failed|partial\"}[24h])) by (org_id) > 0",
+    "for": "0m",
+    "labels": { "severity": "warning" },
+    "annotations": { "summary": "SCIM run failed/partial in last 24h", "runbook": "link://runbooks/scim" }
+  },
+  {
+    "name": "SelfCheckAbuse",
+    "expr": "sum(rate(sso_selfcheck_429_total[15m])) by (org_id) > 5",
+    "for": "10m",
+    "labels": { "severity": "warning" },
+    "annotations": { "summary": "SSO self-check rate limited frequently", "runbook": "link://runbooks/sso-selfcheck" }
+  }
+]

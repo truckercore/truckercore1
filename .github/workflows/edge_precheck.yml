@@ -1,0 +1,51 @@
+name: Edge Pre-Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      functions_url:
+        description: "Functions base URL (prod)"
+        required: true
+      service_role:
+        description: "Service role key"
+        required: true
+
+jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+      - name: Healthz
+        env:
+          FUNCTIONS_URL: ${{ inputs.functions_url }}
+          SERVICE_ROLE: ${{ inputs.service_role }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/healthz")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ] && [ "$OK" != "false" ]; then
+            echo "Invalid schema for healthz (missing ok)"; exit 1; fi
+      - name: Notify alerts drain
+        env:
+          FUNCTIONS_URL: ${{ inputs.functions_url }}
+          SERVICE_ROLE: ${{ inputs.service_role }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/notify-alerts")
+          echo "$RES" | jq '.'
+          DEL=$(echo "$RES" | jq -r '.delivered')
+          if [ -z "$DEL" ]; then echo "Invalid schema for notify-alerts (missing delivered)"; exit 1; fi
+      - name: Weekly SLO report
+        env:
+          FUNCTIONS_URL: ${{ inputs.functions_url }}
+          SERVICE_ROLE: ${{ inputs.service_role }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/weekly-slo-report")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then echo "weekly-slo-report ok!=true"; exit 1; fi

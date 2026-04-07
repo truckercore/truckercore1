@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":prHourlyLimit10",
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "UTC",
+  "labels": ["dependencies", "security"],
+  "rangeStrategy": "auto",
+  "schedule": ["after 6pm on sunday"],
+  "prConcurrentLimit": 5,
+  "separateMinorPatch": true,
+  "packageRules": [
+    { "matchPackagePatterns": ["^@types/"], "groupName": "@types updates" },
+    { "matchManagers": ["github-actions"], "groupName": "github-actions" },
+    { "matchUpdateTypes": ["major"], "labels": ["breaking"], "prPriority": 0 }
+  ]
+}

@@ -1,0 +1,13 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Predictive Maintenance v2 (DTC normalize),Story,"Normalize provider DTCs→common taxonomy; severity model; parts probability.",backend;maintenance;ml,8,Maintenance v2,
+Maintenance Forecast API,Story,"GET /api/maintenance/forecast?vehicle_id → probability timeline & recommended window.",backend;maintenance;ml,5,Maintenance v2,Predictive Maintenance v2 (DTC normalize)
+App — Maintenance Forecast UI,Story,"Timeline + top recommended window; one-tap create work order.",app;maintenance;ux,5,Maintenance v2,Maintenance Forecast API
+Dock Appointment Scheduling,Story,"POST /api/dock/appointments; resolve conflicts; window optimization.",backend;yard;dispatch,8,Dock Scheduling,Yard Flow — API
+App — Dock Schedule Board,Story,"Calendar with drag-drop, conflict badges, overbooking guardrails.",app;yard;ux,8,Dock Scheduling,Dock Appointment Scheduling
+Financial Reconciliation (Loads ↔ Invoices ↔ Payments),Story,"/api/finance/recon/run; statuses: unmatched, partial, matched; rules config.",backend;finance;recon,8,Finance Recon,Invoice Generation
+Finance Recon UI,Story,"Recon dashboard; resolve suggestions; export unmatched.",app;finance;ux,5,Finance Recon,Financial Reconciliation (Loads ↔ Invoices ↔ Payments)
+KYC/KYB Onboarding,Story,"/api/kyc/start; document checks; OFAC; bank verify; decision with reasons.",backend;risk;kyc,8,Trust & Onboarding,Watchlist Screening
+App — Onboarding Tasks,Story,"Checklist with statuses; upload docs; decision/status page.",app;risk;ux,5,Trust & Onboarding,KYC/KYB Onboarding
+Offline v3 — Region Pack Manager,Story,"List, download, prune, auto-update; delta application & integrity.",app;offline;map,8,Offline v3,Offline Differential Updates
+Analytics Self-Serve (Saved charts/dashboards),Story,"/api/analytics/saved_* CRUD; RBAC; embed filters; share links.",backend;analytics;selfserve,8,Analytics Self-Serve,Warehouse & dbt
+App — Analytics Builder,Story,"Create/save charts; add to dashboard; share per org/role.",app;analytics;ux,8,Analytics Self-Serve,Analytics Self-Serve (Saved charts/dashboards)

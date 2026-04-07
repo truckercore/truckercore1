@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "TruckerCore Pilot Suite",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "region_router (US:ranker)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": {
+          "raw": "{{base_url}}/functions/v1/region_router",
+          "host": ["{{base_url}}"],
+          "path": ["functions","v1","region_router"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"processing_region\": \"US\",\n  \"target\": \"ranker\",\n  \"payload\": { \"example\": true }\n}"
+        }
+      }
+    },
+    {
+      "name": "siem_push (cron)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/functions/v1/siem_push", "host": ["{{base_url}}"], "path": ["functions","v1","siem_push"] }
+      }
+    },
+    {
+      "name": "slo_last24_get",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/functions/v1/slo_last24_get", "host": ["{{base_url}}"], "path": ["functions","v1","slo_last24_get"] }
+      }
+    },
+    {
+      "name": "autonomy_preview_generate",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/functions/v1/autonomy_preview_generate", "host": ["{{base_url}}"], "path": ["functions","v1","autonomy_preview_generate"] },
+        "body": { "mode": "raw", "raw": "{\n  \"org_id\": \"{{org_id}}\"\n}" }
+      }
+    },
+    {
+      "name": "autonomy_preview_decide (approve)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/functions/v1/autonomy_preview_decide", "host": ["{{base_url}}"], "path": ["functions","v1","autonomy_preview_decide"] },
+        "body": { "mode": "raw", "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"preview_id\": \"{{preview_id}}\",\n  \"decision\": \"approve\"\n}" }
+      }
+    },
+    {
+      "name": "analytics_kpis_export",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/functions/v1/analytics_kpis_export?org_id={{org_id}}&from={{from}}&to={{to}}",
+          "host": ["{{base_url}}"],
+          "path": ["functions","v1","analytics_kpis_export"],
+          "query": [
+            {"key": "org_id", "value": "{{org_id}}"},
+            {"key": "from", "value": "{{from}}"},
+            {"key": "to", "value": "{{to}}"}
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:54321"},
+    {"key": "org_id", "value": "00000000-0000-0000-0000-000000000000"},
+    {"key": "from", "value": "2025-01-01"},
+    {"key": "to", "value": "2025-01-31"},
+    {"key": "preview_id", "value": "00000000-0000-0000-0000-000000000001"}
+  ]
+}

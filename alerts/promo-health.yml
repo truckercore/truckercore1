@@ -1,0 +1,18 @@
+groups:
+- name: promo-health
+  rules:
+  - alert: PromoLatencyHigh
+    expr: avg_over_time(promoctl_promote_p95_ms[15m]) > 800
+    for: 10m
+    labels: { severity: warn }
+    annotations:
+      summary: "Promotion p95 > 800ms (15m)"
+      runbook: "link://runbooks/promotion"
+
+  - alert: PromoStuckCanary
+    expr: max_over_time(ai_rollout_canary_age_hours[1h]) > 24
+    for: 60m
+    labels: { severity: page }
+    annotations:
+      summary: "Canary running >24h without finish/rollback"
+      runbook: "link://runbooks/promotion-canary"

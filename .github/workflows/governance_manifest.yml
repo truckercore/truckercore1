@@ -1,0 +1,48 @@
+name: Governance Manifest Export
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Export governance manifest (catalog)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p governance
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo '{}' > governance/manifest.json
+            echo 'No SUPABASE_DB_URL; wrote empty manifest.'
+            exit 0
+          fi
+          # Tables
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select table_schema, table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by table_name) t" > governance/tables.json
+          # Policies
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select schemaname as schema, tablename as table, polname as policy, polcmd as cmd from pg_policies where schemaname='public' order by tablename, polname) t" > governance/policies.json
+          # RPCs (functions exposed in public schema)
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select n.nspname as schema, p.proname as name, pg_get_function_identity_arguments(p.oid) as args, p.prosecdef as is_definer from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' order by 1,2) t" > governance/rpcs.json
+          # Grants (table privileges)
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select grantee, table_schema, table_name, privilege_type from information_schema.role_table_grants where table_schema='public' order by table_name, grantee, privilege_type) t" > governance/grants_tables.json
+          # Grants (function execute privileges)
+          psql "$SUPABASE_DB_URL" -At -c "select json_agg(row_to_json(t)) from (select n.nspname as schema, p.proname as name, pg_get_function_identity_arguments(p.oid) as args, has_function_privilege(p.oid, 'EXECUTE') as has_execute from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' order by 1,2) t" > governance/grants_functions.json
+          # Compose simple index file
+          jq -n '{ tables: (input), policies: (input), rpcs: (input), grants_tables: (input), grants_functions: (input) }' \
+            governance/tables.json governance/policies.json governance/rpcs.json governance/grants_tables.json governance/grants_functions.json > governance/manifest.json
+
+      - name: Upload manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-manifest-${{ github.run_id }}
+          path: governance/

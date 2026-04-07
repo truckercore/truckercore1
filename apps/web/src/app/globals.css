@@ -1,0 +1,78 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: #ffffff;
+  background: #0F1216;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Button hover effects */
+a[style*="background-color: rgb(88, 166, 255)"]:hover,
+a[style*="backgroundColor: #58A6FF"]:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+a[style*="border: 2px solid rgb(88, 166, 255)"]:hover,
+a[style*="border: 2px solid #58A6FF"]:hover {
+  background-color: rgba(88, 166, 255, 0.1);
+}
+
+/* Feature card hover */
+div[style*="backgroundColor: #1A1F26"]:hover {
+  border-color: #58A6FF !important;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Footer link hover */
+footer a:hover {
+  color: #ffffff !important;
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid #58A6FF;
+  outline-offset: 2px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  h1[style*="fontSize: 56px"],
+  h1[style*="font-size: 56px"] {
+    font-size: 36px !important;
+  }
+  
+  h2[style*="fontSize: 40px"],
+  h2[style*="font-size: 40px"] {
+    font-size: 28px !important;
+  }
+  
+  p[style*="fontSize: 24px"],
+  p[style*="font-size: 24px"] {
+    font-size: 20px !important;
+  }
+}

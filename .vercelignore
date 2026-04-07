@@ -1,0 +1,49 @@
+# Ignore Flutter/Dart projects so Vercel only builds the Next.js web app
+lib/C
+android/
+ios/
+macos/
+windows/
+web/ios/
+web/android/
+
+# Flutter tests and tooling
+test/
+integration_test/
+analysis_options.yaml
+*.dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-versions
+.pub-cache/
+.melos_tool/
+
+# Flutter build outputs
+build/
+**/build/
+**/.dart_tool/
+
+# Mobile project artifacts
+**/Pods/
+**/Podfile.lock
+**/Runner.xcodeproj/
+**/Runner.xcworkspace/
+**/GeneratedPluginRegistrant.*
+
+# Dart/Flutter package manifests
+pubspec.yaml
+pubspec.lock
+
+# IDE/OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Other non-web infra to skip
+scripts/mobile/
+
+# --- FIX FOR VER CEL BUILD ---
+# Explicitly include the apps/web directory required for the build command
+!apps/web/

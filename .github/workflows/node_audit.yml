@@ -1,0 +1,42 @@
+name: Node Audit
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  node_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        if: hashFiles('package-lock.json') != ''
+        run: npm ci --ignore-scripts
+
+      - name: Audit production deps
+        if: hashFiles('package-lock.json') != ''
+        run: |
+          set -e
+          npm audit --only=prod --audit-level=high --json > audit.json || true
+          # Fail if high/critical found
+          if jq -e '.metadata.vulnerabilities.high + .metadata.vulnerabilities.critical > 0' audit.json >/dev/null; then
+            echo "High/Critical vulnerabilities found";
+            cat audit.json | jq '.metadata.vulnerabilities'
+            exit 1;
+          fi
+
+      - name: Upload audit report
+        if: hashFiles('package-lock.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-audit-${{ github.run_id }}
+          path: audit.json

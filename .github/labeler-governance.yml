@@ -1,0 +1,20 @@
+governance:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'runbooks/**'
+          - 'docs/**'
+          - '**/*.sql'
+          - '.github/**'
+          - 'scripts/ci/**'
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scripts/security/**'
+          - '**/webhook*.mjs'
+          - '**/security*.mjs'
+ops:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'jobs/**'
+          - 'scripts/release/**'
+          - 'scripts/**/deploy*'

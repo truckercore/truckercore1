@@ -1,0 +1,64 @@
+name: Edge Deploy with Gate + Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Environment"
+        required: true
+        default: "stage"
+        type: choice
+        options: [stage, prod]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.env }}
+    permissions:
+      contents: read
+      deployments: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Edge functions (canary)
+        id: deploy
+        run: |
+          # Replace with your deploy command; capture release id/version
+          ./scripts/deploy_all.mjs --env=${{ github.event.inputs.env }} | tee deploy.log
+          echo "release_id=$(awk '/release_id:/ {print $2}' deploy.log)" >> $GITHUB_OUTPUT
+          echo "version=$(awk '/version:/ {print $2}' deploy.log)" >> $GITHUB_OUTPUT
+
+      - name: Gate - smoke tests
+        id: gate
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          npm run ci:newman:edge-canary || exit $?
+
+      - name: Capture evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          cp -f deploy.log evidence/ || true
+          echo "Timestamp: $(date -u)" > evidence/context.txt
+          echo "Release: ${{ steps.deploy.outputs.release_id }}" >> evidence/context.txt
+          echo "Version: ${{ steps.deploy.outputs.version }}" >> evidence/context.txt
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-evidence-${{ github.run_id }}
+          path: evidence
+
+      - name: Rollback on gate failure
+        if: ${{ steps.gate.outcome == 'failure' }}
+        run: |
+          echo "Gate failed; initiating rollback..."
+          ./scripts/release/tag.sh --rollback "${{ steps.deploy.outputs.release_id }}" || true
+          ./scripts/deploy_all.mjs --env=${{ github.event.inputs.env }} --rollback "${{ steps.deploy.outputs.release_id }}" || true
+          echo "::error::Deploy gate failed; rollback attempted."
+          exit 1

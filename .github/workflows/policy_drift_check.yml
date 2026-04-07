@@ -1,0 +1,45 @@
+name: Policy Drift Check
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract policy artifacts
+        run: |
+          mkdir -p .artifacts
+          # Collect SQL that defines RLS/policies; adjust globs to your repo
+          grep -RInh --include="*.sql" -E "create policy|alter table .* enable row level security" || true > .artifacts/policies.sql
+          # Normalize whitespace for stable diff
+          sed -i 's/[[:space:]]\+/ /g' .artifacts/policies.sql || true
+
+      - name: Download baseline from main
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: policy_drift_publish.yml
+          workflow_conclusion: success
+          branch: main
+          name: policies-baseline
+          path: .baseline
+        continue-on-error: true
+
+      - name: Diff vs baseline
+        run: |
+          if [ -f ".baseline/policies.sql" ]; then
+            diff -u .baseline/policies.sql .artifacts/policies.sql || (echo "::error::Policy drift detected. Review RLS/policies changes."; exit 1)
+          else
+            echo "No baseline found; skipping drift fail."
+          fi
+
+      - name: Upload current as artifact (for PR review)
+        uses: actions/upload-artifact@v4
+        with:
+          name: policies-current
+          path: .artifacts/policies.sql

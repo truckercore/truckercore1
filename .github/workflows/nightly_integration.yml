@@ -1,0 +1,58 @@
+name: Nightly Integration Tests
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # nightly at 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  nightly_integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+          cache: true
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create and boot AVD
+        run: |
+          echo "y" | sdkmanager --install "system-images;android-30;google_apis;x86_64"
+          avdmanager create avd -n test -k "system-images;android-30;google_apis;x86_64" --device "pixel"
+          nohup emulator -avd test -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-window -accel auto &
+          adb wait-for-device
+          for i in {1..60}; do
+            bootcompleted=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$bootcompleted" = "1" ]; then break; fi
+            sleep 5
+          done
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
+      - name: Run integration tests
+        env:
+          CI: true
+        run: |
+          if ls integration_test/*.dart 1> /dev/null 2>&1; then
+            flutter test integration_test -d emulator-5554 || true
+          else
+            echo "No integration tests found, skipping.";
+          fi

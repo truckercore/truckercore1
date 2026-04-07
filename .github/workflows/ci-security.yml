@@ -1,0 +1,58 @@
+name: CI Security Gates
+
+on:
+  pull_request:
+    branches: [ "**" ]
+  push:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck --if-present
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Unit tests
+        run: npm test --if-present
+
+  sca-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: npm audit (fail on high+)
+        run: |
+          npx npm-audit-resolver --help >/dev/null 2>&1 || true
+          set -e
+          SEVERITY=${SEVERITY:-high}
+          npm audit --json > audit.json || true
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('audit.json','utf8'));const advis=(j.vulnerabilities)||{};const sever=['low','moderate','high','critical'];let fail=false;for(const k in advis){const v=advis[k];if(sever.indexOf(v.severity)>=sever.indexOf(process.env.SEVERITY||'high')){fail=true;}} if(fail){console.error('High or Critical vulnerabilities found');process.exit(1);} else {console.log('No high+ vulns');}"
+
+  semgrep-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Semgrep
+        run: pip install semgrep
+      - name: Run Semgrep (fail on high+)
+        run: semgrep ci --severity=ERROR --config p/ci --config p/javascript --config p/expressjs --config p/typescript

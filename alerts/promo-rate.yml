@@ -1,0 +1,10 @@
+groups:
+- name: promo-rate
+  rules:
+  - alert: PromoTooMany429
+    expr: sum(rate(promoctl_http_429_total[15m])) by (route) > 20
+    for: 10m
+    labels: { severity: warn }
+    annotations:
+      summary: "Promotion endpoint returning many 429s"
+      runbook: "link://runbooks/promotion-rate"

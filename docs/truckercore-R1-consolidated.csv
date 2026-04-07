@@ -1,0 +1,69 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Carrier Marketplace — Post Truck,Story,"POST /api/marketplace/trucks for available trucks (geo/time/equipment).",backend;marketplace,5,Carrier Marketplace,
+Carrier Marketplace — Load Search,Story,"GET /api/marketplace/loads/search with filters (lane,date,equipment,rate).",backend;marketplace;search,5,Carrier Marketplace,
+Carrier Marketplace — Match/Bid,Story,"POST /api/marketplace/match to express interest/bid on load; transitions.",backend;marketplace;offers,5,Carrier Marketplace,Carrier Marketplace — Load Search
+Carrier Marketplace — Chat Threads,Story,"Threads between poster and bidder; messages; receipts.",backend;marketplace;chat,5,Carrier Marketplace,Carrier Marketplace — Match/Bid
+App — Marketplace UI (Post/Search/Chat),Story,"Screens for posting trucks, searching loads, bidding, chatting.",app;marketplace;ux,8,Carrier Marketplace,"Carrier Marketplace — Post Truck,Carrier Marketplace — Load Search,Carrier Marketplace — Chat Threads"
+Moderation & Abuse Controls,Story,"Auto-flag spam/abuse; 429 rate-limits; admin resolve endpoint.",backend;marketplace;security,5,Marketplace Hardening,
+Notifications & Subscriptions,Story,"User prefs (email/push/sms); topics; test-send endpoint.",backend;notifications,5,Marketplace Hardening,
+Escrow Readiness (Stubs),Story,"Hold/release API stubs; audit scaffolding (no-op).",backend;finance;design,3,Marketplace Hardening,
+Claims — Create & Lifecycle,Story,"Create claim; statuses open/in_review/submitted/paid/denied; timeline/audit.",backend;claims,8,Claims Workflow,
+Claims — Docs Upload & Pack,Story,"Attach docs; PDF pack generation.",backend;claims;documents,5,Claims Workflow,Claims — Create & Lifecycle
+Claims SLAs (Org Rules),Story,"CRUD SLA rules (target_days/auto_escalate) and apply to claims.",backend;claims,5,Claims Workflow v2,Claims — Create & Lifecycle
+Adjuster Assignments,Story,"Assign adjuster; comments; audit.",backend;claims,3,Claims Workflow v2,Claims SLAs (Org Rules)
+App — Claims UI,Story,"Create claim, attach photos/docs, track status; share pack.",app;claims;ux,8,Claims Workflow,Claims — Docs Upload & Pack
+Driver Scorecards v2 — API,Story,"Score/streaks/peer rank; metrics: speeding/harsh/dwell/ontime.",backend;safety;analytics,8,Driver Scorecards v2,
+Scorecards Cohort Benchmarks,Story,"Cohort percentiles by terminal/region/equipment.",backend;safety;analytics,5,Driver Scorecards v2,Driver Scorecards v2 — API
+Coaching Task Model + API,Story,"CRUD coaching_tasks; RLS; audit.",backend;safety,5,Coaching,
+Create Coaching from Low Metric,Story,"From scorecards: create coaching task with context.",backend;safety,3,Coaching,Scorecards Cohort Benchmarks
+App — Scorecards v2 UI,Story,"Driver profile shows score, streaks, rank; badges.",app;safety;ux,5,Driver Scorecards v2,Driver Scorecards v2 — API
+Dispatch Optimizer (Multi-load),Story,"Optimize assignments across loads/drivers under HOS/equipment/windows.",backend;dispatch;optimization,13,Dispatch Optimizer,
+Assign Board — Optimizer UI,Story,"Accept/override suggestions; deltas (miles,on-time).",app;dispatch;ux,8,Dispatch Optimizer,Dispatch Optimizer (Multi-load)
+Route Optimize Constraints,Story,"POST /api/ai/route_optimize for constrained multi-stop routing.",backend;optimization;routing,8,Routing & ETA,
+ETA v2 P50/P80,Story,"Per-leg P50/P80; risk classification.",backend;ai;routing,5,Routing & ETA,
+ETA Commitments — API,Story,"Compute commitment buffers & risk vs appointment window.",backend;eta;contracts,5,Dynamic ETA Commitments,ETA v2 P50/P80
+ETA Policies (Contract/Carrier),Story,"Upsert/list buffer policy rules by scope.",backend;eta;contracts,5,ETA Commitments v2,ETA Commitments — API
+ETA Breach Alerts + Playbooks,Story,"Create alerts on risk; suggest playbooks.",backend;eta;ops,5,ETA Commitments v2,ETA Policies (Contract/Carrier)
+Maintenance Planner & Work Orders,Story,"PM schedules and work orders (open/in_progress/completed).",backend;maintenance,5,Maintenance,
+App — Maintenance Calendar,Story,"Calendar for PM/work orders; filters.",app;maintenance;ux,5,Maintenance,Maintenance Planner & Work Orders
+Yard Flow — API,Story,"Dock predictions, utilization, sequence suggestions.",backend;yard;analytics,8,Warehouse & Yard Flow,
+Yard Flow — UI,Story,"Dock timeline; assign bay; dwell alerts; sequencing.",app;yard;ux,8,Warehouse & Yard Flow,Yard Flow — API
+Dock Appointment Scheduling,Story,"Create dock appointments with conflict detection.",backend;yard;dispatch,8,Dock Scheduling,Yard Flow — API
+Owner-Op Expenses API,Story,"POST expenses; RLS by org/user; categories validated.",backend;ownerop,5,Owner-Op & Finance,
+Owner-Op Profit API,Story,"GET totals & CPM; handles zero miles.",backend;ownerop;analytics,3,Owner-Op & Finance,Owner-Op Expenses API
+Costs Estimator API,Story,"GET fuel/tolls CPM estimate with assumptions.",backend;costs;analytics,5,Owner-Op & Finance,
+App — Expenses & Profit UI,Story,"List/create expenses; summary & CPM; export CSV.",app;ownerop;ux,5,Owner-Op & Finance,Owner-Op Expenses API
+Billing — Metered Events,Story,"POST meter; capture ai_calls/route_opt/trihaul/ocr.",backend;billing;events,5,Billing & Metering,
+Billing — Usage & Invoices,Story,"GET usage; generate invoices; RBAC org_admin.",backend;billing;invoices,5,Billing & Metering,Billing — Metered Events
+Billing Usage Alerts,Story,"Threshold alerts by feature and period.",backend;billing,3,Billing & Metering,Billing — Usage & Invoices
+Billing Usage CSV,Story,"Export usage CSV with headers.",backend;billing;exports,3,Billing & Metering,Billing Usage Alerts
+Market Rates Anomalies,Story,"Detect lanes deviating from rolling mean; API.",backend;pricing;analytics,5,Market Intelligence v2,
+Price Suggest API,Story,"POST suggest: {low,mid,high,confidence}.",backend;pricing;api,5,Market Pricing ML v1,Market Rates Anomalies
+Capacity Forecast v2,Story,"Blend lanes + weather factors; confidence scoring.",backend;forecast;pricing,8,Capacity Forecasting v2,
+App — Capacity Forecast UI,Story,"Trend with overlays & tightening bands.",app;forecast;ux,5,Capacity Forecasting v2,Capacity Forecast v2
+Broker Trust Score API,Story,"Score 0–100; reasons (credit,DTP,disputes,age,anomalies).",backend;verification;risk,5,Trust & Fraud,
+Audits API,Story,"Append/list audit events; role-scoped reads.",backend;security;audits,5,Trust & Fraud,
+Fraud Graph Analytics v2,Story,"Graph score; feedback loop; recompute.",backend;fraud;analytics,8,Trust & Fraud,"Broker Trust Score API,Audits API"
+Carrier Verification API,Story,"DOT/MC/authority; insurance expiry; safety rating; fraud heuristics.",backend;verification,5,Verification & Insurance,
+COI OCR,Story,"Upload COI, OCR key fields; confidence.",backend;verification;ocr,8,Verification & Insurance,Carrier Verification API
+ELD Provider Integrations (A/B),Story,"OAuth/API keys; pull HOS; webhooks; violations.",backend;integrations;hos,13,ELD & HOS,
+App — HOS UI & Violations,Story,"HOS strips 7–30d; violations summary; live status.",app;hos;ux,5,ELD & HOS,ELD Provider Integrations (A/B)
+Offline POIs/Tiles,Story,"Offline regions; POIs; cache.",backend;offline;map,5,Offline & Nav,
+Guarded Offline Routing,Story,"Avoid restricted segments; warn if infeasible.",app;offline;routing,8,Offline & Nav,Offline POIs/Tiles
+POI Differential Updates,Story,"Incremental updates by version; integrity checks.",backend;offline,5,Offline & Nav,Offline POIs/Tiles
+Offline Conflict Resolution,Story,"Resolve outbox conflicts on reconnect; audits.",app;offline;ux,5,Offline & Nav,Guarded Offline Routing
+Multi-Org Hierarchy,Story,"Parent/child orgs; policy inheritance; scoped analytics.",backend;tenancy;security,8,Multi-Org/Branch,
+Permissions Map & Secrets Review,Task,"Inventory scopes; enforce RBAC; rotate secrets.",security;review,5,Security Hardening,Multi-Org Hierarchy
+ESG Carbon API,Story,"Fuel->CO2e, idle, lane CO2e; CSV export.",backend;analytics;esg,5,ESG & Analytics,
+ETL to Warehouse,Story,"Nightly exports; idempotent; row counts.",data;etl;analytics,8,Data Platform,
+dbt KPI Models,Story,"On-time, CPM, deadhead, violations/driver-day; tests.",data;dbt;analytics,5,Data Platform,ETL to Warehouse
+API Keys & Webhooks,Story,"Org admin CRUD keys; outbound webhooks with retry & signatures.",backend;enterprise;integrations,8,Enterprise & Admin,
+SSO OIDC,Story,"Per-org OIDC; role mapping; JIT; audit.",backend;security;sso,8,Enterprise & Admin,
+Contracts & SLAs (Shipper),Story,"Contracts with lanes/rates/SLAs; assign loads.",backend;shipper;contracts,8,Shipper Portal v2,
+App — Contract SLA Dashboard,Story,"Filter by contract; SLA performance; export.",app;shipper;ux,5,Shipper Portal v2,Contracts & SLAs (Shipper)
+KYC/KYB Onboarding,Story,"Start/track compliance verification.",backend;risk;kyc,8,Trust & Onboarding,Watchlist Screening
+Predictive Maintenance v2,Story,"Normalize DTCs; severity model; parts probability.",backend;maintenance;ml,8,Maintenance v2,
+Maintenance Forecast API,Story,"Forecast failure probability & recommend window.",backend;maintenance;ml,5,Maintenance v2,Predictive Maintenance v2
+Analytics Self-Serve (Saved Charts),Story,"CRUD saved charts; RBAC; share links.",backend;analytics;selfserve,8,Analytics Self-Serve,ETL to Warehouse
+Partner APIs (Pricing/Capacity),Story,"Token-scoped partner endpoints.",backend;partners;api,8,Partner APIs,API Keys & Webhooks
+BI Exports (Parquet),Story,"Parquet exports to storage; signed URLs.",backend;analytics;exports,8,BI Exports,Warehouse & dbt

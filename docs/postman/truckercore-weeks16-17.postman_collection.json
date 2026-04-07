@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 16–17",
+    "_postman_id": "6b1a1b20-77d4-4c69-bf81-2d3f2f0ac901",
+    "description": "Accounting integrations, load board syndication, dispatch auto-replan v2, predictive maintenance v2, vision events, e-sign, emissions, data governance, audit queries, notification routing, navigation waypoints, shipper v3.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Accounting",
+      "item": [
+        {
+          "name": "Connect QuickBooks",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/integrations/accounting/quickbooks/connect", "host": ["{{baseUrl}}"], "path": ["api","integrations","accounting","quickbooks","connect"] },
+            "body": { "mode": "raw", "raw": "{ \"org_id\":\"{{org_id}}\",\"auth_code\":\"AUTH\",\"redirect_uri\":\"app://callback/qb\" }" }
+          }
+        },
+        {
+          "name": "Create Journal Entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/integrations/accounting/journal_entries", "host": ["{{baseUrl}}"], "path": ["api","integrations","accounting","journal_entries"] },
+            "body": { "mode": "raw", "raw": "{ \"id\":\"je-001\",\"date\":\"2025-11-15\",\"lines\":[{\"account\":\"Revenue\",\"credit\":1000},{\"account\":\"AR\",\"debit\":1000}] }" }
+          }
+        },
+        {
+          "name": "Sync Invoices",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/integrations/accounting/invoices/sync", "host": ["{{baseUrl}}"], "path": ["api","integrations","accounting","invoices","sync"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Load Board",
+      "item": [
+        {
+          "name": "List Connectors",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/loadboard/connectors", "host": ["{{baseUrl}}"], "path": ["api","loadboard","connectors"] } }
+        },
+        {
+          "name": "Publish Load",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/loadboard/publish", "host": ["{{baseUrl}}"], "path": ["api","loadboard","publish"] },
+            "body": { "mode": "raw", "raw": "{ \"provider\":\"dat\",\"load_id\":\"{{load_id}}\",\"action\":\"create\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dispatch v2",
+      "item": [
+        {
+          "name": "Auto-Replan",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/dispatch/auto_replan", "host": ["{{baseUrl}}"], "path": ["api","dispatch","auto_replan"] },
+            "body": { "mode": "raw", "raw": "{ \"plan_id\":\"plan_01H...\", \"constraints\": {\"max_hours\": 11}, \"disruptions\": [{\"type\":\"breakdown\",\"vehicle_id\":\"veh01\"}] }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Maintenance v2",
+      "item": [
+        {
+          "name": "Predictive Candidates",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/maintenance/predictive?horizon_days=30&limit=25", "host": ["{{baseUrl}}"], "path": ["api","maintenance","predictive"], "query": [ { "key": "horizon_days", "value": "30" }, { "key": "limit", "value": "25" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "Vision",
+      "item": [
+        {
+          "name": "Ingest Vision Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/vision/events", "host": ["{{baseUrl}}"], "path": ["api","vision","events"] },
+            "body": { "mode": "raw", "raw": "{ \"id\":\"ve-1\",\"driver_user_id\":\"{{driver_user_id}}\",\"type\":\"distracted\",\"occurred_at\":\"2025-11-14T12:00:00Z\",\"severity\":\"medium\",\"media_url\": null }" }
+          }
+        },
+        {
+          "name": "List Vision Events",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/vision/events?driver_user_id={{driver_user_id}}&since=2025-11-01T00:00:00Z", "host": ["{{baseUrl}}"], "path": ["api","vision","events"], "query": [ { "key": "driver_user_id", "value": "{{driver_user_id}}" }, { "key": "since", "value": "2025-11-01T00:00:00Z" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "E-sign",
+      "item": [
+        {
+          "name": "Send Envelope",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/docs/esign/send", "host": ["{{baseUrl}}"], "path": ["api","docs","esign","send"] },
+            "body": { "mode": "raw", "raw": "{ \"doc_type\":\"rate_con\",\"recipients\":[\"ops@example.com\"],\"template_id\":null,\"file_url\":\"https://files.example/ratecon.pdf\" }" }
+          }
+        },
+        {
+          "name": "Envelope Status",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/docs/esign/{{envelope_id}}/status", "host": ["{{baseUrl}}"], "path": ["api","docs","esign","{{envelope_id}}","status"] } }
+        }
+      ]
+    },
+    {
+      "name": "Sustainability",
+      "item": [
+        {
+          "name": "Calculate Emissions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/sustainability/emissions", "host": ["{{baseUrl}}"], "path": ["api","sustainability","emissions"] },
+            "body": { "mode": "raw", "raw": "{ \"scope\":\"period\",\"from\":\"2025-11-01\",\"to\":\"2025-11-07\" }" }
+          }
+        },
+        {
+          "name": "Export Emissions CSV",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/sustainability/emissions/export.csv?from=2025-11-01&to=2025-11-07", "host": ["{{baseUrl}}"], "path": ["api","sustainability","emissions","export.csv"], "query": [ { "key": "from", "value": "2025-11-01" }, { "key": "to", "value": "2025-11-07" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "Data Governance",
+      "item": [
+        {
+          "name": "Upsert Retention Policy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/data/retention_policies", "host": ["{{baseUrl}}"], "path": ["api","data","retention_policies"] },
+            "body": { "mode": "raw", "raw": "{ \"dataset\":\"vision\",\"days_to_keep\":365,\"legal_hold\":false,\"active\":true }" }
+          }
+        },
+        {
+          "name": "Create Deletion Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/data/deletion_requests", "host": ["{{baseUrl}}"], "path": ["api","data","deletion_requests"] },
+            "body": { "mode": "raw", "raw": "{ \"subject_type\":\"user\",\"subject_id\":\"usr_001\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Audit",
+      "item": [
+        {
+          "name": "Submit Audit Query",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/audit/queries", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","queries"] },
+            "body": { "mode": "raw", "raw": "{ \"query\": \"SELECT * FROM events WHERE severity='high' AND ts > now() - interval '7 days'\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Routing",
+      "item": [
+        {
+          "name": "Upsert Rule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/routes", "host": ["{{baseUrl}}"], "path": ["api","notifications","routes"] },
+            "body": { "mode": "raw", "raw": "{ \"event\":\"bid.received\",\"conditions\":[{\"role\":\"broker\"}],\"actions\":[{\"channel\":\"email\"}],\"active\":true }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Navigation Waypoints",
+      "item": [
+        {
+          "name": "Upsert Waypoint Plan",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/navigation/waypoints", "host": ["{{baseUrl}}"], "path": ["api","navigation","waypoints"] },
+            "body": { "mode": "raw", "raw": "{ \"route_id\":\"rte_01H...\",\"waypoints\":[{\"lat\":39.1,\"lng\":-94.5,\"name\":\"Fuel\",\"type\":\"fuel\"}] }" }
+          }
+        },
+        {
+          "name": "Get Waypoint Plan",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }], "url": { "raw": "{{baseUrl}}/api/navigation/waypoints?route_id=rte_01H...", "host": ["{{baseUrl}}"], "path": ["api","navigation","waypoints"], "query": [ { "key": "route_id", "value": "rte_01H..." } ] } }
+        }
+      ]
+    },
+    {
+      "name": "Shipper v3",
+      "item": [
+        {
+          "name": "Build Shortlist",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/shipper/shortlist", "host": ["{{baseUrl}}"], "path": ["api","shipper","shortlist"] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"{{load_id}}\",\"top_n\":5 }" }
+          }
+        },
+        {
+          "name": "Send Counteroffer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }, { "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/api/shipper/counteroffer", "host": ["{{baseUrl}}"], "path": ["api","shipper","counteroffer"] },
+            "body": { "mode": "raw", "raw": "{ \"load_id\":\"{{load_id}}\",\"carrier_id\":\"car_123\",\"amount_usd\":1750,\"message\":\"Can you pick by 2pm?\" }" }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "load_id", "value": "ld_123" },
+    { "key": "driver_user_id", "value": "5f5c78fe-6a2c-4a7b-97a3-63b5bfbaf3b6" },
+    { "key": "envelope_id", "value": "env_001" }
+  ]
+}

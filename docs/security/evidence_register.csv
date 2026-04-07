@@ -1,0 +1,9 @@
+Control,Evidence,Owner,System,Frequency,Last Collected,Location/Link
+Access Control,Quarterly access review report,Security,Supabase,Quarterly,2025-09-01,link://access-review
+BCDR,Restore drill results and screenshots,DevOps,DB,Annual,2025-06-15,link://restore-drill
+Vulnerability Mgmt,Monthly scan report + tickets,Security,APM,Monthly,2025-09-05,link://scans
+Logging/Monitoring,Alert rules and dashboards,DevOps,Observability,Quarterly,2025-08-20,link://alerts
+Incident Response,RCA documents and timelines,Security,All,Per Incident,2025-07-10,link://rca
+Data Classification,Retention configs and audits,Security,DB,Annual,2025-06-01,link://retention
+Secure Development,SCA reports and SBOMs,Engineering,CI/CD,Monthly,2025-09-10,link://sbom
+Vendor Risk,Vendor inventory and DPAs,Security,Procurement,Annual,2025-07-30,link://vendors

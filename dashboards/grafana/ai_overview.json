@@ -1,0 +1,10 @@
+{
+  "title": "AI Overview",
+  "panels": [
+    { "type": "timeseries", "title": "Prediction p95 (ms)", "targets": [{ "rawSql": "select created_at as time, latency_ms from ai_inference_events where model_key='eta' order by 1", "format": "time_series" }]},
+    { "type": "timeseries", "title": "ETA MAE (min)", "targets": [{ "rawSql": "select window_end as time, (metrics->>'mae_min')::numeric from ai_accuracy_rollups where model_key='eta' order by 1", "format": "time_series" }]},
+    { "type": "timeseries", "title": "PSI", "targets": [{ "rawSql": "select created_at as time, (stats->>'psi')::numeric from ai_drift_snapshots where model_key='eta' order by 1", "format": "time_series" }]},
+    { "type": "table", "title": "Bias by Group (MAE)", "targets": [{ "rawSql": "select window_end, metrics->'groups' as groups from ai_bias_metrics where model_key='eta' order by window_end desc limit 10", "format": "table" }]}
+  ],
+  "schemaVersion": 36
+}

@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 18–19",
+    "_postman_id": "9a4d8f8a-69e9-4f7c-9c9d-22e6a6bd213e",
+    "description": "Syndication export/ingest, ESG carbon, fleet scorecards, eSigning, data retention & DSR, dispatch optimizer, assistant actions, yard flow, multi-org hierarchy.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Syndication",
+      "item": [
+        {
+          "name": "Export Loads",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/syndication/loads/export", "host": ["{{baseUrl}}"], "path": ["api","syndication","loads","export"] },
+            "body": { "mode": "raw", "raw": "{ \"partner\":\"partnerX\",\"format\":\"json\",\"since\":\"2025-12-01T00:00:00Z\" }" }
+          }
+        },
+        {
+          "name": "Ingest Loads (Partner→Us)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/syndication/loads/ingest", "host": ["{{baseUrl}}"], "path": ["api","syndication","loads","ingest"] },
+            "body": { "mode": "raw", "raw": "{ \"partner\":\"partnerX\",\"payload\": {\"loads\": [{\"id\":\"P-001\",\"origin\":\"ATL\"}] } }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ESG/Carbon",
+      "item": [
+        {
+          "name": "Carbon Summary",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/esg/carbon?from=2025-12-01&to=2025-12-07", "host": ["{{baseUrl}}"], "path": ["api","esg","carbon"], "query": [ { "key": "from", "value": "2025-12-01" }, { "key": "to", "value": "2025-12-07" } ] }
+          }
+        },
+        {
+          "name": "ESG Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/esg/export.csv?from=2025-12-01&to=2025-12-07", "host": ["{{baseUrl}}"], "path": ["api","esg","export.csv"], "query": [ { "key": "from", "value": "2025-12-01" }, { "key": "to", "value": "2025-12-07" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fleet Scorecards",
+      "item": [
+        {
+          "name": "Fleet Scorecards",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/fleet/scorecards?period=30d&division=southeast", "host": ["{{baseUrl}}"], "path": ["api","fleet","scorecards"], "query": [ { "key": "period", "value": "30d" }, { "key": "division", "value": "southeast" } ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "eSigning",
+      "item": [
+        {
+          "name": "Create Envelope",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/docs/esign/envelope", "host": ["{{baseUrl}}"], "path": ["api","docs","esign","envelope"] },
+            "body": { "mode": "raw", "raw": "{ \"document_url\":\"https://files/doc.pdf\",\"recipients\":[{\"email\":\"user@example.com\",\"role\":\"signer\"}] }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Privacy & DSR",
+      "item": [
+        {
+          "name": "Upsert Retention Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/privacy/retention_policies", "host": ["{{baseUrl}}"], "path": ["api","privacy","retention_policies"] },
+            "body": { "mode": "raw", "raw": "{ \"scope\":\"logs\",\"region\":\"US\",\"days\":30,\"active\":true }" }
+          }
+        },
+        {
+          "name": "Request DSR Export",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/privacy/dsr/export", "host": ["{{baseUrl}}"], "path": ["api","privacy","dsr","export"] },
+            "body": { "mode": "raw", "raw": "{ \"kind\":\"user\",\"id\":\"{{user_id}}\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dispatch Optimizer",
+      "item": [
+        {
+          "name": "Optimize Assignments",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/dispatch/optimize", "host": ["{{baseUrl}}"], "path": ["api","dispatch","optimize"] },
+            "body": { "mode": "raw", "raw": "{ \"loads\": [{\"id\":\"ld_1\",\"pickup\":\"2025-12-02T10:00:00Z\"}], \"drivers\": [{\"id\":\"drv_1\",\"hos_minutes\":360}], \"constraints\": {\"equipment\":\"van\"} }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assistant Actions",
+      "item": [
+        {
+          "name": "Execute Action",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/assistant/actions", "host": ["{{baseUrl}}"], "path": ["api","assistant","actions"] },
+            "body": { "mode": "raw", "raw": "{ \"name\":\"ack_alert\",\"params\":{\"alert_id\":\"al_123\"} }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Yard Flow",
+      "item": [
+        {
+          "name": "Predict Dock Utilization",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/yard/predict", "host": ["{{baseUrl}}"], "path": ["api","yard","predict"] },
+            "body": { "mode": "raw", "raw": "{ \"site_id\":\"DC-7\",\"date\":\"2025-12-03\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Org Hierarchy",
+      "item": [
+        {
+          "name": "Get Hierarchy",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ], "url": { "raw": "{{baseUrl}}/api/admin/orgs/hierarchy", "host": ["{{baseUrl}}"], "path": ["api","admin","orgs","hierarchy"] } }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "user_id", "value": "usr_001" }
+  ]
+}

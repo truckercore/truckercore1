@@ -1,0 +1,66 @@
+name: Rollout Feature Flags
+
+on:
+  workflow_dispatch:
+    inputs:
+      flags:
+        description: "Space-separated KEY=bool pairs (optional). Leave empty to apply default prod rollout set."
+        required: false
+        default: ""
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_FUNCTIONS_URL || secrets.SUPABASE_URL }}" ]; then echo "Missing SUPABASE_URL secret"; exit 1; fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then echo "Missing SUPABASE_SERVICE_ROLE_KEY secret"; exit 1; fi
+
+      - name: Install deps (if lockfile exists)
+        run: |
+          if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm i --ignore-scripts; fi
+
+      - name: Flip feature flags
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL || secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          if [ -n "${{ github.event.inputs.flags }}" ]; then
+            echo "Using custom flags: ${{ github.event.inputs.flags }}"
+            node scripts/release/toggle_flags.mjs ${{ github.event.inputs.flags }}
+          else
+            echo "Using default prod rollout flag set"
+            node scripts/release/toggle_flags.mjs \
+              PHASE2_MOCK=false \
+              PHASE3_MOCK=false \
+              FEATURE_MARKET_RATES=true \
+              FEATURE_TRIHAUL=true \
+              FEATURE_BROKER_CREDIT=true \
+              FEATURE_VETTING=true \
+              FEATURE_SHIPPER=true \
+              FEATURE_API_KEYS=true
+          fi
+
+      - name: Post-flip quick check (healthz + notifier)
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL || secrets.SUPABASE_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq curl
+          RES=$(curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/healthz")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ] && [ "$OK" != "false" ]; then echo "Invalid healthz schema"; exit 1; fi
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/notify-alerts")
+          echo "$RES" | jq '.'
+          DEL=$(echo "$RES" | jq -r '.delivered')
+          if [ -z "$DEL" ]; then echo "Invalid notifier schema (missing delivered)"; exit 1; fi

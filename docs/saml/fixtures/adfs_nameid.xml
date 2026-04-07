@@ -1,0 +1,3 @@
+<saml:Subject xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
+  <saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">bob@tenant.com</saml:NameID>
+</saml:Subject>

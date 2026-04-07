@@ -1,0 +1,47 @@
+{
+  "title": "Security & Reliability KPIs",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Secrets Overdue",
+      "targets": [{ "expr": "count(secrets_overdue{status='overdue'})" }]
+    },
+    {
+      "type": "stat",
+      "title": "Webhook Duplicates Prevented (7d)",
+      "targets": [{ "expr": "sum(increase(idem_duplicates_prevented_total[7d]))" }]
+    },
+    {
+      "type": "graph",
+      "title": "Stripe Webhook p95 & Error Rate",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_duration_seconds_bucket{route='stripe_webhook'}[5m])) by (le))", "legendFormat": "p95" },
+        { "expr": "sum(rate(http_requests_total{route='stripe_webhook',status=~'5..'}[5m])) / sum(rate(http_requests_total{route='stripe_webhook'}[5m]))", "legendFormat": "error_rate" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "invoice_checkout p95 & Errors",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(http_duration_seconds_bucket{route='invoice_checkout'}[5m])) by (le))" },
+        { "expr": "sum(rate(http_requests_total{route='invoice_checkout',status=~'5..'}[5m]))" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "RLS Denials (24h)",
+      "targets": [{ "expr": "sum(increase(rls_denied_total[24h]))" }]
+    },
+    {
+      "type": "graph",
+      "title": "Idempotency Duplicates Prevented",
+      "targets": [{ "expr": "sum(rate(idem_duplicates_prevented_total[5m]))" }]
+    },
+    {
+      "type": "table",
+      "title": "Executive Snapshot (weekly)",
+      "targets": [{ "expr": "exec_snapshot_score{range='7d'}" }]
+    }
+  ],
+  "time": { "from": "now-7d", "to": "now" }
+}

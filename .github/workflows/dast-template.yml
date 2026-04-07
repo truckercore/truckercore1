@@ -1,0 +1,26 @@
+name: DAST Template (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseUrl:
+        description: 'Staging base URL (e.g., https://staging.example.com)'
+        required: true
+      authToken:
+        description: 'Auth token or credentials (store as secret if used)'
+        required: false
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo scope
+        run: |
+          echo "DAST baseline will target: ${{ github.event.inputs.baseUrl }}"
+          echo "Provide credentials and expand this workflow before enabling for releases."
+      # Placeholder for OWASP ZAP Baseline or other DAST tool invocation
+      # - uses: zaproxy/action-baseline@v0.11.0
+      #   with:
+      #     target: ${{ github.event.inputs.baseUrl }}
+      #     rules_file_name: .zap/rules.tsv
+      #     cmd_options: '-a'

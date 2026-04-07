@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 10–11",
+    "_postman_id": "f4a2d0a2-4c22-4d85-8544-b3a0ffdf5b99",
+    "description": "Collection for AI Assistant, SLA risk & playbooks, Warehouse ETL/dbt (sample), Invoicing v1, Payments webhook, ELD Provider C, ID mapping tool, Offline v2 (diffs & conflicts).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AI Assistant",
+      "item": [
+        {
+          "name": "Role-aware Assistant",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ai_assistant", "host": [ "{{baseUrl}}" ], "path": [ "api", "ai_assistant" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"role\": \"fleet_manager\", \"prompt\": \"Which loads are most at risk today and why?\", \"driver_user_id\": null, \"load_id\": null }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Proactive Ops",
+      "item": [
+        {
+          "name": "SLA Risk Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ops/sla_risk", "host": [ "{{baseUrl}}" ], "path": [ "api", "ops", "sla_risk" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Playbook Suggestions (High Risk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ops/playbooks/suggest", "host": [ "{{baseUrl}}" ], "path": [ "api", "ops", "playbooks", "suggest" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"context\": { \"load_id\": \"{{load_id}}\", \"risk\": \"high\" } }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Warehouse & dbt (stubs)",
+      "item": [
+        {
+          "name": "Trigger ETL Export (Nightly manual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/etl/run", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "etl", "run" ] }
+          }
+        },
+        {
+          "name": "dbt Run (semantic models)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/dbt/run", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "dbt", "run" ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices & Payments",
+      "item": [
+        {
+          "name": "Generate Invoice from Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/invoices/generate", "host": [ "{{baseUrl}}" ], "path": [ "api", "invoices", "generate" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"load_id\": \"{{load_id}}\" }"
+            }
+          }
+        },
+        {
+          "name": "List Invoices (Open)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices?status=open",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "invoices" ],
+              "query": [ { "key": "status", "value": "open" } ]
+            }
+          }
+        },
+        {
+          "name": "Payments Webhook (PSP simulate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "X-Signature", "value": "sha256=BASE64_SIG", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/integrations/payments/webhook", "host": [ "{{baseUrl}}" ], "path": [ "api", "integrations", "payments", "webhook" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"id\": \"evt_01H...\", \"type\": \"payment.succeeded\", \"data\": { \"invoice_id\": \"inv_123\", \"amount\": 1890.00, \"currency\": \"USD\" }, \"created\": \"2025-10-15T17:00:00Z\", \"signature\": \"sha256=BASE64_SIG\" }"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ELD Provider C + ID Mapping",
+      "item": [
+        {
+          "name": "Connect Provider C",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/integrations/eld/provider-c/connect", "host": [ "{{baseUrl}}" ], "path": [ "api", "integrations", "eld", "provider-c", "connect" ] },
+            "body": { "mode": "raw", "raw": "{ \"org_id\": \"{{org_id}}\", \"api_key\": \"PROVIDER_C_KEY\" }" }
+          }
+        },
+        {
+          "name": "Admin ID Mapping (CSV import)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/id_mapping/import", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "id_mapping", "import" ] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/mapping.csv" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offline v2",
+      "item": [
+        {
+          "name": "POI Differential Update",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offline/pois/diff?region_key=midwest&since_version=6",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "offline", "pois", "diff" ],
+              "query": [
+                { "key": "region_key", "value": "midwest" },
+                { "key": "since_version", "value": "6" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Outbox Conflict Resolve (Simulate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/offline/conflicts/resolve", "host": [ "{{baseUrl}}" ], "path": [ "api", "offline", "conflicts", "resolve" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"action_id\": \"act_01H...\", \"resolution\": \"overwrite\", \"notes\": \"Supervisor approved.\" }"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://stage.yourdomain.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "load_id", "value": "ld_123" }
+  ]
+}

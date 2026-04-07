@@ -1,0 +1,40 @@
+name: Pilot Cron
+on:
+  schedule:
+    - cron: "*/15 * * * *" # every 15 min – SLO checks + notify
+    - cron: "0 7 * * 1"    # weekly 07:00 UTC – email SLO report
+  workflow_dispatch: {}
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Hit SLO checks + notifier
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          curl -fsSL -X POST "$FUNCTIONS_URL/notify-alerts" -H "Authorization: Bearer $SERVICE_ROLE"
+          psql "$SUPABASE_DB_URL" -c "select public.check_slo_alerts();"
+          psql "$SUPABASE_DB_URL" -c "select public.escalate_stale_alerts();"
+          # Canary burn-rate check (defensive; no-op if sources missing)
+          psql "$SUPABASE_DB_URL" -c "select public.check_slo_burn_rates();"
+          # Promo ROI capped refresh with timeout
+          psql "$SUPABASE_DB_URL" -c "select public.refresh_promo_roi(500, 20000);"
+      - name: Weekly SLO CSV (only Mondays)
+        if: ${{ startsWith(github.event.schedule, '0 7 * * 1') }}
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -fsSL -X POST "$FUNCTIONS_URL/weekly-slo-report" -H "Authorization: Bearer $SERVICE_ROLE"
+      - name: Lightweight load probe
+        env:
+          BASE_URL: "https://your.app" # or preview env
+        run: node scripts/loadtest-nearby-loads.js || true  # don’t fail the whole job during pilot

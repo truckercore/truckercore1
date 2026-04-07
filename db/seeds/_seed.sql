@@ -1,0 +1,2 @@
+-- Seed data for <module> (optional; idempotent)
+-- insert into public.<module>_entities (id) values (gen_random_uuid()) on conflict do nothing;

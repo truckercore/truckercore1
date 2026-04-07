@@ -1,0 +1,53 @@
+name: Edge Deploy Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_FUNCTIONS_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "Missing SUPABASE_FUNCTIONS_URL or SUPABASE_SERVICE_ROLE_KEY; failing gate."; exit 1; fi
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+      - name: Healthz
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/healthz")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ] && [ "$OK" != "false" ]; then
+            echo "Invalid schema for healthz (missing ok)"; exit 1; fi
+      - name: Notify alerts
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/notify-alerts")
+          echo "$RES" | jq '.'
+          DEL=$(echo "$RES" | jq -r '.delivered')
+          if [ -z "$DEL" ]; then echo "Invalid schema for notify-alerts (missing delivered)"; exit 1; fi
+      - name: Weekly SLO report
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/weekly-slo-report")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then echo "weekly-slo-report ok!=true"; exit 1; fi
+
+      - name: Gate passed – ready to promote
+        run: echo "Edge smoke tests passed. Promotion allowed."

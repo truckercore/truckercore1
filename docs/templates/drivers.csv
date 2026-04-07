@@ -1,0 +1,4 @@
+email,role,driver_id,first_name,last_name,phone
+driver1@myfleet.com,driver,DRV-001,Alex,Ramos,+12125550001
+driver2@myfleet.com,driver,DRV-002,Bailey,Nguyen,+12125550002
+driver3@myfleet.com,driver,DRV-003,Chris,Patel,+12125550003

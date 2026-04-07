@@ -1,0 +1,197 @@
+name: Desktop Release Artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 0.2.0)'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      FLUTTER_VERSION: stable
+      APP_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+
+      - name: Enable desktop targets
+        run: flutter config --enable-macos-desktop --enable-windows-desktop --enable-linux-desktop
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: flutter build linux --release
+
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        run: flutter build windows --release
+
+      - name: Build (macOS)
+        if: matrix.os == 'macos-latest'
+        run: flutter build macos --release
+
+      - name: Smoke check (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          SMOKE_TEST: '1'
+        run: |
+          set -e
+          BINARY=$(ls build/linux/*/release/bundle/* | head -n1)
+          echo "Launching $BINARY"
+          timeout 10s "$BINARY" || true
+
+      - name: Smoke check (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          SMOKE_TEST: '1'
+        run: |
+          $exe = "build\windows\runner\Release\truckercore1.exe"
+          if (-Not (Test-Path $exe)) { $exe = Get-ChildItem -Path build\windows\runner\Release -Filter *.exe | Select-Object -First 1 | %{$_.FullName} }
+          Write-Host "Launching $exe"
+          Start-Process -FilePath $exe -NoNewWindow
+          Start-Sleep -Seconds 5
+
+      - name: Smoke check (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          SMOKE_TEST: '1'
+        run: |
+          set -e
+          APP="build/macos/Build/Products/Release/TruckerCore.app"
+          echo "Launching $APP"
+          open "$APP"
+          # give it a moment to start and exit
+          sleep 5
+
+      - name: macOS sign + notarize + staple
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'macos-latest' && env.MACOS_CERT_P12 && env.MACOS_CERT_PASSWORD && env.MACOS_TEAM_ID && env.MACOS_BUNDLE_ID && env.NOTARYTOOL_KEY_ID && env.NOTARYTOOL_ISSUER_ID && env.NOTARYTOOL_KEY
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
+          MACOS_BUNDLE_ID: ${{ secrets.MACOS_BUNDLE_ID }}
+          NOTARYTOOL_KEY_ID: ${{ secrets.NOTARYTOOL_KEY_ID }}
+          NOTARYTOOL_ISSUER_ID: ${{ secrets.NOTARYTOOL_ISSUER_ID }}
+          NOTARYTOOL_KEY: ${{ secrets.NOTARYTOOL_KEY }}
+        run: |
+          chmod +x scripts/sign/macos_sign.sh
+          scripts/sign/macos_sign.sh build/macos/Build/Products/Release/TruckerCore.app
+
+      - name: Windows sign (signtool)
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest' && env.WIN_CERT_PFX && env.WIN_CERT_PASSWORD && env.TIMESTAMP_URL
+        shell: pwsh
+        env:
+          WIN_CERT_PFX: ${{ secrets.WIN_CERT_PFX }}
+          WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+          TIMESTAMP_URL: ${{ secrets.TIMESTAMP_URL }}
+        run: |
+          pwsh -File scripts/sign/windows_sign.ps1 -ExePath "build\windows\runner\Release\truckercore1.exe"
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME=TruckerCore
+          VERSION="${APP_VERSION#v}"
+          ARCHIVE_DIR="release"
+          mkdir -p "$ARCHIVE_DIR"
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              # Zip Linux bundle
+              SRC="build/linux/*/release/bundle"
+              DEST="$ARCHIVE_DIR/${APP_NAME}-${VERSION}-linux-x86_64.zip"
+              zip -r "$DEST" $SRC
+              ;;
+            windows-latest)
+              SRC="build/windows/runner/Release"
+              DEST="$ARCHIVE_DIR/${APP_NAME}-${VERSION}-windows-x86_64.zip"
+              7z a -tzip "$DEST" "$SRC/*"
+              ;;
+            macos-latest)
+              # .app bundle (already signed and stapled if secrets provided)
+              SRC_APP="build/macos/Build/Products/Release/TruckerCore.app"
+              DEST_ZIP="$ARCHIVE_DIR/${APP_NAME}-${VERSION}-macos-universal.zip"
+              ditto -c -k --sequesterRsrc --keepParent "$SRC_APP" "$DEST_ZIP"
+              ;;
+          esac
+
+      - name: Linux GPG sign artifact
+        if: matrix.os == 'ubuntu-latest' && env.GPG_PRIVATE_KEY
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          APP_NAME=TruckerCore
+          VERSION="${APP_VERSION#v}"
+          TARGET="release/${APP_NAME}-${VERSION}-linux-x86_64.zip"
+          chmod +x scripts/sign/linux_sign.sh
+          scripts/sign/linux_sign.sh "$TARGET"
+
+      - name: Checksums (SHA256)
+        shell: bash
+        run: |
+          cd release
+          for f in *; do
+            if command -v shasum >/dev/null 2>&1; then
+              shasum -a 256 "$f" > "$f.sha256"
+            elif command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$f" > "$f.sha256"
+            else
+              echo "No sha256 tool found" >&2
+              exit 1
+            fi
+          done
+
+      - name: SBOM (optional)
+        if: matrix.os == 'ubuntu-latest'
+        uses: anchore/sbom-action@v0
+        with:
+          path: release
+          output-file: sbom-${{ matrix.os }}.spdx.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}-${{ env.APP_VERSION }}
+          path: |
+            release/*
+
+  # Optionally publish GitHub Release
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TruckerCore ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            dist/**/release/*

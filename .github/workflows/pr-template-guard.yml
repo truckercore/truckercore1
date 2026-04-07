@@ -1,0 +1,25 @@
+name: PR Template Guard
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const required = [
+              /## DB Changes[\s\S]*?- \[x\] Migration added/i,
+              /- \[x\] Rollback script included/i,
+              /## Tests & Gates[\s\S]*?- \[x\] Smoke/i,
+              /- \[x\] SQL gates/i,
+              /- \[x\] Probe/i,
+              /## Security & Policy[\s\S]*?- \[x\] OPA checks pass/i,
+              /## Docs[\s\S]*?- \[x\] Runbook updated/i
+            ];
+            const missing = required.filter(r => !r.test(body));
+            if (missing.length) {
+              core.setFailed(`PR template incomplete: required boxes are not checked.`);
+            }

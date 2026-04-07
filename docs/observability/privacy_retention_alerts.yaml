@@ -1,0 +1,14 @@
+groups:
+  - name: truckercore-privacy-retention
+    rules:
+      - alert: AccessAuditExportErrors
+        expr: sum(rate(http_requests_total{route="/v1/orgs/:orgId/privacy/access-audit.csv",status=~"5.."}[10m])) > 0
+        for: 10m
+        labels: { severity: warn }
+        annotations: { summary: "Access audit export errors", runbook: "https://runbooks/privacy" }
+
+      - alert: RetentionSweepFailed
+        expr: increase(retention_purged_total[1h]) == 0
+        for: 2h
+        labels: { severity: warn }
+        annotations: { summary: "Retention sweep not purging rows", runbook: "https://runbooks/retention" }

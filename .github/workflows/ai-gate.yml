@@ -1,0 +1,36 @@
+name: AI Gate
+on: [pull_request]
+jobs:
+  ai-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check_ai_env.sh
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          TEST_JWT: ${{ secrets.TEST_JWT }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - run: make ai_registry_check
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          TEST_JWT: ${{ secrets.TEST_JWT }}
+      - run: make gate_ai_sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - run: make ai_smokes
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          TEST_JWT: ${{ secrets.TEST_JWT }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - run: make ai_probes
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          TEST_JWT: ${{ secrets.TEST_JWT }}
+      - run: make gate_ai_health
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Publish probe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-probes
+          path: reports/

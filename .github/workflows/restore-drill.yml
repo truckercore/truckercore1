@@ -1,0 +1,17 @@
+name: restore-drill
+on:
+  schedule:
+    - cron: "0 4 * * 6"
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download latest backup artifact
+        run: aws s3 cp s3://backups/latest.dump ./latest.dump
+      - name: Restore to temp
+        run: |
+          createdb drill_db
+          pg_restore -d drill_db --no-owner --if-exists latest.dump
+      - name: Post-restore smoke
+        run: psql drill_db -c "select count(*) from invoices;"

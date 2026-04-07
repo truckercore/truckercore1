@@ -1,0 +1,381 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/app_config.dart';
+
+/// Roles that receive compliance alerts.
+enum ComplianceAudience { driver, ownerOperator, fleetManager, all }
+
+/// Types of compliance alerts.
+enum ComplianceAlertType {
+  weighStationOpen,       // A weigh/inspection station is open on/near route
+  inspectionWeek,         // CVSA blitz / DOT safety week window
+  advisory,               // General advisory / safety notice
+}
+
+/// Severity levels for compliance alerts.
+enum ComplianceSeverity { info, warning, critical }
+
+/// Unified alert object delivered to the app.
+class ComplianceAlert {
+  final String id;
+  final ComplianceAlertType type;
+  final ComplianceSeverity severity;
+  final ComplianceAudience audience; // who should see this alert
+  final String title;
+  final String message;
+  final DateTime effectiveFrom;
+  final DateTime? effectiveTo;
+  final String? stationId;  // for weighStationOpen
+  final String? region;     // optional regional scope (state/fmsa region/etc)
+
+  const ComplianceAlert({
+    required this.id,
+    required this.type,
+    required this.severity,
+    required this.audience,
+    required this.title,
+    required this.message,
+    required this.effectiveFrom,
+    this.effectiveTo,
+    this.stationId,
+    this.region,
+  });
+
+  bool get isActiveNow {
+    final now = DateTime.now().toUtc();
+    if (effectiveFrom.isAfter(now)) return false;
+    if (effectiveTo != null && effectiveTo!.isBefore(now)) return false;
+    return true;
+  }
+}
+
+/// Minimal weigh/inspection station record
+class Station {
+  final String id;
+  final String name;
+  final LatLng position;
+  final bool open; // reported open/active
+
+  const Station({
+    required this.id,
+    required this.name,
+    required this.position,
+    required this.open,
+  });
+}
+
+/// Service: produces real-time, route-aware compliance alerts
+/// - Weigh/inspection stations open near/along a route
+/// - Time-window alerts for CVSA blitz/DOT initiatives
+/// Backed by Supabase Realtime if configured; otherwise emits safe mock data.
+class ComplianceAlertsService {
+  ComplianceAlertsService(this._ref);
+  final Ref _ref;
+
+  SupabaseClient? _maybe() {
+    final cfg = _ref.read(appConfigProvider);
+    final ok = cfg.supabaseUrl.isNotEmpty && cfg.supabaseAnonKey.isNotEmpty;
+    return ok ? Supabase.instance.client : null;
+  }
+
+  final Distance _distance = const Distance();
+
+  /// Stream route-aware alerts:
+  /// - Subscribes to station status (open/closed) changes and emits alerts
+  ///   when an open station is within [radiusMiles] of the provided [route].
+  /// - Also merges in inspection-week alerts when applicable.
+  ///
+  /// Parameters:
+  /// - audience: the user audience to tailor global alerts (drivers, O/O, fleet)
+  /// - route: list of LatLng along current/forecast route (polyline)
+  /// - radiusMiles: proximity buffer around the route to consider a station "nearby"
+  Stream<ComplianceAlert> routeAwareAlerts({
+    required ComplianceAudience audience,
+    required List<LatLng> route,
+    double radiusMiles = 5.0,
+  }) {
+    final supa = _maybe();
+    final controller = StreamController<ComplianceAlert>.broadcast();
+
+    // Helper: test if a station lies within radius of any route segment
+    bool _stationNearRoute(LatLng station, List<LatLng> line, double miles) {
+      if (line.isEmpty) return false;
+      final maxMeters = miles * 1609.344;
+      // Quick approximation: check distance to each vertex and between-segment midpoint
+      for (var i = 0; i < line.length; i++) {
+        final d = _distance(line[i], station);
+        if (d <= maxMeters) return true;
+        if (i < line.length - 1) {
+          final mid = LatLng(
+            (line[i].latitude + line[i + 1].latitude) / 2,
+            (line[i].longitude + line[i + 1].longitude) / 2,
+          );
+          final dMid = _distance(mid, station);
+          if (dMid <= maxMeters) return true;
+        }
+      }
+      return false;
+    }
+
+    // Emit a weigh-station alert for a given station
+    void _emitStationAlert(Station s) {
+      final alert = ComplianceAlert(
+        id: 'station_${s.id}_${DateTime.now().millisecondsSinceEpoch}',
+        type: ComplianceAlertType.weighStationOpen,
+        severity: ComplianceSeverity.warning,
+        audience: ComplianceAudience.all, // delivered to all road users by default
+        title: 'Weigh/Inspection Station Open',
+        message: '${s.name} is open ahead. Ensure HOS/ELD and docs are ready.',
+        effectiveFrom: DateTime.now().toUtc(),
+        stationId: s.id,
+      );
+      controller.add(alert);
+    }
+
+    // Merge in an inspection-week alert if active
+    Future<void> _emitActiveInspectionWeekIfAny() async {
+      final now = DateTime.now().toUtc();
+      // If Supabase configured, read active windows from compliance_alerts table (type = 'inspectionWeek')
+      if (supa != null) {
+        try {
+          final rows = await supa
+              .from('compliance_alerts')
+              .select('*')
+              .eq('type', 'inspectionWeek')
+              .eq('is_active', true)
+              .lte('effective_from', now.toIso8601String())
+              .or('effective_to.is.null,effective_to.gte.${now.toIso8601String()}')
+              .limit(3);
+          for (final r in (rows as List)) {
+            final alert = ComplianceAlert(
+              id: r['id'] as String,
+              type: ComplianceAlertType.inspectionWeek,
+              severity: _mapSeverity(r['severity'] as String?),
+              audience: _mapAudience(r['audience'] as String?),
+              title: (r['title'] as String?) ?? 'Inspection Initiative',
+              message: (r['message'] as String?) ??
+                  'Inspection week is active. Expect increased inspections and enforcement.',
+              effectiveFrom: DateTime.parse(r['effective_from'] as String).toUtc(),
+              effectiveTo: r['effective_to'] == null ? null : DateTime.parse(r['effective_to']).toUtc(),
+              region: r['region'] as String?,
+            );
+            controller.add(alert);
+          }
+        } catch (_) {
+          // Ignore backend errors silently to avoid breaking the stream
+        }
+      } else {
+        // Mock: emit an inspection week if today is Monday
+        if (now.weekday == DateTime.monday) {
+          controller.add(ComplianceAlert(
+            id: 'mock_inspection_${now.millisecondsSinceEpoch}',
+            type: ComplianceAlertType.inspectionWeek,
+            severity: ComplianceSeverity.info,
+            audience: audience,
+            title: 'CVSA Inspection Week',
+            message: 'Increased inspections expected this week. Verify pre-trip inspections and logs.',
+            effectiveFrom: now,
+            effectiveTo: now.add(const Duration(days: 7)),
+          ));
+        }
+      }
+    }
+
+    // Subscribe to realtime changes for stations (open/close) if Supabase ready.
+    // Fallback to a periodic mock poll if not.
+    RealtimeChannel? _channel;
+
+    Future<void> _attach() async {
+      await _emitActiveInspectionWeekIfAny();
+
+      if (supa != null) {
+        // Expect table public.stations with: id(uuid/text), name, lat, lng, open(bool)
+        _channel = supa.channel('public:stations');
+        _channel!
+            .onPostgresChanges(
+              event: PostgresChangeEvent.insert,
+              schema: 'public',
+              table: 'stations',
+              callback: (payload) {
+                final row = payload.newRecord;
+                if (row == null) return;
+                final s = Station(
+                  id: '${row['id']}',
+                  name: (row['name'] as String?) ?? 'Station',
+                  position: LatLng(
+                    (row['lat'] as num).toDouble(),
+                    (row['lng'] as num).toDouble(),
+                  ),
+                  open: (row['open'] as bool?) ?? false,
+                );
+                if (s.open && _stationNearRoute(s.position, route, radiusMiles)) {
+                  _emitStationAlert(s);
+                }
+              },
+            )
+            .onPostgresChanges(
+              event: PostgresChangeEvent.update,
+              schema: 'public',
+              table: 'stations',
+              callback: (payload) {
+                final row = payload.newRecord;
+                if (row == null) return;
+                final s = Station(
+                  id: '${row['id']}',
+                  name: (row['name'] as String?) ?? 'Station',
+                  position: LatLng(
+                    (row['lat'] as num).toDouble(),
+                    (row['lng'] as num).toDouble(),
+                  ),
+                  open: (row['open'] as bool?) ?? false,
+                );
+                if (s.open && _stationNearRoute(s.position, route, radiusMiles)) {
+                  _emitStationAlert(s);
+                }
+              },
+            )
+            .subscribe();
+
+        // Prime: fetch current open stations and alert if near route.
+        try {
+          final rows = await supa
+              .from('stations')
+              .select('id,name,lat,lng,open')
+              .eq('open', true)
+              .limit(200);
+          for (final r in (rows as List)) {
+            final s = Station(
+              id: '${r['id']}',
+              name: (r['name'] as String?) ?? 'Station',
+              position: LatLng(
+                (r['lat'] as num).toDouble(),
+                (r['lng'] as num).toDouble(),
+              ),
+              open: (r['open'] as bool?) ?? false,
+            );
+            if (s.open && _stationNearRoute(s.position, route, radiusMiles)) {
+              _emitStationAlert(s);
+            }
+          }
+        } catch (_) {}
+      } else {
+        // Mock fallback: periodic check emits a random "open station near route"
+        Timer.periodic(const Duration(minutes: 5), (t) {
+          if (route.isEmpty) return;
+          final mid = route[route.length ~/ 2];
+          controller.add(ComplianceAlert(
+            id: 'mock_station_${DateTime.now().millisecondsSinceEpoch}',
+            type: ComplianceAlertType.weighStationOpen,
+            severity: ComplianceSeverity.warning,
+            audience: ComplianceAudience.all,
+            title: 'Weigh Station Possibly Open',
+            message:
+                'A station near your route appears open. Ensure logs and documents are ready.',
+            effectiveFrom: DateTime.now().toUtc(),
+            stationId: 'mock',
+            region: null,
+          ));
+        });
+      }
+    }
+
+    _attach();
+
+    controller.onCancel = () async {
+      if (supa != null && _channel != null) {
+        await _channel!.unsubscribe();
+        supa.removeChannel(_channel!);
+      }
+      await controller.close();
+    };
+
+    return controller.stream;
+  }
+
+  /// Admin/Backoffice: create a global inspection-week alert (available to all audiences).
+  /// This can be called from an admin panel to schedule CVSA/DOT alerts.
+  Future<void> sendInspectionWeekAlert({
+    required DateTime fromUtc,
+    required DateTime toUtc,
+    String title = 'Inspection Week Active',
+    String message =
+        'Increased inspections expected. Ensure HOS/ELD and safety docs are up-to-date.',
+    ComplianceSeverity severity = ComplianceSeverity.info,
+    ComplianceAudience audience = ComplianceAudience.all,
+    String? region,
+  }) async {
+    final supa = _maybe();
+    if (supa == null) {
+      throw Exception('Supabase not configured');
+    }
+    await supa.from('compliance_alerts').insert({
+      'type': 'inspectionWeek',
+      'title': title,
+      'message': message,
+      'severity': _severityStr(severity),
+      'audience': _audienceStr(audience),
+      'effective_from': fromUtc.toIso8601String(),
+      'effective_to': toUtc.toIso8601String(),
+      'region': region,
+      'is_active': true,
+    });
+  }
+
+  ComplianceSeverity _mapSeverity(String? v) {
+    switch ((v ?? 'info').toLowerCase()) {
+      case 'warning':
+        return ComplianceSeverity.warning;
+      case 'critical':
+        return ComplianceSeverity.critical;
+      default:
+        return ComplianceSeverity.info;
+    }
+  }
+
+  String _severityStr(ComplianceSeverity s) {
+    switch (s) {
+      case ComplianceSeverity.info:
+        return 'info';
+      case ComplianceSeverity.warning:
+        return 'warning';
+      case ComplianceSeverity.critical:
+        return 'critical';
+    }
+  }
+
+  ComplianceAudience _mapAudience(String? v) {
+    switch ((v ?? 'all').toLowerCase()) {
+      case 'driver':
+        return ComplianceAudience.driver;
+      case 'owneroperator':
+      case 'owner_operator':
+      case 'owner-operator':
+        return ComplianceAudience.ownerOperator;
+      case 'fleetmanager':
+      case 'fleet_manager':
+      case 'fleet-manager':
+        return ComplianceAudience.fleetManager;
+      default:
+        return ComplianceAudience.all;
+    }
+  }
+
+  String _audienceStr(ComplianceAudience a) {
+    switch (a) {
+      case ComplianceAudience.driver:
+        return 'driver';
+      case ComplianceAudience.ownerOperator:
+        return 'ownerOperator';
+      case ComplianceAudience.fleetManager:
+        return 'fleetManager';
+      case ComplianceAudience.all:
+        return 'all';
+    }
+  }
+}
+
+/// Provider for the compliance alerts service.
+final complianceAlertsServiceProvider =
+    Provider<ComplianceAlertsService>((ref) => ComplianceAlertsService(ref));

@@ -1,0 +1,18 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Accessorials Model + API,Story,"add_accessorial(load_id,type,amount,notes,proof_url?); list by load/period; RLS.",backend;finance;ownerop,5,Payments, 
+Detention Auto-Detect,Story,"Detect detention via geofence + appt windows; suggest claim.",backend;geofence;dispatch,8,Payments, 
+UI — Accessorials & Detention Claim,Story,"Attach docs; submit claim; track status; export PDF summary.",app;finance;ux,5,Payments,Detention Auto-Detect
+Docs Repository + Search,Story,"Upload/tag/search documents with OCR text; role-aware permissions.",backend;docs;search,8,Documents & OCR v2, 
+OCR Templates for BOL/RateCon,Story,"Extract load#, shipper/consignee, dates, amounts; ≥90% key-field accuracy.",backend;ocr;documents,8,Documents & OCR v2,Docs Repository + Search
+Geofence Model Upgrade,Story,"Multipolygon, hours, SLA thresholds; dwell alerts.",backend;geofence,5,Geofencing v2, 
+UI — Geofencing Manager,Story,"Draw/import polygons; set hours/SLAs; test mode.",app;geofence;ux,5,Geofencing v2,Geofence Model Upgrade
+ACH Micro-Deposit Verify,Story,"Initiate 2 deposits; verify; bank_verified=true; audit events.",backend;payments;security,5,Advanced Broker Trust, 
+Watchlist Screening,Story,"Screen brokers/carriers; daily refresh; add reasons to risk score.",backend;risk;security,5,Advanced Broker Trust, 
+Online Navigation with Constraints,Story,"Turn-by-turn using optimized route; reroute; respect truck limits.",app;routing;nav,8,Mobile Navigation v1, 
+Offline Fallback Navigation,Story,"Use offline segments; no traffic; basic prompts; restricted warnings.",app;offline;nav,8,Mobile Navigation v1, 
+Feature Engineering & Baseline Model,Story,"Build pricing features; baseline regression; MAPE ≤ 12% on selected lanes.",backend;ml;pricing,8,Market Pricing ML v1, 
+Price Suggest API,Story,"POST /api/pricing/suggest → {low,mid,high,confidence}.",backend;pricing;api,5,Market Pricing ML v1,Feature Engineering & Baseline Model
+Contracts Model + API,Story,"contracts with terms/rates/lanes/SLAs; assign loads to contract.",backend;shipper;contracts,8,Shipper Portal v2, 
+UI — Contract Loads & SLA Dashboard,Story,"Filter by contract; show SLA performance; export CSV.",app;shipper;ux,5,Shipper Portal v2,Contracts Model + API
+SSO Integration (OIDC),Story,"Per-org OIDC; login, role mapping, JIT provisioning; audit.",backend;security;sso,8,Enterprise SSO, 
+Admin SSO Settings UI,Story,"Issuer/client/secret and claim mapping; test login.",app;admin;security,5,Enterprise SSO,SSO Integration (OIDC)

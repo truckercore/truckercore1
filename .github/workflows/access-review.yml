@@ -1,0 +1,21 @@
+name: access-review
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List inactive admins
+        env:
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -Atc "
+          select u.email, fm.org_id, fm.role, max(al.at) as last_activity
+          from fleet_members fm
+          join auth.users u on u.id=fm.user_id
+          left join audit_log al on al.actor_user=fm.user_id
+          where fm.role in ('corp_admin','admin')
+          group by 1,2,3
+          having coalesce(max(al.at), timestamp 'epoch') < now() - interval '30 days'
+          "

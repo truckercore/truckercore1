@@ -1,0 +1,44 @@
+name: guards
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  sql-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SQL guard
+        run: .github/scripts/sql_guard.sh
+        env:
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+      - name: SECURITY DEFINER pinned search_path gate
+        if: ${{ secrets.CI_DATABASE_URL != '' }}
+        env:
+          READONLY_DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+        run: .github/scripts/gate_secdef.sh
+      - name: Audit coverage (entitlements)
+        if: ${{ secrets.CI_DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "[audit] Checking entitlements audit coverage…"
+          psql "$DATABASE_URL" -Atc "select count(*) from public.v_entitlements_audit_coverage where audit_id is null;" | awk '{ if ($1+0>0) { print "::error::Missing audits for entitlements changes ("$1")"; exit 1 } else { print "[ok] No missing audits" } }'
+      - name: Audit trigger coverage (all public tables)
+        if: ${{ secrets.CI_DATABASE_URL != '' }}
+        env:
+          READONLY_DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+        run: .github/scripts/gate_audit_coverage.sh
+
+  schema-drift:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare staging vs prod schema
+        run: .github/scripts/schema_drift.sh
+        env:
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          PROD_URL: ${{ secrets.PROD_DATABASE_URL }}

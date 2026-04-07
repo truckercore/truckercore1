@@ -1,0 +1,21 @@
+name: Clarifications Request
+description: Collect required decisions before coding a module
+title: "Clarifications: [Module] - [YYYY-MM-DD]"
+labels: ["clarifications", "blocking"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options: [SSO/JWKS, SCIM, AI Ranking]
+  - type: textarea
+    id: answers
+    attributes:
+      label: Paste answers to the RFQ
+      description: Copy from docs/rfcs/* and fill the blanks
+      placeholder: |
+        JWKS TTL: 15m
+        Invalidate: on any signature failure
+        ...
+    validations:
+      required: true

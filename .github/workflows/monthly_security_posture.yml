@@ -1,0 +1,71 @@
+name: Monthly Security Posture
+
+on:
+  schedule:
+    - cron: '15 7 1 * *' # monthly on the 1st at 07:15 UTC
+  workflow_dispatch: {}
+
+jobs:
+  posture:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Collect posture data
+        id: collect
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "keys_rotated=0" >> $GITHUB_OUTPUT
+            echo "rls_disabled=0" >> $GITHUB_OUTPUT
+            echo "webhook_ok=unknown" >> $GITHUB_OUTPUT
+            exit 0;
+          fi
+          KEYS=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(count(*),0) from public.secrets_metadata where rotated_at >= now() - interval '30 days'" || echo "0")
+          RLS=$(psql "$SUPABASE_DB_URL" -At -c "select coalesce(count(*),0) from public.rls_audit where rls_enabled=false" || echo "0")
+          echo "keys_rotated=$KEYS" >> $GITHUB_OUTPUT
+          echo "rls_disabled=$RLS" >> $GITHUB_OUTPUT
+          # Trigger stale secrets alert as part of posture
+          psql "$SUPABASE_DB_URL" -c "select public.alert_on_stale_secrets(120);" || true
+          # Webhook self-test via node (optional)
+          node scripts/security/webhook_signature_test.mjs || true
+          WHOK=$(grep -c 'verify=true' webhook_sig_test.txt || true)
+          echo "webhook_ok=$WHOK" >> $GITHUB_OUTPUT
+
+      - name: Open/Update Security Posture issue
+        uses: actions/github-script@v7
+        env:
+          KEYS: ${{ steps.collect.outputs.keys_rotated }}
+          RLS_OFF: ${{ steps.collect.outputs.rls_disabled }}
+          WHOK: ${{ steps.collect.outputs.webhook_ok }}
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0,7);
+            const title = `Monthly Security Posture – ${today}`;
+            const lines = [
+              `## Summary`,
+              `- Secrets rotated (30d): ${process.env.KEYS || 0}`,
+              `- Webhook signature self-test ok: ${process.env.WHOK || '0'}`,
+              `- Public tables with RLS disabled: ${process.env.RLS_OFF || 0}`,
+              '',
+              '## Actions',
+              '- [ ] Rotate any stale secrets (see alerts)',
+              '- [ ] Re-enable RLS on any flagged tables',
+              '- [ ] Review webhook consumers for signature verification',
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.find(i => i.title.startsWith('Monthly Security Posture'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body: lines });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body: lines, labels: ['governance','security'] });
+            }

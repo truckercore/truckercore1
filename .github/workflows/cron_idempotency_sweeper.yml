@@ -1,0 +1,22 @@
+name: TTL Sweeper (Idempotency Keys)
+
+on:
+  schedule:
+    - cron: '0 * * * *' # hourly
+  workflow_dispatch: {}
+
+jobs:
+  sweep-idempotency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run sweeper (skippable without secrets)
+        env:
+          DB_URL: ${{ secrets.PROD_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "PROD_DB_URL not set; skipping sweeper" && exit 0
+          fi
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/idempotency_sweeper.sql

@@ -1,0 +1,2 @@
+org_id,driver_user_id,vehicle_id,type,defects,certified_safe,signed_at,created_at
+11111111-1111-1111-1111-111111111111,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb,cccccccc-cccc-cccc-cccc-cccccccccccc,pre_trip,"[{""component"":""brakes"",""severity"":""minor""}]",true,2025-09-01T12:00:00Z,2025-09-01T12:01:00Z

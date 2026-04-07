@@ -1,0 +1,55 @@
+name: Quarterly Dependency Review
+
+on:
+  schedule:
+    # 08:00 UTC on the 1st day of Jan/Apr/Jul/Oct
+    - cron: "0 8 1 1,4,7,10 *"
+  workflow_dispatch: {}
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Dart/Flutter dependency report
+        run: |
+          dart --version || true
+          flutter pub get
+          dart pub outdated || true
+          flutter pub outdated || true
+
+      - name: Node/JS dependency report (if present)
+        if: hashFiles('package.json') != ''
+        run: |
+          node --version
+          npm --version
+          npm ci --ignore-scripts || true
+          npm outdated || true
+
+      - name: Collect reports
+        run: |
+          mkdir -p artifacts
+          # Capture pub outdated outputs if available
+          dart pub outdated > artifacts/dart_pub_outdated.txt 2>&1 || true
+          flutter pub outdated > artifacts/flutter_pub_outdated.txt 2>&1 || true
+          if [ -f package.json ]; then
+            npm outdated > artifacts/npm_outdated.txt 2>&1 || true
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarterly-deps-review
+          path: artifacts

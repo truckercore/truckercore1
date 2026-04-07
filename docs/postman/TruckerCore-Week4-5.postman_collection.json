@@ -1,0 +1,585 @@
+{
+  "info": {
+    "name": "TruckerCore API – Weeks 4–5",
+    "_postman_id": "b8a2c2a4-6c5e-4e38-8f44-9d1b1a0e5a21",
+    "description": "Contract-first collection for ELD, HOS, ETA v2, Tri-haul, Route Optimize, Maintenance, Trust/Audit, API Keys/Webhooks, Costs Estimator, Offline, Exports.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Ping /auth/me (optional sanity)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": [ "{{baseUrl}}" ], "path": [ "auth", "me" ] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200 or 404 (if not implemented)', function () {",
+                  "  pm.expect([200,404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ELD Integration",
+      "item": [
+        {
+          "name": "Connect Provider A",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/integrations/eld/provider-a/connect", "host": [ "{{baseUrl}}" ], "path": [ "api", "integrations", "eld", "provider-a", "connect" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org_id\": \"c5b43b71-8b9c-4c66-9e40-6c2b6d3f5c3a\",\n  \"auth_code\": \"AUTH_CODE_FROM_PROVIDER\",\n  \"redirect_uri\": \"app://callback/eld/provider-a\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.connected).to.be.true;",
+                  "pm.expect(json.provider).to.eql('provider_a');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Provider A Webhook (HOS update, simulate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "X-Signature", "value": "sha256=BASE64_SIG", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/integrations/eld/provider-a/webhook", "host": [ "{{baseUrl}}" ], "path": [ "api", "integrations", "eld", "provider-a", "webhook" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": \"9b8d54a2-f3a0-49f2-9d5a-e2e194b7c2c0\",\n  \"timestamp\": \"2025-09-12T21:01:34Z\",\n  \"type\": \"hos.updated\",\n  \"org_external_id\": \"ACME-123\",\n  \"driver_external_id\": \"DRV-567\",\n  \"logs\": [\n    {\"start_time\":\"2025-09-12T12:00:00Z\",\"end_time\":\"2025-09-12T14:10:00Z\",\"status\":\"driving\",\"source\":\"eld\",\"violations\":[]},\n    {\"start_time\":\"2025-09-12T14:10:00Z\",\"end_time\":\"2025-09-12T15:40:00Z\",\"status\":\"on\",\"source\":\"eld\",\"violations\":[{\"code\":\"14HR\",\"minutes\":25}]}\n  ],\n  \"signature\": \"sha256=BASE64_SIG\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('accepted true', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().accepted).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HOS & Compliance",
+      "item": [
+        {
+          "name": "Get HOS with Violations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/hos/{{driver_user_id}}?from=2025-09-06&to=2025-09-12",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "hos", "{{driver_user_id}}" ],
+              "query": [
+                { "key": "from", "value": "2025-09-06" },
+                { "key": "to", "value": "2025-09-12" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK and logs present', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.logs).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ETA v2 (P50/P80)",
+      "item": [
+        {
+          "name": "Predict ETA with P50/P80",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ai/eta_predict", "host": [ "{{baseUrl}}" ], "path": [ "api", "ai", "eta_predict" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\"lat\": 33.7489, \"lng\": -84.3881},\n  \"dest\": {\"lat\": 41.8781, \"lng\": -87.6298},\n  \"departure_time\": \"2025-09-12T16:00:00Z\",\n  \"polyline\": \"ENCODED_POLYLINE\",\n  \"truck\": {\"height_ft\": 13.5, \"weight_lbs\": 78000, \"hazmat\": false}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('has totals and legs', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.legs).to.be.an('array');",
+                  "  pm.expect(j.total).to.have.property('p50_minutes');",
+                  "  pm.expect(j.total).to.have.property('p80_minutes');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tri-haul",
+      "item": [
+        {
+          "name": "Suggest Tri-hauls",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trihaul/suggest", "host": [ "{{baseUrl}}" ], "path": [ "api", "trihaul", "suggest" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin_zip\": \"30301\",\n  \"dest_zip\": \"75201\",\n  \"date\": \"2025-09-20\",\n  \"equipment\": \"van\",\n  \"constraints\": {\"max_detour_ratio\": 0.35, \"min_est_ppm\": 2.1, \"avoid_tolls\": false}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('returns itineraries', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.itineraries).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Route Optimize",
+      "item": [
+        {
+          "name": "Optimize Multi-stop Route",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/ai/route_optimize", "host": [ "{{baseUrl}}" ], "path": [ "api", "ai", "route_optimize" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stops\": [\n    {\"id\":\"A\",\"lat\":39.0997,\"lng\":-94.5786,\"window\":{\"start\":\"2025-09-13T08:00:00Z\",\"end\":\"2025-09-13T10:00:00Z\"}},\n    {\"id\":\"B\",\"lat\":41.2565,\"lng\":-95.9345,\"window\":{\"start\":\"2025-09-13T13:00:00Z\",\"end\":\"2025-09-13T15:00:00Z\"}},\n    {\"id\":\"C\",\"lat\":41.8781,\"lng\":-87.6298}\n  ],\n  \"truck\": {\"height_ft\": 13.5, \"weight_lbs\": 80000},\n  \"constraints\": {\"avoid_tolls\": true, \"optimize_for\": \"time\"}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('ordered stops and segments present', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.ordered_stops).to.be.an('array');",
+                  "  pm.expect(j.segments).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Maintenance",
+      "item": [
+        {
+          "name": "Get Schedules (Upcoming)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/maintenance/schedules?status=upcoming&within_days=30",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "maintenance", "schedules" ],
+              "query": [
+                { "key": "status", "value": "upcoming" },
+                { "key": "within_days", "value": "30" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('has items array', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().items).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Work Order (from DVIR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/maintenance/workorders", "host": [ "{{baseUrl}}" ], "path": [ "api", "maintenance", "workorders" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicle_id\": \"veh-001\",\n  \"source\": \"dvir\",\n  \"defects\": [{\"component\": \"brakes\", \"severity\": \"major\", \"note\": \"Soft pedal\"}]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('work order created', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('open');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Broker Trust & Audits",
+      "item": [
+        {
+          "name": "Get Trust Score",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/broker/trust/{{broker_id}}", "host": [ "{{baseUrl}}" ], "path": [ "api", "broker", "trust", "{{broker_id}}" ] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('score present 0-100', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.score).to.be.within(0,100);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Append Audit Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/audit/event", "host": [ "{{baseUrl}}" ], "path": [ "api", "audit", "event" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject_type\": \"broker\",\n  \"subject_id\": \"{{broker_id}}\",\n  \"action\": \"verification_viewed\",\n  \"payload\": { \"user_id\": \"{{user_id}}\", \"dot\": \"1234562\" }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('recorded true', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().recorded).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Enterprise: API Keys & Webhooks",
+      "item": [
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/apikeys", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "apikeys" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Integration - ERP\",\n  \"scopes\": [\"analytics:read\", \"loads:read\"]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('token returned once', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().token).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Outbound Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/webhooks", "host": [ "{{baseUrl}}" ], "path": [ "api", "admin", "webhooks" ] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"load.created\",\n  \"url\": \"https://hooks.example.com/loads\",\n  \"secret\": \"whsec_abc123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('webhook created', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().id).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Costs Estimator",
+      "item": [
+        {
+          "name": "Estimate Lane Costs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/costs/estimate?lane_key=30301-75201&equipment=van&weight=42000",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "costs", "estimate" ],
+              "query": [
+                { "key": "lane_key", "value": "30301-75201" },
+                { "key": "equipment", "value": "van" },
+                { "key": "weight", "value": "42000" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('cpm_cost present', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().cpm_cost).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Offline",
+      "item": [
+        {
+          "name": "Tiles Manifest (Region)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/offline/tiles/manifest?region_key=midwest",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "offline", "tiles", "manifest" ],
+              "query": [
+                { "key": "region_key", "value": "midwest" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('version and parts present', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.version).to.be.a('number');",
+                  "  pm.expect(j.parts).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Exports",
+      "item": [
+        {
+          "name": "Owner-Op Tax CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ownerop/tax/export.csv?quarter=Q3-2025",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "ownerop", "tax", "export.csv" ],
+              "query": [
+                { "key": "quarter", "value": "Q3-2025" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('CSV content-type', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/export.csv?scope=fleet&from=2025-09-01&to=2025-09-12",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "analytics", "export.csv" ],
+              "query": [
+                { "key": "scope", "value": "fleet" },
+                { "key": "from", "value": "2025-09-01" },
+                { "key": "to", "value": "2025-09-12" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('CSV download ready', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.example.com" },
+    { "key": "token", "value": "YOUR_JWT" },
+    { "key": "driver_user_id", "value": "5f5c78fe-6a2c-4a7b-97a3-63b5bfbaf3b6" },
+    { "key": "broker_id", "value": "b1f4c2a7-5f5a-4c5f-8a0a-3a2a5e6d9b11" },
+    { "key": "user_id", "value": "f77e21a9-3e33-4c4e-bc23-1f2b7e0f9c11" }
+  ]
+}

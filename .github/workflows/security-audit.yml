@@ -1,0 +1,98 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Daily at 9 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (JSON)
+        id: audit
+        continue-on-error: true
+        run: |
+          npm audit --json > audit-report.json || true
+          npm audit --audit-level=moderate || true
+
+      - name: Parse audit results
+        id: parse
+        if: always()
+        run: |
+          if [ -f audit-report.json ]; then
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+            MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-report.json)
+            LOW=$(jq '.metadata.vulnerabilities.low // 0' audit-report.json)
+            echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high=$HIGH" >> $GITHUB_OUTPUT
+            echo "moderate=$MODERATE" >> $GITHUB_OUTPUT
+            echo "low=$LOW" >> $GITHUB_OUTPUT
+            TOTAL=$((CRITICAL + HIGH + MODERATE + LOW))
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          else
+            echo "critical=0" >> $GITHUB_OUTPUT
+            echo "high=0" >> $GITHUB_OUTPUT
+            echo "moderate=0" >> $GITHUB_OUTPUT
+            echo "low=0" >> $GITHUB_OUTPUT
+            echo "total=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate dependency audit report
+        run: node scripts/dependency-audit.mjs
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-${{ github.run_number }}
+          path: |
+            audit-report.json
+            dependency-audit-*.md
+          retention-days: 90
+
+      - name: Create issue for critical/high vulnerabilities
+        if: steps.parse.outputs.critical > 0 || steps.parse.outputs.high > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = Number(process.env.CRITICAL || 0);
+            const high = Number(process.env.HIGH || 0);
+            const fs = require('fs');
+            const report = fs.existsSync('dependency-audit-*.md') ? 'See attached artifact.' : 'See audit-report.json';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Security Alert: ${critical} Critical, ${high} High Vulnerabilities Detected`,
+              body: report,
+              labels: ['security', 'dependencies', 'automated']
+            });
+        env:
+          CRITICAL: ${{ steps.parse.outputs.critical }}
+          HIGH: ${{ steps.parse.outputs.high }}
+
+      - name: Fail on critical vulnerabilities
+        if: steps.parse.outputs.critical > 0
+        run: |
+          echo "❌ Critical vulnerabilities found! Please address immediately."
+          exit 1

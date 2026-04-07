@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-commit] Scanning for disallowed SUPABASE_ANON_KEY usages..."
+ALLOW='(^docs/|^README|^.*\.md$|^.*\.env(\.example|\.local|\.template)?$|^apps/web/README\.md$|^ALLOW_SUPABASE_ANON_KEY_REFERENCES\.txt$)'
+
+MATCHED=$(git grep -n "SUPABASE_ANON_KEY" -- . || true)
+if [ -z "$MATCHED" ]; then
+  echo "[pre-commit] No references found."
+  exit 0
+fi
+
+DISALLOWED=$(echo "$MATCHED" | awk -F: '{print $1":"$2":"$3}' | grep -Ev "$ALLOW" || true)
+if [ -n "$DISALLOWED" ]; then
+  echo "[pre-commit] Disallowed SUPABASE_ANON_KEY references found:"
+  echo "$DISALLOWED"
+  echo "[pre-commit] Blocked. If necessary, add file to ALLOW_SUPABASE_ANON_KEY_REFERENCES.txt (use sparingly)."
+  exit 1
+fi
+
+echo "[pre-commit] Only allowed references found."

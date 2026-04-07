@@ -1,0 +1,28 @@
+openapi: 3.0.3
+info: { title: TruckerCore Phase 24–26 API, version: 1.0.0 }
+servers: [ { url: https://{env}.yourdomain.com, variables: { env: { default: stage, enum: [stage, app] } } } ]
+components:
+  securitySchemes: { bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT } }
+  schemas:
+    PartnerPrice:
+      type: object
+      properties: { lane: {type:string}, price_band: {type:object, properties: {low:{type:number}, mid:{type:number}, high:{type:number}}}, updated_at:{type:string,format:date-time} }
+    CapacityPub:
+      type: object
+      properties: { lane: {type:string}, equipment:{type:string}, count:{type:integer}, updated_at:{type:string,format:date-time} }
+paths:
+  /partner/pricing:
+    get:
+      summary: Public partner pricing (token-scoped)
+      parameters: [ { in: query, name: lane, required: true, schema: {type:string} } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PartnerPrice' }}}}}
+  /partner/capacity:
+    get:
+      summary: Public partner capacity aggregates
+      parameters: [ { in: query, name: lane, required: true, schema: {type:string} }, { in: query, name: equipment, schema: {type:string} } ]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CapacityPub' }}}}}
+  /api/bi/export.parquet:
+    get:
+      summary: Export analytics dataset as Parquet
+      parameters: [ { in: query, name: dataset, required: true, schema: {type:string, enum:[loads,positions,invoices]} }, { in: query, name: from, schema: {type:string,format:date} }, { in: query, name: to, schema: {type:string,format:date} } ]
+      responses: { '200': { description: Parquet file, content: { application/octet-stream: { schema: { type: string, format: binary } }}}}

@@ -1,0 +1,16 @@
+{
+  "title": "Platform SLO Dashboard",
+  "panels": [
+    { "type": "stat", "title": "Uptime (30d)", "expr": "uptime_ratio_30d", "thresholds": "99.9,99.95" },
+    { "type": "timeseries", "title": "API p95 latency", "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))" },
+    { "type": "timeseries", "title": "API p99 latency", "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))" },
+    { "type": "timeseries", "title": "Error rate %", "expr": "sum(rate(http_requests_total{code=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))" },
+    { "type": "stat", "title": "SSO Success Rate (24h)", "expr": "1 - (sum(increase(sso_failures_total[24h])) / clamp_min(sum(increase(sso_attempts_total[24h])),1))" },
+    { "type": "bar", "title": "MTTA/MTTR (weekly)", "expr": "mtta_minutes_week_by_code" }
+  ],
+  "alerts": [
+    { "name": "API_p95_over_250ms_15m", "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.25", "for": "15m", "severity": "warning" },
+    { "name": "API_p99_over_800ms_15m", "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.8", "for": "15m", "severity": "critical" },
+    { "name": "ErrorRate_over_2pct_15m", "expr": "(sum(rate(http_requests_total{code=~\"5..\"}[15m])) / sum(rate(http_requests_total[15m]))) > 0.02", "for": "10m", "severity": "warning" }
+  ]
+}

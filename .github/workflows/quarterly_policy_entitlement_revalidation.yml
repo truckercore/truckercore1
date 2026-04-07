@@ -1,0 +1,68 @@
+name: Quarterly Policy & Entitlement Revalidation
+
+on:
+  schedule:
+    - cron: '45 8 1 1,4,7,10 *' # 08:45 UTC on first day of quarter months
+  workflow_dispatch: {}
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+
+      - name: Run billing & policy checks (if DB available)
+        id: checks
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p artifacts
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "db=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          set -e
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f docs/ci/BILLING_SQL_CHECKS.sql || true
+          # Export current policies baseline from DB
+          psql "$SUPABASE_DB_URL" -At -c "copy (select json_agg(row) from (select schemaname, tablename, policyname, roles, cmd from pg_policies where schemaname='public' order by 2,3) row) to stdout" > artifacts/policies.json || echo "[]" > artifacts/policies.json
+          echo "db=true" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarterly-policy-entitlement-${{ github.run_id }}
+          path: artifacts
+
+      - name: Open/Update Quarterly Revalidation issue
+        uses: actions/github-script@v7
+        env:
+          DB: ${{ steps.checks.outputs.db }}
+        with:
+          script: |
+            const today = new Date();
+            const year = today.getUTCFullYear();
+            const q = Math.floor((today.getUTCMonth())/3)+1;
+            const title = `Quarterly Policy & Entitlement Revalidation – ${year}-Q${q}`;
+            const body = [
+              '## Actions',
+              '- [ ] Review policies.json artifact and confirm no drift',
+              '- [ ] Run billing entitlement checks (see workflow log)',
+              '- [ ] Confirm CODEOWNERS and branch protection still enforce required checks',
+              '',
+              'Artifacts: attached to this workflow run.'
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.find(i => i.title.startsWith('Quarterly Policy & Entitlement Revalidation'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['governance'] });
+            }

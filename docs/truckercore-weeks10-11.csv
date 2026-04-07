@@ -1,0 +1,15 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+AI Assistant API,Story,"POST /api/ai_assistant {role,prompt,driver_user_id?,load_id?} → {answer}; plan gating + RBAC.",backend;ai;assistant,5,AI Assistant,
+Prompt Orchestration & Safety,Story,"Inject org context (HOS, inspections, expenses, alerts, analytics); redact PII; role-field guards.",backend;security;ai,5,AI Assistant,AI Assistant API
+App — AI Assistant UI,Story,"Assistant screen with role shortcuts; copy/share answer; plan gating.",app;ai;ux,5,AI Assistant,AI Assistant API
+SLA Risk Prediction,Story,"POST /api/ops/sla_risk → risk score + reasons using ETA p80, dwell, carrier perf.",backend;ops;ai,5,Proactive Ops,
+Playbook Suggestions,Story,"POST /api/ops/playbooks/suggest; UI shows actions; audit on apply.",app;ops;ux,5,Proactive Ops,SLA Risk Prediction
+ETL to Warehouse,Story,"Nightly exports (loads,HOS,expenses,diagnostics); idempotent; row counts.",data;etl;analytics,8,Warehouse & dbt,
+dbt Models for KPIs,Story,"On-time, CPM, deadhead, violations/driver-day; tests + freshness.",data;dbt;analytics,5,Warehouse & dbt,ETL to Warehouse
+Invoice Generation,Story,"Create invoice from load; PDF render; status transitions with audit.",backend;finance,8,Payments & Invoicing v1,
+Payments Webhook (PSP),Story,"Receive PSP webhooks; verify signature; idempotent; DLQ.",backend;payments;sre,5,Payments & Invoicing v1,Invoice Generation
+App — Invoice List & Detail,Story,"Filter by status/date; share PDF; manual payment record.",app;finance;ux,5,Payments & Invoicing v1,Invoice Generation
+Provider C Connector,Story,"OAuth/API key; pull 7d; webhook upserts; mapping validated.",backend;integrations;hos,8,ELD Provider C + Mapping,
+Admin Mapping UI,Story,"Bulk CSV import; map external IDs to internal; conflict resolution; audit.",app;admin;integrations,5,ELD Provider C + Mapping,Provider C Connector
+POI Differential Updates,Story,"Incremental POI updates by version; integrity checks.",backend;offline,5,Offline v2,
+Conflict Resolution for Offline Actions,Story,"Detect/resolve conflicts on reconnect; user prompts; audits.",app;offline;ux,5,Offline v2,

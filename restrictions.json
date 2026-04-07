@@ -1,0 +1,25 @@
+{
+  "NH": {
+    "lowClearances": [
+      "US 1 Bypass — Portsmouth → 11’10”",
+      "US 3 — Plymouth → 11’9”"
+    ],
+    "weighStations": [
+      "I-89 NB, SB — Lebanon, west of exit 18"
+    ],
+    "restrictedRoutes": [
+      "US 1 — Portsmouth, over Piscataqua River"
+    ]
+  },
+  "NJ": {
+    "lowClearances": [
+      "NJ 4 — Englewood, Jones Rd. overpass, mm 9.62 → 13’1”"
+    ],
+    "weighStations": [
+      "I-78 EB, WB — Bloomsbury, mm 6"
+    ],
+    "restrictedRoutes": [
+      "US 1/9 (Pulaski Skyway) — I-95 to Jersey City"
+    ]
+  }
+}

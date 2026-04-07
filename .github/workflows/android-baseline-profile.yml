@@ -1,0 +1,56 @@
+name: Android Baseline Profile
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build app debug (install target)
+        run: ./gradlew :app:assembleDebug
+
+      - name: Run Macrobenchmark on managed device
+        run: |
+          ./gradlew :macrobenchmark:pixel6Api34DebugAndroidTest \
+            -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile
+
+      - name: Copy generated baseline profile
+        run: |
+          PROFILE=$(find macrobenchmark/build -name baseline-prof.txt | head -n1)
+          test -f "$PROFILE" || (echo "baseline-prof.txt not found"; ls -R macrobenchmark/build || true; exit 1)
+          mkdir -p baselineprofile/src/main/baseline
+          cp "$PROFILE" baselineprofile/src/main/baseline/baseline-prof.txt
+          git status
+
+      - name: Assemble release (profile packaged)
+        run: ./gradlew :app:assembleRelease
+
+      - name: Create PR for profile update
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(android): update baseline profile"
+          title: "Update Android Baseline Profile"
+          branch: chore/update-baseline-profile
+          base: main
+          add-paths: |
+            android/baselineprofile/src/main/baseline/baseline-prof.txt

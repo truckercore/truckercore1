@@ -1,0 +1,1 @@
+ C:\\Users\\moise\\IdeaProjects\\truckercore1\\.dart_tool\\flutter_build\\c650867934ec5cb1d082ef7561b47d92\\native_assets.json: 

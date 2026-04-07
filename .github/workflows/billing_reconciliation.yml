@@ -1,0 +1,41 @@
+name: Billing Reconciliation
+
+on:
+  schedule:
+    - cron: '20 * * * *' # hourly at :20
+  workflow_dispatch: {}
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Jitter
+        run: |
+          # Random sleep 0..120 seconds to avoid thundering herd
+          S=$((RANDOM % 120))
+          echo "Sleeping $S seconds..."; sleep $S
+
+      - name: Run reconciliation
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL || secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RECON_TIMEOUT_MS: 20000
+        run: |
+          node scripts/recon/reconcile_billing.mjs || true
+
+      - name: Touch heartbeat (billing_recon)
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          psql "$SUPABASE_DB_URL" -c "select public.touch_heartbeat('billing_recon');"
+
+      - name: Alert on failure (optional)
+        if: failure() && secrets.SUPABASE_DB_URL != ''
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          psql "$SUPABASE_DB_URL" -c "select public.enqueue_alert_if_not_muted('billing_recon_failed', jsonb_build_object('at', now(), 'runner', 'gh_actions'))" || true

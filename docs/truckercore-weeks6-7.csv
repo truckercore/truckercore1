@@ -1,0 +1,24 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Provider B Connector (OAuth/API Key),Story,"Implement auth + token store; align mapping to internal HOS model.",backend;integrations;hos,8,Multi-Provider ELD Abstraction,
+ELD Abstraction Layer,Story,"Normalize driver/HOS/violations across providers; provider registry.",backend;hos;architecture,5,Multi-Provider ELD Abstraction,"Provider B Connector (OAuth/API Key)"
+Parking Suggest API,Story,"GET /api/ai/parking_suggest returns POIs with availability_confidence and fit_score.",backend;ai;parking,5,Parking Availability + HOS-Aware,
+UI — Parking Prompts in Route Panel,Story,"Show top 3 parking options when HOS remaining is low.",app;ai;ux,3,Parking Availability + HOS-Aware,Parking Suggest API
+Coaching Task Model + API,Story,"Create coaching_tasks; CRUD + RLS + audit.",backend;safety,5,Driver Coaching Workflows,
+UI — Coaching Queue,Story,"Safety tab lists tasks; ack + notes.",app;safety;ux,5,Driver Coaching Workflows,Coaching Task Model + API
+COI Upload + OCR,Story,"POST /api/verification/insurance/ocr; extract issuer/limits/expiry; store file ref.",backend;verification;ocr,8,Insurance OCR + Validation,
+UI — Attach Insurance to Carrier Verification,Story,"Upload COI; show parsed fields + confidence; attach to carrier.",app;verification;ux,3,Insurance OCR + Validation,COI Upload + OCR
+Offline Guarded Routing,Story,"Offline path computation avoiding restricted segments; warn if infeasible.",app;offline;routing,8,Offline Minimal Turn-by-Turn,
+Provider Contract Tests (ELD A/B),Task,"Contract tests in CI for both ELD providers.",test;integrations,3,Multi-Provider ELD Abstraction,"Provider B Connector (OAuth/API Key)"
+Parking Suggest Metrics,Task,"Counters for suggestions shown/accepted; HOS distribution.",observability;metrics,2,Parking Availability + HOS-Aware,Parking Suggest API
+Awarded Rates Ingest Job,Story,"Daily ingest of awarded rates; upsert with source tag; rolling averages.",backend;pricing,5,Market Intelligence v2,
+Lane Anomaly Detection,Story,"Detect lanes deviating from rolling mean; API returns top N with deltas.",backend;analytics,5,Market Intelligence v2,Awarded Rates Ingest Job
+UI — Rate Insights: Anomalies Panel,Story,"Trending lanes with deltas; link to history.",app;pricing;ux,3,Market Intelligence v2,Lane Anomaly Detection
+Backend — Shipper Loads + Bids,Story,"CRUD shipper loads; bids; status transitions; RLS by roles.",backend;shipper;broker,8,Shipper Portal MVP,
+UI — Shipper Post Load + View Bids,Story,"Post load; view/accept/decline bids; messaging thread.",app;shipper;broker;ux,8,Shipper Portal MVP,Backend — Shipper Loads + Bids
+Auto-Assign Engine,Story,"Rank drivers by proximity/HOS/equipment; return candidates with reasons.",backend;dispatch;optimization,8,Dispatch Automation,
+UI — Assign Suggestions,Story,"Load details: show ranked drivers; one-tap assign.",app;dispatch;ux,5,Dispatch Automation,Auto-Assign Engine
+Onboarding Risk Score,Story,"Compute risk at signup; reasons; manual review queue if high.",backend;risk;security,5,Risk-Based Onboarding,
+Review Queue UI,Story,"Admin queue to approve/deny; notes; audit trail.",app;admin;security,5,Risk-Based Onboarding,Onboarding Risk Score
+Map Rendering Budget & Tile Cache Tuning,Task,"Reduce memory/jank on main map.",performance;mobile,3,Mobile Performance & Offline,
+Offline Routing Constraints UX,Task,"Pre-run 'Restrictions ahead' prompt; reroute.",offline;routing;ux,3,Mobile Performance & Offline,
+Compliance Auditor Dashboard,Story,"Summaries by range; top violators; export shortcuts.",app;compliance;analytics,5,Compliance Dashboard,

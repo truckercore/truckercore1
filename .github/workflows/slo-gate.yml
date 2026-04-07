@@ -1,0 +1,19 @@
+name: slo-gate
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+jobs:
+  check-slos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check SLOs
+        env:
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+          GRAFANA_API: ${{ secrets.GRAFANA_API }}
+        run: |
+          set -euo pipefail
+          RESP=$(curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" "$GRAFANA_API/query?fn=invoice_checkout&range=1h")
+          P95=$(jq '.p95_ms' <<<"$RESP"); ERR=$(jq '.error_rate' <<<"$RESP")
+          [ "${P95:-999999}" -lt 1200 ] || { echo "p95 too high: $P95"; exit 1; }
+          awk "BEGIN{exit !(${ERR:-1} < 0.02)}" || { echo "error rate high: $ERR"; exit 1; }

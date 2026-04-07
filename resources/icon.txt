@@ -1,0 +1,11 @@
+Placeholder for application icons.
+
+Add your logo at resources/logo.png (1024x1024) and generate platform icons via:
+
+npm install --save-dev electron-icon-builder
+npx electron-icon-builder --input=./resources/logo.png --output=./resources --flatten
+
+This will produce:
+- resources/icon.icns (macOS)
+- resources/icon.ico  (Windows)
+- resources/icon.png  (Linux 512x512)

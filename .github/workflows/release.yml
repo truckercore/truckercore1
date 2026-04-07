@@ -1,0 +1,33 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  build-and-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Evidence snapshot
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p evidence
+          make evidence_snapshot
+          tar -czf evidence.tar.gz evidence/
+      - name: Sales bundle probe
+        env:
+          FUNC_URL: ${{ secrets.FUNC_URL }}
+          ORG_ID: ${{ secrets.ORG_ID }}
+        run: make probe_sales_bundle
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-and-sales-bundle
+          path: |
+            evidence/
+            evidence.tar.gz
+            evidence/roi_bundle.html

@@ -1,0 +1,56 @@
+
+# production
+/build
+dist
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Android local machine config
+android/local.properties
+
+# Flutter/Android build outputs (prevent huge binaries in repo)
+android/.gradle/
+android/app/build/
+**/build/
+.dart_tool/
+*.apk
+*.aab
+*.ipa
+
+# Next.js
+apps/web/.next/
+.next/
+
+# Monorepo web app
+apps/web/node_modules/
+
+# Flutter/Dart generated files
+*.g.dart
+*.freezed.dart
+
+# Generic build output (in addition to **/build/)
+build/

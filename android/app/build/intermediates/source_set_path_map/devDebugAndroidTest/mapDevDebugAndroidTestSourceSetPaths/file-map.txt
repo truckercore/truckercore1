@@ -1,0 +1,6 @@
+com.example.truckercore1.test.app-jetified-tracing-1.2.0-0 C:\Users\moise\.gradle\caches\8.13\transforms\c702a750a1f8f34b83f76bdce43a7f96\transformed\jetified-tracing-1.2.0\res
+com.example.truckercore1.test.app-jetified-core-1.6.1-1 C:\Users\moise\.gradle\caches\8.13\transforms\d50b4ea4909dd58b0e4feb1d3787b2a3\transformed\jetified-core-1.6.1\res
+com.example.truckercore1.test.app-dev-2 C:\Users\moise\IdeaProjects\truckercore1\android\app\build\generated\res\resValues\androidTest\dev\debug
+com.example.truckercore1.test.app-mergeDevDebugAndroidTestResources-3 C:\Users\moise\IdeaProjects\truckercore1\android\app\build\intermediates\incremental\devDebugAndroidTest\mergeDevDebugAndroidTestResources\merged.dir
+com.example.truckercore1.test.app-mergeDevDebugAndroidTestResources-4 C:\Users\moise\IdeaProjects\truckercore1\android\app\build\intermediates\incremental\devDebugAndroidTest\mergeDevDebugAndroidTestResources\stripped.dir
+com.example.truckercore1.test.app-devDebugAndroidTest-5 C:\Users\moise\IdeaProjects\truckercore1\android\app\build\intermediates\merged_res\devDebugAndroidTest\mergeDevDebugAndroidTestResources

@@ -1,0 +1,4 @@
+com.example.truckercore1.test
+string app_name
+style WhiteBackgroundDialogTheme
+style WhiteBackgroundTheme

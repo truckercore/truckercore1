@@ -1,0 +1,17 @@
+{
+  "id": 67890,
+  "topic": "document.uploaded",
+  "version": "1",
+  "aggregate_type": "document",
+  "aggregate_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "created_at": "2025-01-01T12:00:00Z",
+  "payload": {
+    "org_id": "00000000-0000-0000-0000-000000000001",
+    "uploader_user_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "doc_type": "bol",
+    "storage_url": "https://cdn.example.com/docs/bol-123.pdf",
+    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "load_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "validated": false
+  }
+}

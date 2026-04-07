@@ -1,0 +1,29 @@
+name: Edge Functions Smoke
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "supabase/functions/**"
+      - "docs/postman/**"
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Run Newman (Status & Diagnostics)
+        env:
+          BASE_URL: ${{ secrets.FNS_BASE_URL }}
+          API_KEY: ${{ secrets.FNS_SERVICE_KEY }}
+          ORG_ID: ${{ secrets.TEST_ORG_ID }}
+          USER_ID: ${{ secrets.TEST_USER_ID }}
+        run: |
+          mkdir -p newman
+          npm run test:ef:status
+      - uses: actions/upload-artifact@v4
+        with:
+          name: status-diagnostics-report
+          path: newman/status-diagnostics.html

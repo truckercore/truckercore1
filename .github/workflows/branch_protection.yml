@@ -1,0 +1,55 @@
+name: Configure Branch Protection (main)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure protection (requires ADMIN_TOKEN secret)
+        if: ${{ secrets.ADMIN_TOKEN != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADMIN_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const requiredChecks = [
+              { context: 'Flutter CI / analyze_and_test' },
+              { context: 'Node Audit / node_audit' },
+              { context: 'Runbooks Validation / runbooks_check' },
+              { context: 'PR Labels Check / labels' },
+              { context: 'SQL Schema Diff / schema-diff' },
+              { context: 'Edge Deploy with Gate + Rollback / deploy' },
+              { context: 'Predeploy Gate (Prod) / gate' },
+              { context: 'Burn Rate Check / burn' },
+              { context: 'Secrets Rotation & Webhook Check / secrets' },
+            ];
+            try {
+              await github.request('PUT /repos/{owner}/{repo}/branches/{branch}/protection', {
+                owner, repo, branch: 'main',
+                required_status_checks: {
+                  strict: true,
+                  contexts: requiredChecks.map(c => c.context)
+                },
+                enforce_admins: true,
+                restrictions: null,
+                required_pull_request_reviews: {
+                  dismiss_stale_reviews: true,
+                  require_code_owner_reviews: true,
+                  required_approving_review_count: 1
+                },
+                required_signatures: false,
+                allow_force_pushes: false,
+                allow_deletions: false
+              });
+              core.info('Branch protection updated for main.');
+            } catch (e) {
+              core.warning('Failed to update branch protection: ' + (e.message || e));
+            }
+      - name: Guidance if no token
+        if: ${{ secrets.ADMIN_TOKEN == '' }}
+        run: |
+          echo "No ADMIN_TOKEN provided. Please set a repo/org secret ADMIN_TOKEN with admin:repo_hook, repo, and workflow scopes, then re-run this workflow.";
+          echo "Alternatively, configure Branch protection in GitHub Settings → Branches → Protect main and require checks: 'Flutter CI / analyze_and_test', 'Node Audit / node_audit', 'Runbooks Validation / runbooks_check'."

@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore R1 API (Umbrella)
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env: { default: stage, enum: [stage, app] }
+tags:
+  - name: marketplace
+  - name: claims
+  - name: safety
+  - name: dispatch
+  - name: routing-eta
+  - name: fleet-yard
+  - name: ownerop-billing
+  - name: pricing-forecast
+  - name: trust-fraud-verify
+  - name: eld-hos
+  - name: offline-nav
+  - name: tenancy-privacy-security
+  - name: esg-analytics
+  - name: enterprise-admin
+  - name: shipper
+  - name: experiments
+  - name: partner
+  - name: bi
+paths: {}
+components: {}
+externalDocs:
+  description: Domain specifications
+  url: https://docs.yourdomain.com
+x-modules:
+  phase4: ./specs/phase4_openapi.yaml
+  phase5: ./specs/phase5_openapi.yaml
+  phase12_13: ./specs/truckercore-phase12-13.yaml
+  phase14_15: ./specs/truckercore-phase14-15.yaml
+  phase18_19: ./specs/truckercore-phase18-19.yaml
+  phase20_21: ./specs/truckercore-phase20-21.yaml
+  phase22_23: ./specs/truckercore-phase22-23.yaml
+  phase24_26: ./specs/truckercore-phase24-26.yaml

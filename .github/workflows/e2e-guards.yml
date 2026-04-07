@@ -1,0 +1,51 @@
+name: e2e-guards
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - stripe-idempotency
+          - stripe-race
+          - rls-cross-tenant
+          - rls-policies-parity
+          - claims-drift-canary
+          - signed-request-positive
+          - signed-request-missing-sig
+          - signed-request-skew
+          - signed-request-path-tamper
+          - secrets-age
+          - migration-security
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Seed test fixtures
+        run: node scripts/seed-fixtures.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+
+      - name: Run check
+        run: node scripts/e2e/${{ matrix.check }}.js
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          STRIPE_SECRET: ${{ secrets.STRIPE_SECRET }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          ORG_A_JWT: ${{ secrets.ORG_A_JWT }}
+          ORG_B_JWT: ${{ secrets.ORG_B_JWT }}
+          REQUEST_SIGNING_SECRET: ${{ secrets.REQUEST_SIGNING_SECRET }}
+          MAX_SECRET_AGE_DAYS: 90

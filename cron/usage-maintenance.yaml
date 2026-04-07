@@ -1,0 +1,14 @@
+# cron/usage-maintenance.yaml
+jobs:
+  - name: usage-rollup-incremental
+    schedule: "0 * * * *"       # hourly
+    command: psql "$DATABASE_URL" -c "select public.usage_rollup_incremental(3);"
+  - name: usage-partition-ensure
+    schedule: "0 3 1 * *"       # monthly, day 1
+    command: psql "$DATABASE_URL" -c "select public.usage_part_ensure(now());"
+  - name: usage-prune-old
+    schedule: "0 4 * * 0"       # weekly, Sunday
+    command: psql "$DATABASE_URL" -c "select public.usage_prune_old_parts(12);"
+  - name: usage-pii-scrub
+    schedule: "15 4 1 * *"      # monthly
+    command: psql "$DATABASE_URL" -c "select public.usage_scrub_user_ids(90);"}

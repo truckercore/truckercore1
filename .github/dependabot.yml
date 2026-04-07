@@ -1,0 +1,100 @@
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+
+    # Security updates
+    open-pull-requests-limit: 10
+
+    # Update strategies
+    versioning-strategy: increase
+
+    # Automatic rebasing
+    rebase-strategy: auto
+
+    # Grouping rules
+    groups:
+      # Security patches - high priority
+      security-patches:
+        dependency-type: "production"
+        update-types: ["patch"]
+        patterns:
+          - "*"
+
+      # Development dependencies
+      dev-dependencies:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+      # React ecosystem
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@types/react*"
+        update-types: ["minor", "patch"]
+
+      # Testing frameworks
+      testing:
+        patterns:
+          - "jest*"
+          - "vitest*"
+          - "@types/jest"
+          - "ts-jest"
+          - "supertest"
+          - "nock"
+        update-types: ["minor", "patch"]
+
+    # Ignore major version updates
+    ignore:
+      # Ignore major updates for all packages
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+      # Specific packages to ignore completely (if needed)
+      # - dependency-name: "package-name"
+      #   versions: [">= 2.0.0"]
+
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "automated"
+
+    # Commit message prefix
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+    # Reviewers (optional)
+    # reviewers:
+    #   - "team-name"
+    # assignees:
+    #   - "username"
+
+    # Pull request branch name prefix
+    pull-request-branch-name:
+      separator: "/"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "ci"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Docker (if you have Dockerfiles)
+  # - package-ecosystem: "docker"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"

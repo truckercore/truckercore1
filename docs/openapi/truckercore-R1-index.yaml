@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore R1 API (Index)
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables: { env: { default: stage, enum: [stage, app] } }
+tags:
+  - name: marketplace
+  - name: claims
+  - name: safety
+  - name: dispatch
+  - name: routing-eta
+  - name: fleet-yard
+  - name: ownerop-billing
+  - name: pricing-forecast
+  - name: trust-fraud-verify
+  - name: eld-hos
+  - name: offline-nav
+  - name: tenancy-privacy-security
+  - name: esg-analytics
+  - name: enterprise-admin
+  - name: shipper
+paths: {}
+components: {}
+externalDocs:
+  description: Domain specs
+  url: https://api.yourdomain.com/docs
+x-modules:
+  marketplace: ./specs/marketplace.yaml
+  claims: ./specs/claims.yaml
+  safety: ./specs/safety.yaml
+  dispatch: ./specs/dispatch.yaml
+  routing-eta: ./specs/routing_eta.yaml
+  fleet-yard: ./specs/fleet_yard.yaml
+  ownerop-billing: ./specs/ownerop_billing.yaml
+  pricing-forecast: ./specs/pricing_forecast.yaml
+  trust-fraud-verify: ./specs/trust_fraud_verify.yaml
+  eld-hos: ./specs/eld_hos.yaml
+  offline-nav: ./specs/offline_nav.yaml
+  tenancy-privacy-security: ./specs/tenancy_privacy_security.yaml
+  esg-analytics: ./specs/esg_analytics.yaml
+  enterprise-admin: ./specs/enterprise_admin.yaml
+  shipper: ./specs/shipper.yaml

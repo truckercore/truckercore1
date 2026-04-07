@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.truckercore.example.com/events/load.assigned/v1.schema.json",
+  "title": "load.assigned v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "topic",
+    "version",
+    "aggregate_type",
+    "aggregate_id",
+    "payload",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "integer" },
+    "topic": { "const": "load.assigned" },
+    "version": { "type": "string", "pattern": "^[0-9]+$" },
+    "aggregate_type": { "type": "string", "enum": ["load"] },
+    "aggregate_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["org_id", "load_id", "assigned_to_type", "assigned_to_id"],
+      "properties": {
+        "org_id": { "type": "string", "format": "uuid" },
+        "load_id": { "type": "string", "format": "uuid" },
+        "assigned_to_type": { "type": "string", "enum": ["driver", "truck", "carrier"] },
+        "assigned_to_id": { "type": "string" },
+        "eta": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

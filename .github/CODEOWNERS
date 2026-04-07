@@ -1,0 +1,24 @@
+# CODEOWNERS for sensitive areas – require security-review and ownership
+
+# Webhook crypto and auth guards
+/api/lib/webhook.ts @security-team @platform-leads
+/api/lib/guard.ts @security-team @platform-leads
+/api/lib/service_guard.ts @security-team @platform-leads
+
+# Policies and DB
+/policies/** @security-team @data-team
+/policy/** @security-team @data-team
+/supabase/** @security-team @data-team
+/db/** @security-team @data-team
+
+# CI and security workflows
+/.github/workflows/** @security-team @devops-team
+/ci/** @security-team @devops-team
+/security/** @security-team
+
+# Deno functions touching entitlements or auth
+/deno-fns/** @security-team @platform-leads
+
+# Observability configs
+/alerts/** @security-team @devops-team
+/observability/** @security-team @devops-team

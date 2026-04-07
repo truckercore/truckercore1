@@ -1,0 +1,91 @@
+name: Governance Metrics Dashboard
+
+on:
+  schedule:
+    - cron: '0 10 * * 1' # Mondays 10:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute PR label compliance and changelog coverage (last 30 days)
+        id: calc
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const since = new Date(Date.now() - 30*24*3600*1000).toISOString();
+            let page = 1; const per_page = 100; let mergedPRs = [];
+            while (true) {
+              const { data } = await github.rest.pulls.list({ owner, repo, state: 'closed', sort: 'updated', direction: 'desc', per_page, page });
+              const recent = data.filter(pr => pr.merged_at && pr.merged_at >= since);
+              mergedPRs.push(...recent);
+              if (data.length < per_page || recent.length === 0) break;
+              page++;
+            }
+            if (!mergedPRs.length) {
+              core.setOutput('total', 0);
+              core.setOutput('labelCompliance', 'n/a');
+              core.setOutput('changelogCoverage', 'n/a');
+              core.setOutput('body', 'No merged PRs in the last 30 days.');
+              return;
+            }
+            const requiredTypes = new Set(['type:feature','type:fix','type:ops']);
+            let okLabels = 0, okChangelog = 0;
+            for (const pr of mergedPRs) {
+              const labels = pr.labels?.map(l => (l.name||'').toLowerCase()) || [];
+              const hasType = labels.some(l => requiredTypes.has(l));
+              if (hasType) okLabels++;
+              // Fetch files for changelog check
+              const files = await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 });
+              const touchedChangelog = files.some(f => (f.filename||'').toLowerCase() === 'changelog.md');
+              const skip = labels.includes('skip-changelog');
+              if (touchedChangelog || skip) okChangelog++;
+            }
+            const total = mergedPRs.length;
+            const labelCompliance = Math.round((okLabels/total)*100);
+            const changelogCoverage = Math.round((okChangelog/total)*100);
+            core.setOutput('total', total);
+            core.setOutput('labelCompliance', labelCompliance);
+            core.setOutput('changelogCoverage', changelogCoverage);
+            const lines = [
+              `Merged PRs (30d): ${total}`,
+              `Label compliance (type:* present): ${labelCompliance}%`,
+              `Changelog coverage (CHANGELOG updated or skip-changelog): ${changelogCoverage}%`,
+            ];
+            core.setOutput('body', lines.join('\n'));
+
+      - name: Open/Update Governance Metrics issue
+        uses: actions/github-script@v7
+        env:
+          TOTAL: ${{ steps.calc.outputs.total }}
+          LABELS: ${{ steps.calc.outputs.labelCompliance }}
+          CHANGELOG: ${{ steps.calc.outputs.changelogCoverage }}
+          BODY: ${{ steps.calc.outputs.body }}
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0,10);
+            const title = `Governance Metrics – ${today}`;
+            const body = [
+              '## Governance Metrics (30 days)',
+              process.env.BODY || '',
+              '',
+              'Notes:',
+              '- Label compliance is derived from labels type:feature|type:fix|type:ops.',
+              '- Changelog coverage allows the `skip-changelog` label as an explicit override.'
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'governance' });
+            const existing = issues.find(i => i.title.startsWith('Governance Metrics'));
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, title, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['governance'] });
+            }

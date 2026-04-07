@@ -1,0 +1,12 @@
+{
+  "routing_v2": false,
+  "saved_search_alerts": false,
+  "offline_store_and_forward": true,
+  "privacy_center_v1": false,
+  "event_webhooks_mvp": true,
+  "ifta_mvp": false,
+  "ocr_pipeline_v1": false,
+  "yms_light": false,
+  "emissions_mvp": false,
+  "delay_prediction": false
+}

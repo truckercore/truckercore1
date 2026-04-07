@@ -1,0 +1,18 @@
+<lint-module
+    format="1"
+    dir="C:\Users\moise\IdeaProjects\truckercore1\android\app"
+    name=":app"
+    type="APP"
+    maven="truckercore1_android:app:unspecified"
+    agpVersion="8.6.1"
+    buildFolder="build"
+    bootClassPath="C:\Users\moise\AppData\Local\Android\Sdk\platforms\android-36\android.jar;C:\Users\moise\AppData\Local\Android\Sdk\build-tools\34.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-36">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="devRelease"/>
+</lint-module>

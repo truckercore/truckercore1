@@ -1,0 +1,9 @@
+{
+  "app_title": "TruckerCore",
+  "banner_degraded": "Mode dégradé — utilisation des données en cache",
+  "banner_read_only": "En attente — mode lecture seule",
+  "banner_failover": "Dégradé — Basculement",
+  "last_updated": "Dernière mise à jour {timestamp}",
+  "add_to_calendar": "Ajouter au calendrier",
+  "create_pickup_event": "Créer un événement de prise/dépôt"
+}

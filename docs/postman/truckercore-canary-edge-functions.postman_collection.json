@@ -1,0 +1,185 @@
+{
+  "info": {
+    "name": "Truckercore Canary — Edge Functions",
+    "_postman_id": "b1d7a1a6-9c1c-4a6a-98d3-21b6b3e2fe81",
+    "description": "Canary rollout calls for Edge Functions with idempotency and signature headers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const body = pm.request.body ? pm.request.body.toString() : '';",
+          "const secret = pm.collectionVariables.get('signing_secret') || pm.environment.get('signing_secret') || '';",
+          "let idem = pm.variables.get('idem') || pm.environment.get('idem') || pm.collectionVariables.get('idem');",
+          "if (!idem) { idem = `idem-${pm.variables.replaceIn('{{$guid}}')}`; pm.variables.set('idem', idem); }",
+          "",
+          "// Compute signature: sha256(secret + '.' + body)",
+          "let sig = '';",
+          "if (secret) {",
+          "  /* eslint-disable */",
+          "  sig = CryptoJS.SHA256(secret + '.' + body).toString(CryptoJS.enc.Hex);",
+          "  /* eslint-enable */",
+          "}",
+          "pm.variables.set('signature', sig);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://YOUR_REF.functions.supabase.co" },
+    { "key": "api_key", "value": "SERVICE_OR_ANON_KEY" },
+    { "key": "signing_secret", "value": "CHANGE_ME" },
+    { "key": "org_id", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "idem", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "TMS — Sync Loads",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" },
+          { "key": "x-idem-key", "value": "{{idem}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/tms_sync", "host": [ "{{baseUrl}}" ], "path": [ "tms_sync" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"since_iso\": \"2025-09-01T00:00:00Z\",\n  \"idem\": \"{{idem}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Accounting — Export Bookings (QB/Xero)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" },
+          { "key": "x-idem-key", "value": "{{idem}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/accounting_export", "host": [ "{{baseUrl}}" ], "path": [ "accounting_export" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"range\": { \"from\": \"2025-09-01\", \"to\": \"2025-09-14\" },\n  \"format\": \"qb\",\n  \"idem\": \"{{idem}}\"\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Comms — Send Message (Email/SMS)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" },
+          { "key": "x-idem-key", "value": "{{idem}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/comms_send", "host": [ "{{baseUrl}}" ], "path": [ "comms_send" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"to\": { \"email\": \"ops@example.com\" },\n  \"subject\": \"Load update\",\n  \"message\": \"Pickup confirmed 10:00 AM\",\n  \"context\": { \"load_id\": \"ld_123\" },\n  \"idem\": \"{{idem}}\"\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Calendar — Sync Events",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" },
+          { "key": "x-idem-key", "value": "{{idem}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/calendar_sync_events", "host": [ "{{baseUrl}}" ], "path": [ "calendar_sync_events" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"range\": { \"from\": \"2025-09-14\", \"to\": \"2025-09-21\" },\n  \"idem\": \"{{idem}}\"\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Compliance — Validate Candidate (Pre-rank)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/compliance_validate_candidate", "host": [ "{{baseUrl}}" ], "path": [ "compliance_validate_candidate" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"candidate_id\": \"cand_001\",\n  \"driver_state\": { \"gross_weight\": 78000, \"height\": 13.5 },\n  \"equipment\": \"van\",\n  \"hazmat\": false,\n  \"duty_hours_left\": 3,\n  \"lane\": { \"max_weight\": 80000, \"max_height\": 13.6, \"facility_id\": \"fac_dc7\" }\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Negotiation — Suggest Counter",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/negotiation_counter", "host": [ "{{baseUrl}}" ], "path": [ "negotiation_counter" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"user_id\": \"11111111-1111-1111-1111-111111111111\",\n  \"load_id\": \"ld_123\",\n  \"broker_id\": \"bkr_456\",\n  \"offer_cpm\": 2.15,\n  \"market_mid_cpm\": 2.20\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    },
+    {
+      "name": "Delay — Predict",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "apikey", "value": "{{api_key}}" },
+          { "key": "Authorization", "value": "Bearer {{api_key}}" },
+          { "key": "X-Signature", "value": "{{signature}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/delay_predict", "host": [ "{{baseUrl}}" ], "path": [ "delay_predict" ] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"{{org_id}}\",\n  \"candidate_id\": \"cand_001\",\n  \"start_time\": \"2025-09-14T10:00:00Z\",\n  \"corridor\": [\"I-80\",\"I-94\"],\n  \"facility_id\": \"fac_dc7\"\n}"
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "exec": [ "pm.test('status 200', ()=> pm.response.code===200);" ] } }
+      ]
+    }
+  ]
+}

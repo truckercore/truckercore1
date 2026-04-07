@@ -1,0 +1,8 @@
+<AttributeStatement>
+  <Attribute Name="Email"><AttributeValue>alice@tenant.com</AttributeValue></Attribute>
+  <Attribute Name="Groups">
+    <AttributeValue>TC-Corp-Admins</AttributeValue>
+    <AttributeValue>TC-Dispatch</AttributeValue>
+  </Attribute>
+  <Attribute Name="Name"><AttributeValue>Alice Doe</AttributeValue></Attribute>
+</AttributeStatement>

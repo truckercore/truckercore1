@@ -1,0 +1,23 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+Carrier Marketplace — Post Truck,Story,"POST /api/marketplace/trucks; drivers/fleets post available trucks (geo/time/equipment).",backend;marketplace,5,Carrier Marketplace v1,
+Carrier Marketplace — Load Search,Story,"GET /api/marketplace/loads/search with filters (lane,date,equipment,rate).",backend;marketplace;search,5,Carrier Marketplace v1,
+Carrier Marketplace — Match/Bid,Story,"POST /api/marketplace/match to express interest/bid on a load; status transitions.",backend;marketplace;offers,5,Carrier Marketplace v1,Carrier Marketplace — Load Search
+Carrier Marketplace — Chat Threads,Story,"Create/list chat threads between poster and bidder; post messages; read receipts.",backend;marketplace;chat,5,Carrier Marketplace v1,Carrier Marketplace — Match/Bid
+App — Marketplace UI (Post/Search/Chat),Story,"Screens to post trucks, search loads, bid/match, and chat threads.",app;marketplace;ux,8,Carrier Marketplace v1,"Carrier Marketplace — Post Truck,Carrier Marketplace — Load Search,Carrier Marketplace — Chat Threads"
+Claims — Create & Lifecycle,Story,"POST /api/claims create incident/accident; statuses (open,in_review,submitted,paid,denied); timeline/audit.",backend;claims,8,Claims Workflow,
+Claims — Docs Upload & Pack,Story,"Attach images/docs; generate consolidated PDF pack.",backend;claims;documents,5,Claims Workflow,Claims — Create & Lifecycle
+App — Claims UI,Story,"Create claim, attach photos/docs, track status; generate/share pack.",app;claims;ux,8,Claims Workflow,Claims — Docs Upload & Pack
+Driver Scorecards v2 — API,Story,"GET scorecard by driver and rank endpoint; metrics: speeding/harsh/dwell/ontime; streaks/peer rank.",backend;safety;analytics,8,Driver Scorecards v2,
+App — Scorecards v2 UI,Story,"Driver profile shows score, streaks, rank vs peers; badges.",app;safety;ux,5,Driver Scorecards v2,Driver Scorecards v2 — API
+Billing — Metered Events,Story,"POST /api/billing/meter; capture usage for features (ai_calls,route_opt,trihaul,ocr).",backend;billing;events,5,Multi-tenant Billing,
+Billing — Usage & Invoices,Story,"GET /api/billing/usage?from&to; POST /api/billing/invoices/generate; RBAC org_admin only.",backend;billing;invoices,5,Multi-tenant Billing,Billing — Metered Events
+App — Billing UI (Usage & Invoices),Story,"Admin view usage charts and invoices; link to PSP portal.",app;billing;ux,5,Multi-tenant Billing,Billing — Usage & Invoices
+Capacity Forecast — API,Story,"GET /api/capacity/forecast?lane&horizon returns supply/demand index and confidence.",backend;forecast;pricing,8,Capacity Forecasting,
+App — Capacity Forecast UI,Story,"Lane view shows supply vs demand index trend; callouts for tightening/loosening.",app;forecast;ux,5,Capacity Forecasting,Capacity Forecast — API
+Dynamic ETA Commitments — API,Story,"POST /api/eta/commitment {load_id,appt_window} → commitment buffer and risk bands.",backend;eta;contracts,5,Dynamic ETA Commitments,ETA v2 (Weeks 4–5)
+App — Commitment UI,Story,"Load detail shows commitment buffer, risk band; alert when at-risk.",app;eta;ux,3,Dynamic ETA Commitments,Dynamic ETA Commitments — API
+Fraud Graph Analytics — API,Story,"POST /api/fraud/graph/score {subject} → risk with graph features (shared devices, emails, bank).",backend;fraud;analytics,8,Enhanced Fraud Analytics,
+App — Fraud Insights UI,Story,"Vetting view shows graph-derived signals; reasons & links to related entities.",app;fraud;ux,5,Enhanced Fraud Analytics,Fraud Graph Analytics — API
+Localization — i18n Messages,Story,"GET /api/i18n/messages?locale; structure for client to fetch message bundles.",backend;i18n,3,Accessibility & Localization,
+Accessibility — Feedback & Audit,Story,"POST /api/a11y/feedback and store audit tags (screen, wcag_issue).",backend;a11y,3,Accessibility & Localization,
+App — i18n & A11y Enhancements,Story,"Wire locale switch; ensure large text/contrast; a11y feedback form.",app;i18n;a11y,5,Accessibility & Localization,"Localization — i18n Messages,Accessibility — Feedback & Audit"

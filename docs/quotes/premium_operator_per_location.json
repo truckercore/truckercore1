@@ -1,0 +1,14 @@
+{
+  "name": "Premium Operator Per-Location",
+  "currency": "USD",
+  "payload": {
+    "line_items": [
+      { "sku": "PREM_LOC", "description": "Premium Operator - Per Location", "unit_price_usd": 199, "quantity": 1 }
+    ],
+    "terms": {
+      "billing": "Annual prepay",
+      "renewal": "Auto-renew with CPI cap 5%",
+      "setup_fee_usd": 0
+    }
+  }
+}

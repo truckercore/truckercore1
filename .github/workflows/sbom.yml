@@ -1,0 +1,20 @@
+name: sbom
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "0 2 * * *"
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          artifact-name: "sbom.json"
+      - name: Grype scan
+        uses: anchore/scan-action@v4
+        with:
+          sbom: "sbom.json"
+          severity-cutoff: "high"

@@ -1,0 +1,100 @@
+name: Webhooks Security Ops (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_chaos:
+        description: "Run chaos drills (dry-run)"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      run_redteam:
+        description: "Run red-team synthetic ping"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      lint_observability:
+        description: "Lint dashboards JSON and PrometheusRule syntax"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci --ignore-scripts; else echo "no npm lock"; fi
+
+  chaos-dry-run:
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: ${{ github.event.inputs.run_chaos != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Chaos drills (dry-run)
+        env:
+          DRY_RUN: "true"
+          CHAOS_ENABLED: "false"
+        run: |
+          node chaos/drills/secret_compromise.mjs || true
+          node chaos/drills/pin_expiry.mjs || true
+          node chaos/drills/provider_ip_drift.mjs || true
+          node chaos/drills/queue_backlog.mjs || true
+          node chaos/drills/deps/dns_delay.mjs || true
+          node chaos/drills/deps/crypto_slowdown.mjs || true
+          node chaos/drills/deps/supabase_ttl_outage.mjs || true
+
+  redteam:
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: ${{ github.event.inputs.run_redteam != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Synthetic red-team (dry-run)
+        env:
+          DRY_RUN: "true"
+          WEBHOOK_PROVIDER: custom
+        run: |
+          node tooling/redteam/webhook_rt.mjs
+
+  lint-observability:
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: ${{ github.event.inputs.lint_observability != 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Lint Grafana dashboards (JSON syntax)
+        run: |
+          if ls dashboards/*.json 1> /dev/null 2>&1; then
+            for f in dashboards/*.json; do
+              echo "Validating $f"; jq -e . "$f" > /dev/null; done
+          else
+            echo "No dashboards/*.json found"; fi
+      - name: Lint Prometheus rules syntax via promtool (Docker)
+        run: |
+          if ls alerts/*.yaml 1> /dev/null 2>&1; then
+            docker run --rm -v "${{ github.workspace }}:/work" prom/prometheus promtool check rules /work/alerts/*.yaml
+          else
+            echo "No alerts/*.yaml found"; fi

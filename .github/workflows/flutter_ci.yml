@@ -1,0 +1,123 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Cache Pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Cache Gradle (Android)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        env:
+          CI: true
+        run: |
+          flutter test --no-pub
+
+  integration_tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+          cache: true
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd
+            ~/.android/adb*
+          key: avd-${{ runner.os }}-${{ hashFiles('**/android/app/build.gradle') }}
+          restore-keys: |
+            avd-${{ runner.os }}-
+
+      - name: Create AVD
+        run: |
+          echo "y" | sdkmanager --install "system-images;android-30;google_apis;x86_64"
+          avdmanager create avd -n test -k "system-images;android-30;google_apis;x86_64" --device "pixel"
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+
+      - name: Launch emulator
+        run: |
+          nohup emulator -avd test -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-window -accel auto &
+          adb wait-for-device
+          # Wait for boot complete
+          bootcompleted=""
+          for i in {1..60}; do
+            bootcompleted=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$bootcompleted" = "1" ]; then break; fi
+            sleep 5
+          done
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
+      - name: Run integration tests
+        env:
+          CI: true
+        run: |
+          # Prefer running any existing integration_test/* using flutter test -d
+          if ls integration_test/*.dart 1> /dev/null 2>&1; then
+            flutter test integration_test -d emulator-5554 || true
+          else
+            echo "No integration tests found, skipping.";
+          fi

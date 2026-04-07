@@ -1,0 +1,13 @@
+-- 0014_example_entities_rollback.sql
+-- Purpose: rollback for example_entities module (kept alongside forward migration)
+-- NOTE: Execute with caution in non-production environments or during controlled rollbacks.
+
+-- Example rollback order (commented by default). Uncomment to use.
+-- begin;
+-- drop policy if exists example_entities_read_org on public.example_entities;
+-- alter table if exists public.example_entities disable row level security;
+-- drop index if exists idx_example_entities_org_status;
+-- drop table if exists public.example_entities;
+-- -- Optional: remove example feature flag
+-- -- delete from public.feature_flags where key = 'FEATURE_EXAMPLE_ENABLED';
+-- commit;

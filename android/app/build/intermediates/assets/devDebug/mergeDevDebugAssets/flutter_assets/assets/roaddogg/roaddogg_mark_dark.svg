@@ -1,0 +1,15 @@
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RoadDogg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect rx="20" ry="20" x="4" y="4" width="88" height="88" fill="url(#g)"/>
+  <g fill="#0b1220">
+    <circle cx="36" cy="40" r="6"/>
+    <circle cx="60" cy="40" r="6"/>
+    <path d="M28 62c8 8 32 8 40 0" stroke="#0b1220" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M18 36c2-10 10-18 30-18s28 8 30 18" stroke="#0b1220" stroke-opacity=".2" stroke-width="6" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

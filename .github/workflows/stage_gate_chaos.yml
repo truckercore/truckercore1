@@ -1,0 +1,38 @@
+name: Stage Gate Chaos Test
+
+on:
+  schedule:
+    - cron: '15 2 * * *' # nightly after canary
+  workflow_dispatch: {}
+
+jobs:
+  chaos_stage:
+    runs-on: ubuntu-latest
+    env:
+      FUNCTIONS_URL: ${{ secrets.STAGE_FUNCTIONS_URL }}
+      SERVICE_ROLE: ${{ secrets.STAGE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Preconditions
+        run: |
+          if [ -z "$FUNCTIONS_URL" ] || [ -z "$SERVICE_ROLE" ]; then
+            echo "Missing STAGE_FUNCTIONS_URL or STAGE_SERVICE_ROLE_KEY; skipping chaos test."; exit 0; fi
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+      - name: Inject chaos (function_audit_log failures)
+        run: |
+          set -e
+          curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/chaos-inject?n=10"
+      - name: Run edge smoke (stage)
+        run: |
+          set -e
+          RES=$(curl -fsSL -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/healthz")
+          echo "$RES" | jq '.'
+          OK=$(echo "$RES" | jq -r '.ok')
+          if [ "$OK" != "true" ] && [ "$OK" != "false" ]; then
+            echo "Invalid schema for healthz (missing ok)"; exit 1; fi
+          RES=$(curl -fsSL -X POST -H "Authorization: Bearer $SERVICE_ROLE" "$FUNCTIONS_URL/notify-alerts")
+          echo "$RES" | jq '.'
+          DEL=$(echo "$RES" | jq -r '.delivered')
+          if [ -z "$DEL" ]; then echo "Invalid schema for notify-alerts (missing delivered)"; exit 1; fi

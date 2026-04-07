@@ -1,0 +1,9 @@
+Title,Type,Description,Labels,Estimate,Epic,Depends On
+TMS Integrations (Load/Status),Story,"Inbound loads, status updates via webhook/API polling; idempotency keys.",backend;integrations;tms,13,TMS Integrations,API Keys & Webhooks
+Carrier Scorecards — Org Benchmark,Story,"Compare to network median by lane/region; anonymized benchmarking.",backend;safety;analytics,8,Scorecards+,Driver Scorecards v2
+Partner API — Public Pricing & Capacity,Story,"/partner/pricing and /partner/capacity endpoints with token scopes.",backend;partners;api,8,Partner APIs,API Keys & Webhooks
+BI Exports (Parquet),Story,"Columnar exports to storage; signed URLs; partitioned by date/org.",backend;analytics;exports,8,BI Exports,Warehouse & dbt
+Internationalization v2,Story,"Full locale coverage (es-MX, fr-CA); date/number/timezones; lane formats.",app;i18n,5,Globalization,App — i18n & A11y Enhancements
+Resilience — Circuit Breakers,Story,"Add per-provider timeouts, retries, and circuit breakers; golden paths documented.",backend;reliability;sre,5,Resilience,"ELD Provider Integrations (A/B)"
+S3/Cold Storage Policy,Story,"Move old docs/positions to cold tier; lifecycle rules.",backend;storage;cost,3,Cost Optimization,Data Retention & Privacy
+Rate Limit & Abuse Shield,Story,"Per-IP/org limits; burst buckets; CAPTCHA on abuse; admin overrides.",backend;security;abuse,5,Security Hardening,Moderation & Abuse Controls

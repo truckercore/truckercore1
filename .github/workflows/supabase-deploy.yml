@@ -1,0 +1,54 @@
+name: supabase-deploy
+on:
+  workflow_dispatch:
+  push:
+    tags: [ 'v*.*.*' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      BLUE_GREEN: "true"  # set to "false" to disable blue/green
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm i -g supabase deno
+
+      - name: Link project
+        run: supabase link --project-ref $PROJECT_REF
+
+      - name: DB dry-run (guard destructive)
+        id: dryrun
+        run: |
+          set -e
+          out=$(supabase db push --dry-run || true)
+          echo "$out"
+          if echo "$out" | grep -Eiq '(drop table|drop column|alter column .* drop)'; then
+            echo "Destructive migration detected. Failing."
+            exit 1
+          fi
+
+      - name: Push DB
+        run: supabase db push
+
+      - name: Seed (idempotent)
+        run: supabase db query supabase/seeds/seed_tc_quality.sql
+
+      - name: Ops schedule drift guard (last run < 36h and ok=true)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          out=$(supabase db query "select case when max(ok) and now()-max(ran_at) < interval '36 hours' then 1 else 0 end as healthy from public.ops_maintenance_log where task='nightly_maintenance';" || true)
+          echo "$out"
+          echo "$out" | grep -q " 1" || (echo "ops maintenance stale/failing" && exit 1)
+
+      - name: Deploy functions (blue/green optional)
+        run: |
+          if [ "$BLUE_GREEN" = "true" ]; then
+            supabase functions deploy health --import-map supabase/functions/import_map.json || supabase functions deploy health
+            supabase functions deploy user-profile --import-map supabase/functions/import_map.json || supabase functions deploy user-profile
+          else
+            supabase functions deploy health
+            supabase functions deploy user-profile
+          fi

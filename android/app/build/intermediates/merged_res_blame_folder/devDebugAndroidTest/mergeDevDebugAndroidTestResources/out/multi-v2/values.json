@@ -1,0 +1,45 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.truckercore1.test.app-mergeDevDebugAndroidTestResources-3:/values/values.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\moise\\.gradle\\caches\\8.13\\transforms\\d50b4ea4909dd58b0e4feb1d3787b2a3\\transformed\\jetified-core-1.6.1\\res\\values\\values.xml",
+                    "from": {
+                        "startLines": "4,11",
+                        "startColumns": "0,0",
+                        "startOffsets": "142,510",
+                        "endLines": "10,17",
+                        "endColumns": "8,8",
+                        "endOffsets": "509,875"
+                    },
+                    "to": {
+                        "startLines": "3,10",
+                        "startColumns": "4,4",
+                        "startOffsets": "131,503",
+                        "endLines": "9,16",
+                        "endColumns": "8,8",
+                        "endOffsets": "498,868"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\moise\\IdeaProjects\\truckercore1\\android\\app\\build\\generated\\res\\resValues\\androidTest\\dev\\debug\\values\\gradleResValues.xml",
+                    "from": {
+                        "startLines": "6",
+                        "startColumns": "4",
+                        "startOffsets": "163",
+                        "endColumns": "75",
+                        "endOffsets": "234"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "75",
+                        "endOffsets": "126"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+groups:
+  - name: catalog-freshness
+    rules:
+      - alert: FreshnessSLOBurnRate>2x_15m
+        expr: freshness_slo_burn_rate{service="catalog"} > 2
+        for: 15m
+        labels:
+          severity: warning
+          service: catalog
+        annotations:
+          summary: "Freshness SLO burn rate >2× (15m)"
+          runbook: "link://runbooks/catalog-freshness"

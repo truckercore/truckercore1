@@ -1,0 +1,24 @@
+name: Runbook
+on:
+  workflow_dispatch:
+  push:
+    paths: ["scripts/**", "Makefile"]
+jobs:
+  runbook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run runbook
+        env:
+          PROJECT_URL: ${{ secrets.PROJECT_URL }}
+        run: |
+          make runbook-exec-lite
+      - name: Upload runbook report
+        uses: actions/upload-artifact@v4
+        with:
+          name: runbook-report
+          path: artifacts/runbook_report_*.{txt,json}

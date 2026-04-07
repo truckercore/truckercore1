@@ -1,0 +1,6 @@
+{
+  "brokers": [
+    {"id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","score":86,"days":26,"disputes":1},
+    {"id":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","score":72,"days":35,"disputes":3}
+  ]
+}

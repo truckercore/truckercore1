@@ -1,0 +1,499 @@
+openapi: 3.0.3
+info:
+  title: TruckerCore Phase 16–17 API
+  version: 1.0.0
+servers:
+  - url: https://{env}.yourdomain.com
+    variables:
+      env:
+        default: stage
+        enum: [stage, app]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    ConnectorStatus:
+      type: object
+      properties:
+        provider: { type: string }
+        connected: { type: boolean }
+        last_sync_at: { type: string, format: date-time, nullable: true }
+        scope: { type: array, items: { type: string } }
+    JournalEntry:
+      type: object
+      properties:
+        id: { type: string }
+        date: { type: string, format: date }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              account: { type: string }
+              debit: { type: number }
+              credit: { type: number }
+              memo: { type: string }
+    PublishLoadResult:
+      type: object
+      properties:
+        provider: { type: string }
+        external_id: { type: string }
+        status: { type: string, enum: [posted, updated, failed] }
+        message: { type: string, nullable: true }
+    AutoReplanResult:
+      type: object
+      properties:
+        plan_id: { type: string }
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              load_id: { type: string }
+              action: { type: string, enum: [reassign_driver, add_stop, remove_stop, delay, cancel] }
+              reason: { type: string }
+              eta_change_minutes: { type: integer, nullable: true }
+    PredictiveMaintenanceItem:
+      type: object
+      properties:
+        vehicle_id: { type: string }
+        component: { type: string }
+        failure_risk: { type: string, enum: [low, medium, high] }
+        mtbf_days_est: { type: number }
+        recommended_action: { type: string }
+    VisionEvent:
+      type: object
+      properties:
+        id: { type: string }
+        driver_user_id: { type: string }
+        type: { type: string, enum: [distracted, tailgating, collision_warning, stop_sign_violation, unknown] }
+        occurred_at: { type: string, format: date-time }
+        severity: { type: string, enum: [low, medium, high] }
+        media_url: { type: string, nullable: true }
+    EsignEnvelope:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [sent, viewed, completed, declined, expired] }
+        doc_type: { type: string, enum: [rate_con, lumper, claim_release, other] }
+        recipients:
+          type: array
+          items: { type: string, format: email }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+    EmissionsReport:
+      type: object
+      properties:
+        scope: { type: string, enum: [trip, period, org] }
+        period_from: { type: string, format: date }
+        period_to: { type: string, format: date }
+        total_co2e_kg: { type: number }
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              load_id: { type: string }
+              miles: { type: number }
+              fuel_gal: { type: number }
+              co2e_kg: { type: number }
+    RetentionPolicy:
+      type: object
+      properties:
+        id: { type: string }
+        dataset: { type: string, enum: [logs, docs, vision, hos, financials, messages] }
+        days_to_keep: { type: integer }
+        legal_hold: { type: boolean }
+        active: { type: boolean }
+    DeletionRequest:
+      type: object
+      properties:
+        id: { type: string }
+        subject_type: { type: string, enum: [user, driver, broker, carrier] }
+        subject_id: { type: string }
+        status: { type: string, enum: [pending, processing, complete, failed] }
+        submitted_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+    AuditQuery:
+      type: object
+      properties:
+        id: { type: string }
+        query: { type: string }
+        submitted_by: { type: string }
+        created_at: { type: string, format: date-time }
+        status: { type: string, enum: [queued, running, complete, failed] }
+        result_url: { type: string, nullable: true }
+    RouteRule:
+      type: object
+      properties:
+        id: { type: string }
+        event: { type: string, example: "bid.received" }
+        conditions:
+          type: array
+          items: { type: object, additionalProperties: true }
+        actions:
+          type: array
+          items: { type: object, additionalProperties: true }
+        active: { type: boolean }
+    WaypointPlan:
+      type: object
+      properties:
+        route_id: { type: string }
+        waypoints:
+          type: array
+          items:
+            type: object
+            properties:
+              lat: { type: number }
+              lng: { type: number }
+              name: { type: string }
+              type: { type: string, enum: [fuel, parking, weigh_station, rest, service, custom] }
+    ShortlistResult:
+      type: object
+      properties:
+        load_id: { type: string }
+        shortlisted:
+          type: array
+          items:
+            type: object
+            properties:
+              carrier_id: { type: string }
+              score: { type: number }
+              reasons: { type: array, items: { type: string } }
+security:
+  - bearerAuth: []
+paths:
+  # Accounting Integrations (QuickBooks/Xero stubs)
+  /api/integrations/accounting/quickbooks/connect:
+    post:
+      summary: Connect QuickBooks (OAuth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_id, auth_code, redirect_uri]
+              properties:
+                org_id: { type: string }
+                auth_code: { type: string }
+                redirect_uri: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectorStatus' } } } }
+  /api/integrations/accounting/xero/connect:
+    post:
+      summary: Connect Xero (OAuth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_id, auth_code, redirect_uri]
+              properties:
+                org_id: { type: string }
+                auth_code: { type: string }
+                redirect_uri: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ConnectorStatus' } } } }
+  /api/integrations/accounting/journal_entries:
+    post:
+      summary: Create journal entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JournalEntry' }
+      responses:
+        '200': { description: OK }
+  /api/integrations/accounting/invoices/sync:
+    post:
+      summary: Sync invoices with accounting provider
+      responses:
+        '202': { description: Accepted }
+
+  # Load Board Syndication (DAT/Truckstop stubs)
+  /api/loadboard/connectors:
+    get:
+      summary: List load board connectors and status
+      responses:
+        '200': { description: OK }
+  /api/loadboard/publish:
+    post:
+      summary: Publish or update load to provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, load_id]
+              properties:
+                provider: { type: string, enum: [dat, truckstop, other] }
+                load_id: { type: string }
+                action: { type: string, enum: [create, update, close], default: create }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PublishLoadResult' } } } }
+
+  # Dispatch Automation v2
+  /api/dispatch/auto_replan:
+    post:
+      summary: Auto-replan routes under constraints and disruptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_id]
+              properties:
+                plan_id: { type: string }
+                constraints: { type: object, additionalProperties: true }
+                disruptions:
+                  type: array
+                  items: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AutoReplanResult' } } } }
+
+  # Predictive Maintenance v2
+  /api/maintenance/predictive:
+    get:
+      summary: Predictive maintenance candidates
+      parameters:
+        - in: query
+          name: horizon_days
+          schema: { type: integer, default: 30 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/PredictiveMaintenanceItem' } } } } }
+
+  # Vision Events (Dashcam)
+  /api/vision/events:
+    post:
+      summary: Ingest vision safety event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VisionEvent' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List vision events (filterable)
+      parameters:
+        - in: query
+          name: driver_user_id
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: since
+          schema: { type: string, format: date-time }
+      responses:
+        '200': { description: OK }
+
+  # E-sign Documents
+  /api/docs/esign/send:
+    post:
+      summary: Send e-sign envelope
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [doc_type, recipients]
+              properties:
+                doc_type: { type: string, enum: [rate_con, lumper, claim_release, other] }
+                recipients: { type: array, items: { type: string, format: email } }
+                template_id: { type: string, nullable: true }
+                file_url: { type: string, nullable: true }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EsignEnvelope' } } } }
+  /api/docs/esign/{id}/status:
+    get:
+      summary: Get envelope status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EsignEnvelope' } } } }
+
+  # Sustainability — Emissions
+  /api/sustainability/emissions:
+    post:
+      summary: Calculate emissions for a trip or period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope]
+              properties:
+                scope: { type: string, enum: [trip, period, org] }
+                load_ids: { type: array, items: { type: string }, nullable: true }
+                from: { type: string, format: date, nullable: true }
+                to: { type: string, format: date, nullable: true }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EmissionsReport' } } } }
+  /api/sustainability/emissions/export.csv:
+    get:
+      summary: Export emissions CSV for period
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+
+  # Data Governance — Retention & Privacy
+  /api/data/retention_policies:
+    post:
+      summary: Upsert retention policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RetentionPolicy' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List retention policies
+      responses:
+        '200': { description: OK }
+  /api/data/deletion_requests:
+    post:
+      summary: Create data deletion request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject_type, subject_id]
+              properties:
+                subject_type: { type: string, enum: [user, driver, broker, carrier] }
+                subject_id: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionRequest' } } } }
+    get:
+      summary: List deletion requests
+      responses:
+        '200': { description: OK }
+
+  # Admin Audit Queries
+  /api/admin/audit/queries:
+    post:
+      summary: Submit audit query (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuditQuery' } } } }
+    get:
+      summary: List audit queries
+      responses:
+        '200': { description: OK }
+
+  # Notification Routing Center
+  /api/notifications/routes:
+    post:
+      summary: Upsert routing rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RouteRule' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: List routing rules
+      responses:
+        '200': { description: OK }
+
+  # Navigation — Waypoints & Offline Enrichment
+  /api/navigation/waypoints:
+    post:
+      summary: Upsert waypoint plan for route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WaypointPlan' }
+      responses:
+        '200': { description: OK }
+    get:
+      summary: Get waypoint plan
+      parameters:
+        - in: query
+          name: route_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  # Shipper Portal v3 — Carrier Shortlist & Counteroffers
+  /api/shipper/shortlist:
+    post:
+      summary: Build shortlist of carriers for a load
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id]
+              properties:
+                load_id: { type: string }
+                top_n: { type: integer, default: 5 }
+                constraints: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ShortlistResult' } } } }
+  /api/shipper/counteroffer:
+    post:
+      summary: Send counteroffer to a bidder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [load_id, carrier_id, amount_usd]
+              properties:
+                load_id: { type: string }
+                carrier_id: { type: string }
+                amount_usd: { type: number }
+                message: { type: string }
+      responses:
+        '200': { description: OK }

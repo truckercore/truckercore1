@@ -1,0 +1,91 @@
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$LoadImpl _$$LoadImplFromJson(Map<String, dynamic> json) => _$LoadImpl(
+  id: json['id'] as String,
+  loadNumber: json['loadNumber'] as String,
+  status: $enumDecode(_$LoadStatusEnumMap, json['status']),
+  origin: Location.fromJson(json['origin'] as Map<String, dynamic>),
+  destination: Location.fromJson(json['destination'] as Map<String, dynamic>),
+  pickupDate: json['pickupDate'] as String,
+  deliveryDate: json['deliveryDate'] as String,
+  cargo: Cargo.fromJson(json['cargo'] as Map<String, dynamic>),
+  rate: (json['rate'] as num).toDouble(),
+  distance: (json['distance'] as num).toDouble(),
+  requirements: (json['requirements'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  assignedDriver: json['assignedDriver'] as String?,
+  assignedTruck: json['assignedTruck'] as String?,
+  createdBy: json['createdBy'] as String,
+  createdAt: json['createdAt'] as String,
+);
+
+Map<String, dynamic> _$$LoadImplToJson(_$LoadImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'loadNumber': instance.loadNumber,
+      'status': _$LoadStatusEnumMap[instance.status]!,
+      'origin': instance.origin,
+      'destination': instance.destination,
+      'pickupDate': instance.pickupDate,
+      'deliveryDate': instance.deliveryDate,
+      'cargo': instance.cargo,
+      'rate': instance.rate,
+      'distance': instance.distance,
+      'requirements': instance.requirements,
+      'assignedDriver': instance.assignedDriver,
+      'assignedTruck': instance.assignedTruck,
+      'createdBy': instance.createdBy,
+      'createdAt': instance.createdAt,
+    };
+
+const _$LoadStatusEnumMap = {
+  LoadStatus.posted: 'posted',
+  LoadStatus.assigned: 'assigned',
+  LoadStatus.inTransit: 'in-transit',
+  LoadStatus.delivered: 'delivered',
+  LoadStatus.cancelled: 'cancelled',
+};
+
+_$LocationImpl _$$LocationImplFromJson(Map<String, dynamic> json) =>
+    _$LocationImpl(
+      address: json['address'] as String,
+      city: json['city'] as String,
+      state: json['state'] as String,
+      zipCode: json['zipCode'] as String,
+      lat: (json['lat'] as num?)?.toDouble(),
+      lng: (json['lng'] as num?)?.toDouble(),
+      contactName: json['contactName'] as String?,
+      contactPhone: json['contactPhone'] as String?,
+      specialInstructions: json['specialInstructions'] as String?,
+    );
+
+Map<String, dynamic> _$$LocationImplToJson(_$LocationImpl instance) =>
+    <String, dynamic>{
+      'address': instance.address,
+      'city': instance.city,
+      'state': instance.state,
+      'zipCode': instance.zipCode,
+      'lat': instance.lat,
+      'lng': instance.lng,
+      'contactName': instance.contactName,
+      'contactPhone': instance.contactPhone,
+      'specialInstructions': instance.specialInstructions,
+    };
+
+_$CargoImpl _$$CargoImplFromJson(Map<String, dynamic> json) => _$CargoImpl(
+  description: json['description'] as String,
+  weight: (json['weight'] as num).toDouble(),
+  pieces: (json['pieces'] as num).toInt(),
+  type: json['type'] as String,
+);
+
+Map<String, dynamic> _$$CargoImplToJson(_$CargoImpl instance) =>
+    <String, dynamic>{
+      'description': instance.description,
+      'weight': instance.weight,
+      'pieces': instance.pieces,
+      'type': instance.type,
+    };

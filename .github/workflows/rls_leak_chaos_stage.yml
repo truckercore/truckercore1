@@ -1,0 +1,49 @@
+name: RLS Leak Chaos Test (Stage)
+
+on:
+  schedule:
+    - cron: '5 2 * * 6' # Saturdays 02:05 UTC
+  workflow_dispatch: {}
+
+jobs:
+  rls_chaos_stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preconditions
+        run: |
+          if [ -z "${{ secrets.STAGE_SUPABASE_DB_URL }}" ]; then echo "STAGE_SUPABASE_DB_URL missing; skipping."; exit 0; fi
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+      - name: Run RLS audit emitter
+        env:
+          DB: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+        run: |
+          set -e
+          # Emit alerts for any missing RLS via existing function
+          psql "$DB" -c "select public.check_rls_audit();" || true
+          # Count leaks
+          CNT=$(psql "$DB" -At -c "select coalesce(count(*),0) from public.rls_audit where rls_enabled=false" || echo "0")
+          echo "leaks=$CNT" >> $GITHUB_OUTPUT
+      - name: Open Incident if leaks detected
+        if: steps.rls_chaos_stage.outputs.leaks != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const leaks = Number(process.env.leaks || 0);
+            const title = `[INCIDENT] RLS leak detected in stage – ${leaks} table(s)`;
+            const body = `RLS audit detected ${leaks} tables with RLS disabled in stage.\n\nNext steps:\n- Investigate policies\n- Consider quarantining affected features via SQL (public.quarantine_feature) or disabling routes.\n`;
+            await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['incident','security'] });
+        env:
+          leaks: ${{ steps.rls_chaos_stage.outputs.leaks }}
+      - name: (Optional) Auto-quarantine
+        if: env.QUARANTINE_OK == 'true'
+        env:
+          DB: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+          QUARANTINE_OK: ${{ secrets.STAGE_QUARANTINE_OK }}
+        run: |
+          # No-op by default; to enable, set repository/organization secret STAGE_QUARANTINE_OK=true
+          if [ "$QUARANTINE_OK" = "true" ]; then
+            psql "$DB" -c "select public.quarantine_feature('rls_leak_detected','auto-quarantine from CI (stage)');" || true
+          fi

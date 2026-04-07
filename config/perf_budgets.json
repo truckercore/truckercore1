@@ -1,0 +1,9 @@
+{
+  "perf_budgets": {
+    "mobile_cold_start_ms": 2200,
+    "home_tti_ms": 1500,
+    "list_frame_budget_ms": 16.0,
+    "offline_sync_batch": 50,
+    "offline_sync_interval_s": 30
+  }
+}

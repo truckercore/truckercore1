@@ -1,0 +1,26 @@
+name: API Smokes (Stage)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  newman-stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p newman
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install newman
+        run: npm i -D newman newman-reporter-htmlextra
+      - name: Run Newman (Stage)
+        run: npx newman run ./docs/postman/truckercore-R1-full.postman_collection.json -e ./docs/postman/truckercore-stage.postman_environment.json --timeout-request 20000 --insecure --color on --reporters cli,htmlextra --reporter-htmlextra-export ./newman/report-stage.html
+      - name: Publish HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report-stage
+          path: newman/report-stage.html

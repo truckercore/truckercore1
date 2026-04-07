@@ -1,0 +1,39 @@
+name: Chaos Test Quarantine (Stage)
+
+on:
+  schedule:
+    - cron: '15 2 * * 6' # Saturdays 02:15 UTC
+  workflow_dispatch: {}
+
+jobs:
+  chaos_quarantine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preconditions
+        run: |
+          if [ -z "${{ secrets.STAGE_SUPABASE_DB_URL }}" ]; then echo "STAGE_SUPABASE_DB_URL missing; skipping."; exit 0; fi
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Quarantine feature (OFF)
+        if: always()
+        env:
+          DB: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+        run: |
+          set -e
+          psql "$DB" -c "select public.set_feature_flag('parking_prediction', false, 'chaos: quarantine OFF');"
+      - name: Validate OFF (best-effort)
+        if: always()
+        env:
+          DB: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+        run: |
+          # Add validations as needed (e.g., function returns mock/disabled). Non-fatal.
+          psql "$DB" -c "select public.feature_enabled('parking_prediction');" || true
+      - name: Unquarantine (ON)
+        if: always()
+        env:
+          DB: ${{ secrets.STAGE_SUPABASE_DB_URL }}
+        run: |
+          set -e
+          psql "$DB" -c "select public.set_feature_flag('parking_prediction', true, 'chaos: revert ON');"

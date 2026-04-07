@@ -1,0 +1,22 @@
+name: pg-security-lint
+on: [push, pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep SECURITY DEFINER without set_config
+        run: |
+          set -euo pipefail
+          files=$(grep -Ril "security definer" docs/sql || true)
+          if [ -z "${files}" ]; then echo "No SECURITY DEFINER functions found in docs/sql"; exit 0; fi
+          failed=0
+          while IFS= read -r f; do
+            if awk '/security definer/,/\$\$/' "$f" | grep -qi set_config; then
+              echo "OK: $f"
+            else
+              echo "::error file=$f::SECURITY DEFINER function missing set_config(search_path)"
+              failed=1
+            fi
+          done <<< "$files"
+          exit $failed
