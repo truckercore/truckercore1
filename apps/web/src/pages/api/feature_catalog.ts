@@ -7,13 +7,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL as string
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string | undefined
 const ANON_KEY = process.env.SUPABASE_ANON_KEY as string | undefined
 
-const admin = createClient(
-  SUPABASE_URL,
-  (SERVICE_KEY || ANON_KEY) as string,
-  { auth: { persistSession: false } }
-)
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const admin = createClient(
+    SUPABASE_URL,
+    (SERVICE_KEY || ANON_KEY) as string,
+    { auth: { persistSession: false } }
+  )
   try {
     if (req.method !== 'GET') {
       res.status(405).json({ status: 'error', code: 'bad_request', message: 'Use GET' })
