@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 
 export const config = { api: { bodyParser: false } };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -13,6 +12,10 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2024-06-20" as any,
+  });
+
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
   try {
@@ -23,6 +26,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+          apiVersion: "2024-06-20" as any,
+        });
         const customerId = session.customer as string;
         const subId = session.subscription as string;
         const orgId = session.metadata?.org_id as string | undefined;

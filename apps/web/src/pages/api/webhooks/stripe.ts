@@ -6,8 +6,6 @@ import { acquireLock } from "@/server/locks";
 
 export const config = { api: { bodyParser: false } };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
-
 async function rawBody(req: NextApiRequest) {
   const chunks: Uint8Array[] = [];
   for await (const c of req as any) chunks.push(c as Uint8Array);
@@ -15,6 +13,10 @@ async function rawBody(req: NextApiRequest) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2024-06-20",
+  });
+
   if (req.method !== "POST") return res.status(405).end();
 
   const sig = req.headers["stripe-signature"] as string;

@@ -1,10 +1,11 @@
-// TypeScript
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2024-06-20",
+  });
+
   if (req.method !== "POST") return res.status(405).end();
   try {
     const { org_id, role, tier } = req.body as { org_id: string; role: string; tier: string };

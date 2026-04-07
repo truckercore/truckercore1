@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: "2024-11-20.acacia" as any });
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
@@ -9,6 +8,10 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+    apiVersion: "2024-06-20" as any,
+  });
+
   if (req.method !== "POST") return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 
   try {

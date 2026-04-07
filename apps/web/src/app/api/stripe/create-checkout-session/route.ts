@@ -1,73 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: "2024-11-20.acacia" as any });
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+import Stripe from 'stripe';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
+  // Initialize INSIDE the handler, not at module level
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2024-06-20',
+  });
+
   try {
-    const body = await req.json().catch(() => ({}));
-    const { plan, orgId, email, userEmail } = body || {};
-    const buyerEmail = email || userEmail; // support both field names
-    if (!plan || !orgId || !buyerEmail) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const { priceId, userId } = await req.json();
 
-    const priceMap: Record<string, string | undefined> = {
-      pro: process.env.STRIPE_PRICE_PRO,
-      enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
-    };
-    const priceId = priceMap[plan];
-    if (!priceId) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-
-    // Create or retrieve Stripe customer
-    const customers = await stripe.customers.list({ email: buyerEmail, limit: 1 });
-    let customerId = customers.data[0]?.id;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: buyerEmail,
-        metadata: { org_id: orgId },
-      });
-      customerId = customer.id;
-    }
-
-    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      payment_method_types: ["card"],
+      mode: 'subscription',
+      payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard?upgraded=true`,
-      cancel_url: `${origin}/upgrade?canceled=true`,
-      metadata: { org_id: orgId, plan },
-      subscription_data: { metadata: { org_id: orgId, plan } },
-    } as any);
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+      metadata: { userId },
+    });
 
-    // Track checkout initiated (best-effort)
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/metrics_events`;
-      await fetch(url, {
-        method: "POST",
-        headers: {
-          apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({
-          kind: "checkout_initiated",
-          props: { org_id: orgId, plan, session_id: session.id },
-        }),
-      });
-    } catch {}
-
-    return NextResponse.json({ sessionId: session.id, url: session.url }, { status: 200 });
-  } catch (e: any) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ url: session.url });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to create checkout session' },
+      { status: 500 }
+    );
   }
 }
