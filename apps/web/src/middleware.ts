@@ -1,19 +1,52 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
-  if (pathname.startsWith('/dashboard')) {
-    // Placeholder gate: in real app, check Supabase session using middleware on edge
-    const isAuthed = req.cookies.get('sb-access-token') || req.cookies.get('sb:token')
-    if (!isAuthed) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
+function isProtected(pathname: string) {
+  return (
+    pathname.startsWith('/gps') ||
+    pathname.startsWith('/driver-dashboard') ||
+    pathname.startsWith('/owner-operator-dashboard') ||
+    pathname.startsWith('/fleet-manager-dashboard') ||
+    pathname.startsWith('/freight-broker-dashboard')
+  );
+}
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return req.cookies.get(name)?.value; },
+        set(name: string, value: string, options: Record<string, any>) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: Record<string, any>) {
+          res.cookies.set({ name, value: '', ...options });
+        },
+      },
     }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (isProtected(req.nextUrl.pathname) && !user) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
-  return NextResponse.next()
+
+  return res;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
-}
+  matcher: [
+    '/gps/:path*',
+    '/driver-dashboard/:path*',
+    '/owner-operator-dashboard/:path*',
+    '/fleet-manager-dashboard/:path*',
+    '/freight-broker-dashboard/:path*',
+  ],
+};
