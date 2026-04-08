@@ -1,17 +1,11 @@
 // Next.js App Router API: /api/rank-loads
 // Uses service role on server to call rate limit + cached profile RPCs
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: NextRequest) {
   try {
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    if (!SUPABASE_URL || !SERVICE_ROLE) {
-      return NextResponse.json({ error: 'server_misconfig' }, { status: 500 });
-    }
-
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const supabase = createAdminClient();
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || (req as any).ip || 'unknown';
     const { org_id, user_id, context = 'loads' } = await req.json();

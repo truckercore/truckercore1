@@ -1,16 +1,13 @@
 // apps/web/src/pages/api/admin/license/debug.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Assume upstream middleware enforces admin; else add checks here.
   const orgId = (req.query.orgId as string) || "";
   if (!orgId) return res.status(400).json({ ok: false, error: "missing_org" });
 
-  const supa = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.SUPABASE_SERVICE_ROLE_KEY as string
-  );
+  const supa = createAdminClient();
 
   const [{ data: org }, { data: events }, { data: csv24 }] = await Promise.all([
     supa.from("orgs").select("*").eq("id", orgId).single(),

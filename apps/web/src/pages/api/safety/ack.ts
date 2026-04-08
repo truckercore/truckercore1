@@ -1,15 +1,10 @@
 // apps/web/src/pages/api/safety/ack.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Records a safety acknowledgment (kind + locale).
 export async function POST(req: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!url || !serviceKey) {
-    return NextResponse.json({ error: "Supabase env not configured" }, { status: 500 });
-  }
-  const supabase = createClient(url, serviceKey);
+  const supabase = createAdminClient();
 
   const body = await req.json().catch(() => ({} as any));
   const { kind, locale, org_id } = body ?? {};

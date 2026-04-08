@@ -1,12 +1,12 @@
 // TypeScript
 import type { NextApiRequest, NextApiResponse } from "next";
 import Papa from "papaparse";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
   try {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const supabase = createAdminClient();
     const csv = typeof req.body === "string" ? req.body : "";
     const { data } = Papa.parse(csv, { header: true });
     await supabase.from("audit_log").insert({ action:"tms_import", meta:{ rows: (data as any[]).length }, org_id: null });

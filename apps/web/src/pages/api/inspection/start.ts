@@ -1,17 +1,11 @@
 // apps/web/src/pages/api/inspection/start.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Logs an inspection session start for the current user.
 // Uses service role server-side; do NOT expose this key to the browser.
 export async function POST(_req: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!url || !serviceKey) {
-    return NextResponse.json({ error: "Supabase env not configured" }, { status: 500 });
-  }
-
-  const supabase = createClient(url, serviceKey);
+  const supabase = createAdminClient();
 
   // Accept optional user id from header x-user-id (internal gateway), otherwise try getUser()
   let userId: string | null = null;

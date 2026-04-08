@@ -1,16 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { buffer } from 'micro';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const config = { api: { bodyParser: false } };
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+  const supabase = createAdminClient();
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2024-06-20" as any,
   });
@@ -102,9 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function upsertSubscription(sub: Stripe.Subscription) {
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+  const supabase = createAdminClient();
   const customerId = sub.customer as string;
   const { data: customerRow } = await supabase
     .from('stripe_customers')

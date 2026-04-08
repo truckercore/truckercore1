@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getClient(requestId: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
-  return createClient(url, key, { global: { headers: { 'x-request-id': requestId } } })
-}
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(_req: NextRequest) {
   const requestId = crypto.randomUUID()
   try {
-    const client = getClient(requestId)
-    if (!client) {
-      return NextResponse.json({ error: { status: 500, code: 'env_missing', message: 'Supabase env not set', requestId } }, { status: 500, headers: { 'x-request-id': requestId } })
-    }
+    const client = await createClient()
 
     // Call the refresh function. Prefer RPC if exposed, otherwise select from function via SQL view/SECURITY DEFINER function name
     const { data, error, status } = await (client as any)

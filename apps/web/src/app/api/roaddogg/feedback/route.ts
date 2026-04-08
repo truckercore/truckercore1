@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 
 // Accepts { id: number, accepted: boolean }
 // Persists user feedback against suggestions_log with per-user/org scoping via RLS using RPC.
@@ -13,12 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "invalid id" }, { status: 400 });
     }
 
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { get: (k: string) => cookieStore.get(k)?.value } }
-    );
+    const supabase = await createClient();
 
     const { error } = await supabase.rpc("set_suggestion_feedback", {
       p_id: id,

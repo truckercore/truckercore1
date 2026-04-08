@@ -1,6 +1,6 @@
 // apps/web/src/pages/api/disconnect/[provider].ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
 const Q = z.object({ provider: z.string(), orgId: z.string().uuid() });
@@ -11,11 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { provider, orgId } = parsed.data;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string | undefined;
-  if (!url || !serviceKey) return res.status(500).send("Missing Supabase env");
-
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const admin = createAdminClient();
   const { error } = await admin
     .from("integration_connections")
     .delete()

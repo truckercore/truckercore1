@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ stations: [], count: 0 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
     const radiusMeters = radiusMiles * 1609.34;
     const sampled = routeCoordinates.filter((_: any, i: number) => i % 10 === 0);

@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getClient(requestId: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
-  return createClient(url, key, { global: { headers: { 'x-request-id': requestId } } })
-}
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID()
@@ -17,10 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: { status: 400, code: 'invalid_payload', message: 'loadId, carrierId and bidUsd are required', requestId } }, { status: 400, headers: { 'x-request-id': requestId } })
     }
 
-    const client = getClient(requestId)
-    if (!client) {
-      return NextResponse.json({ error: { status: 500, code: 'env_missing', message: 'Supabase env not set', requestId } }, { status: 500, headers: { 'x-request-id': requestId } })
-    }
+    const client = await createClient()
 
     const { data: load, error: lErr, status: lStatus } = await client
       .from('marketplace_loads')

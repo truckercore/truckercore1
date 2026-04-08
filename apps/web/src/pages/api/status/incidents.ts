@@ -1,11 +1,9 @@
 // apps/web/src/pages/api/status/incidents.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
-  const url = process.env.SUPABASE_URL!
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const db = createClient(url, anon)
+  const db = createClient()
   const { data, error } = await db
     .from('status_incidents')
     .select('id,title,status,impact,started_at,resolved_at,updates')

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveEntitlements, normalizePlanCode, type AppRole } from '@/lib/billing/planAccess';
 
 export const dynamic = 'force-dynamic';
@@ -10,11 +10,7 @@ export async function POST(req: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2025-03-31.basil' as any,
     });
-    const supabaseAdmin = createSupabaseAdmin(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    );
+    const supabaseAdmin = createAdminClient();
 
     const { stripeCustomerId } = await req.json() as { stripeCustomerId?: string };
     if (!stripeCustomerId) {

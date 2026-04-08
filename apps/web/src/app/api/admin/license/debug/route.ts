@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,10 +9,7 @@ export async function GET(req: Request) {
   const orgId = searchParams.get("orgId") || "";
   if (!orgId) return NextResponse.json({ ok: false, error: "missing_org" }, { status: 400 });
 
-  const supa = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supa = createAdminClient();
 
   const [{ data: org }, { data: events }, { data: csv24 }] = await Promise.all([
     supa.from("orgs").select("*").eq("id", orgId).single(),

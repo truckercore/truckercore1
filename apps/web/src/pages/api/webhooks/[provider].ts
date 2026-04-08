@@ -1,7 +1,7 @@
 // apps/web/src/pages/api/webhooks/[provider].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Providers } from "../../../../integrations";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const config = { api: { bodyParser: false } };
 
@@ -50,10 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try { payload = raw ? JSON.parse(raw) : {}; } catch {}
     const eventId = payload?.id || payload?.eventId || `evt_${Date.now()}`;
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string | undefined;
-    if (!url || !serviceKey) return res.status(500).json({ ok: false, error: "Missing Supabase env" });
-    const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+    const admin = createAdminClient();
 
     const { error } = await admin.from("integration_webhooks").upsert({
       provider,

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { recordWebhookReceived, markWebhookProcessed, markWebhookErrored } from "@/server/webhooks/idempotency";
 import { acquireLock } from "@/server/locks";
 
@@ -40,10 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const lockKey = orgId ? `stripe_org_${orgId}` : `stripe_evt_${event.id}`;
   const lock = await acquireLock(lockKey, 30_000);
 
-  const supa = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supa = createAdminClient();
 
   try {
     switch (event.type) {

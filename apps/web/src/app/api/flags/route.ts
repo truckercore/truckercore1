@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 
 // Phase 1 + Phase 2 allowlist
 const EXPOSED = new Set([
@@ -11,12 +10,7 @@ const EXPOSED = new Set([
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { get: (k: string) => cookieStore.get(k)?.value } }
-    );
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from("feature_flags")
