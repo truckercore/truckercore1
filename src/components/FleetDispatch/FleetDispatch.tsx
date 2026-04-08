@@ -73,21 +73,21 @@ const FleetDispatch: React.FC = () => {
     const mockTrucks: Truck[] = [
       {
         id: 'T001',
-        truckNumber: 'TRK-1001',
+        truckNumber: 'TC-1001',
         type: 'dry-van',
         capacity: 45000,
         status: 'available',
       },
       {
         id: 'T002',
-        truckNumber: 'TRK-1002',
+        truckNumber: 'TC-1002',
         type: 'reefer',
         capacity: 44000,
         status: 'available',
       },
       {
         id: 'T003',
-        truckNumber: 'TRK-1003',
+        truckNumber: 'TC-1003',
         type: 'flatbed',
         capacity: 48000,
         status: 'assigned',
