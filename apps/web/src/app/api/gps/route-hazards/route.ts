@@ -3,22 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Haversine distance in miles
-function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 3958.8;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 +
-    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const { routeCoordinates, radiusMiles = 10 } = await req.json();
+    const { routeCoordinates, radiusMiles = 15 } = await req.json();
 
     if (!routeCoordinates?.length) {
-      return NextResponse.json({ stations: [] });
+      return NextResponse.json({ stations: [], count: 0 });
     }
 
     const supabase = createClient(
@@ -26,29 +16,26 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get all active stations
-    const { data: stations, error } = await supabase
-      .from('inspection_stations')
-      .select('*')
-      .eq('is_active', true);
+    const radiusMeters = radiusMiles * 1609.34;
+    const sampled = routeCoordinates.filter((_: any, i: number) => i % 10 === 0);
 
-    if (error) throw error;
+    const seen = new Set<string>();
+    const stations: any[] = [];
 
-    // Sample route coordinates (every 10th point for performance)
-    const sampledRoute = routeCoordinates.filter((_: any, i: number) => i % 10 === 0);
-
-    // Find stations within radius of any route point
-    const nearbyStations = stations?.filter(station => {
-      return sampledRoute.some(([lng, lat]: [number, number]) => {
-        return distanceMiles(lat, lng, station.latitude, station.longitude) <= radiusMiles;
+    for (const [lng, lat] of sampled) {
+      const { data } = await supabase.rpc('stations_within_radius', {
+        lat, lng, radius_meters: radiusMeters,
       });
-    }) ?? [];
 
-    // Sort by approximate route position
-    return NextResponse.json({
-      stations: nearbyStations,
-      count: nearbyStations.length,
-    });
+      for (const s of data ?? []) {
+        if (!seen.has(s.id)) {
+          seen.add(s.id);
+          stations.push(s);
+        }
+      }
+    }
+
+    return NextResponse.json({ stations, count: stations.length });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
