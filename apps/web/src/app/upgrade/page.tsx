@@ -1,61 +1,15 @@
-"use client";
-
-export const dynamic = "force-dynamic";
-
+import Link from 'next/link';
 export default function UpgradePage() {
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 48 }}>
-      <h1>Upgrade to TruckerCore Pro</h1>
-      <p style={{ fontSize: 18, marginBottom: 32 }}>
-        Unlock AI matching, unlimited exports, corridor analytics, and compliance automation.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-        <Plan
-          name="Free"
-          price="$0/mo"
-          features={["20 CSV exports/mo", "1 ROI report/mo", "3 boosted listings", "Basic analytics"]}
-        />
-        <Plan
-          name="Pro"
-          price="$149/mo"
-          features={[
-            "200 CSV exports/mo",
-            "10 ROI reports/mo",
-            "Unlimited boosted listings",
-            "AI match suggestions",
-            "Risk corridor heat maps",
-            "E-sign & compliance automation",
-            "12-month signed export retention",
-          ]}
-          cta="Start Free Trial"
-        />
-        <Plan
-          name="Enterprise"
-          price="$2,500/mo"
-          features={[
-            "Unlimited exports",
-            "Unlimited ROI reports",
-            "Real-time corridor refresh",
-            "24-month audit retention",
-            "SSO & custom SLA",
-            "Dedicated CSM",
-          ]}
-          cta="Contact Sales"
-        />
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-6xl mb-4">🚀</p>
+        <h1 className="text-2xl font-bold text-white mb-2">Premium Required</h1>
+        <p className="text-gray-400 mb-6">Upgrade to access this feature.</p>
+        <Link href="/pricing" className="bg-amber-500 text-black font-bold px-6 py-3 rounded-lg hover:opacity-90">
+          View Plans →
+        </Link>
       </div>
     </div>
   );
 }
-
-const Plan: React.FC<{ name: string; price: string; features: string[]; cta?: string }> = ({ name, price, features, cta }) => (
-  <div className="card" style={{ padding: 24 }}>
-    <h2>{name}</h2>
-    <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 16 }}>{price}</div>
-    <ul style={{ marginBottom: 24 }}>
-      {features.map((f, i) => (
-        <li key={i}>{f}</li>
-      ))}
-    </ul>
-    {cta && <button onClick={() => alert("Checkout flow (Stripe)")}>{cta}</button>}
-  </div>
-);

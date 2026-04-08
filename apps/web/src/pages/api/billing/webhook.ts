@@ -35,20 +35,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (subscriptionEvents.has(event.type)) {
     const subscription = event.data.object as Stripe.Subscription;
-    const isPremium = PREMIUM_STATUSES.has(subscription.status);
+    const isPremiumStatus = (status: string) =>
+      status === 'active' || status === 'trialing';
 
-    await supabase
-      .from('profiles')
-      .update({
-        stripe_subscription_id: subscription.id,
-        stripe_subscription_status: subscription.status,
-        is_premium: isPremium,
-        premium_expires_at: subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
-          : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_customer_id', subscription.customer as string);
+    await supabase.from('profiles').update({
+      stripe_subscription_id: subscription.id,
+      stripe_subscription_status: subscription.status,
+      subscription_status: subscription.status,
+      app_is_premium: isPremiumStatus(subscription.status),
+      is_premium: isPremiumStatus(subscription.status),
+      plan_code: subscription.items.data[0]?.price?.lookup_key ?? null,
+      premium_expires_at: subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toISOString()
+        : null,
+      updated_at: new Date().toISOString(),
+    }).eq('stripe_customer_id', subscription.customer as string);
   }
 
   if (event.type === 'checkout.session.completed') {
