@@ -1,109 +1,103 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import Stripe from 'stripe';
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+export const dynamic = 'force-dynamic';
 
-export const dynamic = "force-dynamic";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-03-31.basil',
+});
 
-export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-    apiVersion: "2024-06-20" as any,
-  });
+const supabaseAdmin = createSupabaseAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
-  if (req.method !== "POST") return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
+function isPremiumStatus(status: string | undefined): boolean {
+  return status === 'active' || status === 'trialing';
+}
+
+async function upsertPremiumFromSubscription(subscription: Stripe.Subscription) {
+  const customerId =
+    typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id;
+
+  if (!customerId) {
+    throw new Error('Subscription missing customer ID');
+  }
+
+  const planCode =
+    subscription.items.data[0]?.price?.lookup_key ??
+    subscription.items.data[0]?.price?.id ??
+    null;
+
+  const premium = isPremiumStatus(subscription.status);
+
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({
+      app_is_premium: premium,
+      subscription_status: subscription.status,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscription.id,
+      plan_code: planCode,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_customer_id', customerId);
+
+  if (error) {
+    throw new Error(`Failed updating profile premium status: ${error.message}`);
+  }
+}
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const headerStore = await headers();
+  const signature = headerStore.get('stripe-signature');
+
+  if (!signature) {
+    return new NextResponse('Missing stripe-signature header', { status: 400 });
+  }
+
+  let event: Stripe.Event;
 
   try {
-    const sig = req.headers.get("stripe-signature");
-    if (!sig) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Webhook signature verification failed';
+    return new NextResponse(message, { status: 400 });
+  }
 
-    const rawBody = await req.arrayBuffer();
-    const event = stripe.webhooks.constructEvent(Buffer.from(rawBody), sig, WEBHOOK_SECRET);
-
+  try {
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const orgId = session.metadata?.org_id as string | undefined;
-        const plan = session.metadata?.plan as string | undefined;
-        if (!orgId || !plan) break;
-
-        await fetch(`${SUPABASE_URL}/rest/v1/organizations?id=eq.${orgId}`, {
-          method: "PATCH",
-          headers: {
-            apikey: SERVICE_KEY,
-            Authorization: `Bearer ${SERVICE_KEY}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({
-            plan,
-            stripe_customer_id: session.customer,
-            stripe_subscription_id: session.subscription,
-            premium: true,
-            updated_at: new Date().toISOString(),
-          }),
-        });
-
-        // Metrics (best-effort)
-        try {
-          await fetch(`${SUPABASE_URL}/rest/v1/metrics_events`, {
-            method: "POST",
-            headers: {
-              apikey: SERVICE_KEY,
-              Authorization: `Bearer ${SERVICE_KEY}`,
-              "Content-Type": "application/json",
-              Prefer: "return=minimal",
-            },
-            body: JSON.stringify({
-              kind: "subscription_created",
-              props: { org_id: orgId, plan, customer_id: session.customer },
-            }),
-          });
-        } catch {}
-        break;
-      }
-
-      case "customer.subscription.updated": {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const orgId = (subscription.metadata as any)?.org_id as string | undefined;
-        if (!orgId) break;
-        const isActive = subscription.status === "active";
-        await fetch(`${SUPABASE_URL}/rest/v1/organizations?id=eq.${orgId}`, {
-          method: "PATCH",
-          headers: {
-            apikey: SERVICE_KEY,
-            Authorization: `Bearer ${SERVICE_KEY}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({ premium: isActive, updated_at: new Date().toISOString() }),
-        });
+        await upsertPremiumFromSubscription(subscription);
         break;
       }
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const orgId = (subscription.metadata as any)?.org_id as string | undefined;
-        if (!orgId) break;
-        await fetch(`${SUPABASE_URL}/rest/v1/organizations?id=eq.${orgId}`, {
-          method: "PATCH",
-          headers: {
-            apikey: SERVICE_KEY,
-            Authorization: `Bearer ${SERVICE_KEY}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({ premium: false, plan: "free", updated_at: new Date().toISOString() }),
-        });
+      default:
         break;
-      }
     }
 
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch (e: any) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    return NextResponse.json({ error: e?.message || "Webhook error" }, { status: 400 });
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Webhook handler failed';
+    return new NextResponse(message, { status: 500 });
   }
 }
