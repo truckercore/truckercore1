@@ -21,6 +21,14 @@ interface Props {
   trucks: Truck[];
   selected: Truck | null;
   onSelectTruck: (t: Truck) => void;
+  stations?: Array<{
+    id: string;
+    latitude: number;
+    longitude: number;
+    station_type: string;
+    name: string;
+    highway: string;
+  }>;
 }
 
 const DOT_COLORS: Record<string, string> = {
@@ -222,6 +230,32 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
       });
     }
   }, [trucks, selected]);
+
+  // Add useEffect for station markers
+  useEffect(() => {
+    if (!mapRef.current || !stations?.length) return;
+
+    const icons: Record<string, string> = {
+      weigh_station: '⚖️',
+      dot_inspection: '🚔',
+      port_of_entry: '🛃',
+    };
+
+    stations.forEach(station => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="font-size:18px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8))">
+          ${icons[station.station_type] || '⚠️'}
+        </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      L.marker([station.latitude, station.longitude], { icon })
+        .addTo(mapRef.current!)
+        .bindPopup(`<b>${station.station_type.replace('_', ' ')}</b><br>${station.highway}`);
+    });
+  }, [stations]);
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ background: '#1a1a2e' }} />

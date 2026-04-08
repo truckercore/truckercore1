@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import nextDynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
+import RouteHazardPanel from '@/components/gps/RouteHazardPanel';
 
 const LiveTrackingMap = nextDynamic(
   () => import('@/components/gps/LiveTrackingMap'),
@@ -280,6 +281,11 @@ export default function GPSPageClient() {
                   </div>
                 )}
               </div>
+
+              <RouteHazardPanel
+                routeCoordinates={selected?.route_geometry?.coordinates ?? null}
+                isPremium={false} // wire to real isPremium later
+              />
             </div>
           )}
         </section>
