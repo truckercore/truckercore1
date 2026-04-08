@@ -34,6 +34,7 @@ interface TruckPosition {
 
 export function DriverDashboard({ driverName, vehicleId, isPremium = false }: Props) {
   const [truck, setTruck] = useState<TruckPosition | null>(null);
+  const [navMode, setNavMode] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -200,8 +201,19 @@ export function DriverDashboard({ driverName, vehicleId, isPremium = false }: Pr
                 </a>
               )}
             </div>
-            <div className="h-72">
-              <BasicGPSMap vehicleId={vehicleId} />
+            <div className={navMode ? 'h-screen fixed inset-0 z-50' : 'h-72'}>
+              <BasicGPSMap
+                vehicleId={vehicleId}
+                navigationMode={navMode}
+                onStatusChange={(s) => console.log('status:', s)}
+                onProgressChange={(p) => console.log('progress:', p)}
+              />
+              <button
+                onClick={() => setNavMode(!navMode)}
+                className="absolute top-12 right-2 z-[1001] bg-gray-900 border border-gray-700 text-white text-xs px-2 py-1 rounded"
+              >
+                {navMode ? '⬜ Exit Nav' : '⛶ Nav Mode'}
+              </button>
             </div>
             {!isPremium && (
               <div className="px-4 py-3 bg-gray-800/50 border-t border-gray-700 flex items-center justify-between">
