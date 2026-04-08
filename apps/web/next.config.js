@@ -90,6 +90,11 @@ const nextConfig = {
 
   // Webpack configuration for heavy packages
   webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@supabase/supabase-js': require.resolve('@supabase/supabase-js'),
+    };
+
     if (!isServer) {
       // Don't bundle Node core modules on the client side
       config.resolve.fallback = {
