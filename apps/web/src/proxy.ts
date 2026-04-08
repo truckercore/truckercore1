@@ -10,7 +10,7 @@ const PROTECTED = [
 ];
 
 function isProtected(pathname: string) {
-  return PROTECTED.some(p => pathname.startsWith(p));
+  return PROTECTED.some((p) => pathname.startsWith(p));
 }
 
 export async function middleware(request: NextRequest) {
@@ -27,23 +27,22 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request: { headers: request.headers },
+          // Fix: no response reassignment — stable under load
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  // Use getUser() not getSession() for secure auth checks
+  // getUser() triggers token refresh + is safe for authorization
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Block unauthenticated access to protected routes
   if (!user && isProtected(request.nextUrl.pathname)) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set(
@@ -51,6 +50,11 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname + request.nextUrl.search
     );
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Block logged-in users from seeing the login page
+  if (user && request.nextUrl.pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return response;
