@@ -3,6 +3,12 @@
 import { existsSync } from 'fs';
 import { execSync } from 'child_process';
 
+// Skip on Vercel — submodules not needed for web build
+if (process.env.VERCEL) {
+  console.log('Skipping submodule fetch on Vercel');
+  process.exit(0);
+}
+
 const log = (...args) => console.log('[fetch-submodules]', ...args);
 const run = (cmd) => {
   try {
