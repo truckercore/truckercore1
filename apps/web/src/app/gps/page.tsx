@@ -1,4 +1,6 @@
 'use client';
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 import { useState } from 'react';
 import LiveTrackingMap from '@/components/gps/LiveTrackingMap';
