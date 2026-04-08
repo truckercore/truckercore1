@@ -109,6 +109,66 @@ export default function BasicGPSMap({
     requestAnimationFrame(animate);
   }, []);
 
+  const reroutingRef = useRef(false);
+  const lastRerouteAtRef = useRef(0);
+
+  const requestHereReroute = useCallback(async (data: TruckData) => {
+    if (reroutingRef.current) return;
+    if (!data.route_geometry?.coordinates?.length) return;
+
+    reroutingRef.current = true;
+    onStatusChange?.('rerouting');
+
+    try {
+      const coords = data.route_geometry.coordinates;
+      const destCoord = coords[coords.length - 1];
+
+      const res = await fetch('/api/here/reroute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleId,
+          origin: { lat: data.latitude, lng: data.longitude },
+          destination: { lat: destCoord[1], lng: destCoord[0] },
+          destinationAddress: data.destination_address,
+          currentAddress: `${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`,
+          truck: {
+            height: 4.11,       // 13.6 ft in meters
+            weight: 36287,      // 80,000 lbs in kg
+            axleCount: 5,
+            trailerCount: 1,
+          },
+          avoid: {
+            tolls: false,
+            ferries: true,
+            tunnels: false,
+          },
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Reroute failed');
+      }
+
+      // Server handled everything — just update status
+      // Realtime subscription will automatically pick up the new route
+      onStatusChange?.('en_route');
+      lastRerouteAtRef.current = Date.now();
+
+      console.log(`✓ Rerouted via ${result.source} — v${result.route_version} — ${result.distance_miles}mi`);
+
+    } catch (err: any) {
+      console.error('Reroute error:', err.message);
+      onStatusChange?.('en_route'); // Reset status even on failure
+    } finally {
+      setTimeout(() => {
+        reroutingRef.current = false;
+      }, 15000);
+    }
+  }, [vehicleId, onStatusChange]);
+
   const updateMap = useCallback((L: any, data: TruckData) => {
     if (!mapRef.current) return;
 
@@ -206,7 +266,10 @@ export default function BasicGPSMap({
 
       // Deviation detection — update status if off route
       if (isDeviating && data.status === 'en_route') {
-        onStatusChange?.('rerouting');
+        // Debounce reroute — only once every 30s
+        if (Date.now() - lastRerouteAtRef.current > 30000) {
+          requestHereReroute(data);
+        }
       }
     }
 
@@ -214,7 +277,7 @@ export default function BasicGPSMap({
     if (navigationMode) {
       mapRef.current.panTo([data.latitude, data.longitude], { animate: true, duration: 0.5 });
     }
-  }, [navigationMode, onStatusChange, onProgressChange, animateMarker]);
+  }, [navigationMode, onStatusChange, onProgressChange, animateMarker, requestHereReroute]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
