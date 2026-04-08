@@ -1,6 +1,6 @@
 import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
-import { FleetManagerDashboard } from '../../components/FleetManagerDashboard';
+import FleetManagerDashboard from '../../components/FleetManagerDashboard';
 
 export const dynamic = 'force-dynamic';
 

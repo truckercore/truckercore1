@@ -1,6 +1,6 @@
 import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
-import { FreightBrokerDashboard } from '../../components/FreightBrokerDashboard';
+import FreightBrokerDashboard from '../../components/FreightBrokerDashboard';
 
 export const dynamic = 'force-dynamic';
 

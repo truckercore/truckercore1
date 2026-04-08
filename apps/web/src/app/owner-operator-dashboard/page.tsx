@@ -1,6 +1,6 @@
 import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
-import { OwnerOperatorDashboard } from '../../components/OwnerOperatorDashboard';
+import OwnerOperatorDashboard from '../../components/OwnerOperatorDashboard';
 
 export const dynamic = 'force-dynamic';
 
