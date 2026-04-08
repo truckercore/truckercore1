@@ -32,6 +32,15 @@ const DOT_COLORS: Record<string, string> = {
   rerouting:   '#f97316',
 };
 
+const ROUTE_COLORS: Record<string, string> = {
+  en_route:    '#3b82f6', // blue
+  at_pickup:   '#eab308', // yellow
+  at_delivery: '#22c55e', // green
+  idle:        '#6b7280', // gray
+  offline:     '#ef4444', // red
+  rerouting:   '#f97316', // orange
+};
+
 export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Props) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,16 +184,34 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
       if (!truck.route_geometry?.coordinates?.length) return;
 
       const isSelected = selected?.vehicle_id === truck.vehicle_id;
+      const isRerouting = truck.status === 'rerouting';
+      const color = ROUTE_COLORS[truck.status] || '#6b7280';
+
       const latlngs = truck.route_geometry.coordinates.map(
         ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
       );
 
-      L.polyline(latlngs, {
-        color: isSelected ? '#3b82f6' : '#4b5563',
-        weight: isSelected ? 4 : 2,
-        opacity: isSelected ? 0.8 : 0.4,
-        dashArray: isSelected ? '8, 4' : '4, 4',
-      }).addTo(routeLayerRef.current!);
+      const polyline = L.polyline(latlngs, {
+        color: isSelected ? color : '#374151',
+        weight: isSelected ? 5 : 2,
+        opacity: isSelected ? 0.9 : 0.4,
+        dashArray: isRerouting ? '10, 6' : (isSelected ? undefined : '4, 4'),
+      });
+
+      routeLayerRef.current?.addLayer(polyline);
+
+      // Add origin/destination dots only for selected truck
+      if (isSelected) {
+        L.circleMarker(latlngs[0], {
+          radius: 6, color: '#22c55e',
+          fillColor: '#22c55e', fillOpacity: 1, weight: 2,
+        }).addTo(mapRef.current!);
+
+        L.circleMarker(latlngs[latlngs.length - 1], {
+          radius: 6, color: '#ef4444',
+          fillColor: '#ef4444', fillOpacity: 1, weight: 2,
+        }).addTo(mapRef.current!);
+      }
     });
 
     // Pan to selected truck
