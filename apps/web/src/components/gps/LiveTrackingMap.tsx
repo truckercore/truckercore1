@@ -37,6 +37,9 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
+  const animationFramesRef = useRef<Map<string, number>>(new Map());
+  const markerPositionsRef = useRef<Map<string, [number, number]>>(new Map());
+  const previousTrucksRef = useRef<Map<string, Truck>>(new Map());
 
   // Init map
   useEffect(() => {
@@ -53,7 +56,54 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
 
     routeLayerRef.current = L.layerGroup().addTo(mapRef.current);
 
-    return () => { mapRef.current?.remove(); mapRef.current = null; };
+    return () => {
+      animationFramesRef.current.forEach(frame => cancelAnimationFrame(frame));
+      animationFramesRef.current.clear();
+      markerPositionsRef.current.clear();
+      previousTrucksRef.current.clear();
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  const animateMarkerTo = useCallback((
+    vehicleId: string,
+    marker: any,
+    toLat: number,
+    toLng: number,
+    duration = 800
+  ) => {
+    const from = markerPositionsRef.current.get(vehicleId);
+    if (!from) {
+      marker.setLatLng([toLat, toLng]);
+      markerPositionsRef.current.set(vehicleId, [toLat, toLng]);
+      return;
+    }
+
+    const [fromLat, fromLng] = from;
+    const start = performance.now();
+
+    const existingFrame = animationFramesRef.current.get(vehicleId);
+    if (existingFrame) cancelAnimationFrame(existingFrame);
+
+    const step = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+
+      const lat = fromLat + (toLat - fromLat) * eased;
+      const lng = fromLng + (toLng - fromLng) * eased;
+
+      marker.setLatLng([lat, lng]);
+      markerPositionsRef.current.set(vehicleId, [lat, lng]);
+
+      if (t < 1) {
+        animationFramesRef.current.set(vehicleId, requestAnimationFrame(step));
+      } else {
+        animationFramesRef.current.delete(vehicleId);
+      }
+    };
+
+    animationFramesRef.current.set(vehicleId, requestAnimationFrame(step));
   }, []);
 
   // Update truck markers
@@ -65,53 +115,53 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
       if (!trucks.find(t => t.vehicle_id === id)) {
         marker.remove();
         markersRef.current.delete(id);
+        // Cancel animation
+        const frame = animationFramesRef.current.get(id);
+        if (frame) cancelAnimationFrame(frame);
+        animationFramesRef.current.delete(id);
+        markerPositionsRef.current.delete(id);
+        previousTrucksRef.current.delete(id);
       }
     });
 
     trucks.forEach(truck => {
       if (!truck.latitude || !truck.longitude) return;
-      const color = DOT_COLORS[truck.status] || '#6b7280';
-      const isSelected = selected?.vehicle_id === truck.vehicle_id;
-      const size = isSelected ? 48 : 36;
 
-      const icon = L.divIcon({
-        className: '',
-        html: `
-          <div style="position:relative;width:${size}px;height:${size + 16}px;">
-            <div style="
-              width:${size}px;height:${size}px;
-              background:${color};
-              border:${isSelected ? '3px solid white' : '2px solid rgba(255,255,255,0.6)'};
-              border-radius:50%;
-              display:flex;align-items:center;justify-content:center;
-              font-size:${isSelected ? '22px' : '16px'};
-              box-shadow:0 0 ${isSelected ? '16px' : '8px'} ${color}aa;
-              transform:rotate(${truck.heading || 0}deg);
-            ">🚛</div>
-            <div style="
-              position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-              background:rgba(0,0,0,0.85);color:white;
-              font-size:9px;font-weight:700;
-              padding:1px 5px;border-radius:3px;
-              white-space:nowrap;
-            ">${truck.vehicle_id}</div>
-          </div>
-        `,
-        iconSize: [size, size + 16],
-        iconAnchor: [size / 2, size / 2],
-      });
+      const previous = previousTrucksRef.current.get(truck.vehicle_id);
+      const isSelected = selected?.vehicle_id === truck.vehicle_id;
+      const selectedId = selected?.vehicle_id;
+
+      // Only rebuild icon if something visual changed
+      const headingChanged = !previous ||
+        Math.abs((previous.heading || 0) - (truck.heading || 0)) > 5;
+      const statusChanged = !previous || previous.status !== truck.status;
+      const selectionChanged = !previous ||
+        (selectedId === truck.vehicle_id) !== (selectedId === previous?.vehicle_id);
 
       const existing = markersRef.current.get(truck.vehicle_id);
+
       if (existing) {
-        existing.setLatLng([truck.latitude, truck.longitude]).setIcon(icon);
+        // Animate position
+        animateMarkerTo(truck.vehicle_id, existing, truck.latitude, truck.longitude);
+
+        // Only update icon if necessary
+        if (headingChanged || statusChanged || selectionChanged) {
+          const icon = buildIcon(L, truck, isSelected);
+          existing.setIcon(icon);
+        }
       } else {
+        // New marker
+        const icon = buildIcon(L, truck, isSelected);
         const marker = L.marker([truck.latitude, truck.longitude], { icon })
           .addTo(mapRef.current!)
           .on('click', () => onSelectTruck(truck));
         markersRef.current.set(truck.vehicle_id, marker);
+        markerPositionsRef.current.set(truck.vehicle_id, [truck.latitude, truck.longitude]);
       }
+
+      previousTrucksRef.current.set(truck.vehicle_id, truck);
     });
-  }, [trucks, selected]);
+  }, [trucks, selected, onSelectTruck, animateMarkerTo]);
 
   // Draw routes for ALL trucks that have geometry
   useEffect(() => {
@@ -149,4 +199,18 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   return (
     <div ref={containerRef} className="w-full h-full" style={{ background: '#1a1a2e' }} />
   );
+}
+
+function buildIcon(L: any, truck: Truck, isSelected: boolean) {
+  const color = DOT_COLORS[truck.status] || '#6b7280';
+  const size = isSelected ? 48 : 36;
+  return L.divIcon({
+    className: '',
+    html: `<div style="position:relative;width:${size}px;height:${size + 16}px;">
+      <div style="width:${size}px;height:${size}px;background:${color};border:${isSelected ? '3px solid white' : '2px solid rgba(255,255,255,0.6)'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSelected ? '22px' : '16px'};box-shadow:0 0 ${isSelected ? '16px' : '8px'} ${color}aa;transform:rotate(${truck.heading || 0}deg);">🚛</div>
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;">${truck.vehicle_id}</div>
+    </div>`,
+    iconSize: [size, size + 16],
+    iconAnchor: [size / 2, size / 2],
+  });
 }
