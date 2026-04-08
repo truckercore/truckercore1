@@ -4,10 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
-});
-
 type AppRole =
   | 'driver'
   | 'owner_operator'
@@ -70,6 +66,11 @@ function isAllowedRole(role: string | null | undefined, allowed: AppRole[]) {
 
 export async function GET(request: Request) {
   try {
+    // Initialize Stripe inside the handler
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-03-31.basil' as any,
+    });
+
     const url = new URL(request.url);
     const plan = url.searchParams.get('plan') as PlanKey | null;
     const from = url.searchParams.get('from') || '/upgrade';
@@ -86,7 +87,10 @@ export async function GET(request: Request) {
 
     if (!user) {
       const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirectTo', `/upgrade?from=${encodeURIComponent(from)}`);
+      loginUrl.searchParams.set(
+        'redirectTo',
+        `/upgrade?from=${encodeURIComponent(from)}`
+      );
       return NextResponse.redirect(loginUrl);
     }
 
@@ -121,7 +125,6 @@ export async function GET(request: Request) {
     }
 
     const baseUrl = getBaseUrl(request);
-
     const successUrl = `${baseUrl}${config.successPath}`;
     const cancelUrl = `${baseUrl}/upgrade?from=${encodeURIComponent(from)}&canceled=1`;
 
@@ -154,9 +157,17 @@ export async function GET(request: Request) {
       allow_promotion_codes: true,
     });
 
-    return NextResponse.redirect(session.url!, { status: 303 });
+    if (!session.url) {
+      return NextResponse.json(
+        { error: 'Stripe did not return a checkout URL' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.redirect(session.url, { status: 303 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Checkout creation failed';
+    const message =
+      error instanceof Error ? error.message : 'Checkout creation failed';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
