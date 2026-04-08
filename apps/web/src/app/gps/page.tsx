@@ -70,8 +70,39 @@ export default function GPSPage() {
         event: '*',
         schema: 'public',
         table: 'vehicle_locations',
-      }, async () => {
-        await loadTrucks();
+      }, async (payload) => {
+        const row = payload.new as { vehicle_id?: string } | null;
+        const vehicleId = row?.vehicle_id;
+        if (!vehicleId) return;
+
+        // Fetch only the changed truck from the route-aware view
+        const { data, error } = await supabase
+          .from('vehicle_current_positions')
+          .select('*')
+          .eq('vehicle_id', vehicleId)
+          .single();
+
+        if (error || !data) return;
+
+        // Patch only the changed truck
+        setTrucks(prev => {
+          const next = [...prev];
+          const index = next.findIndex(t => t.vehicle_id === data.vehicle_id);
+          if (index >= 0) {
+            next[index] = data as Truck;
+          } else {
+            next.push(data as Truck);
+          }
+          return next;
+        });
+
+        setLastUpdate(new Date());
+
+        // Keep selected truck synced
+        setSelected(prev => {
+          if (!prev || prev.vehicle_id !== data.vehicle_id) return prev;
+          return data as Truck;
+        });
       })
       .subscribe();
 
@@ -79,14 +110,6 @@ export default function GPSPage() {
       supabase.removeChannel(channel);
     };
   }, [loadTrucks]);
-
-  // Keep selected truck synced with live updates
-  useEffect(() => {
-    if (selected) {
-      const updated = trucks.find(t => t.vehicle_id === selected.vehicle_id);
-      if (updated) setSelected(updated);
-    }
-  }, [trucks]);
 
   const filtered = filter === 'all'
     ? trucks
