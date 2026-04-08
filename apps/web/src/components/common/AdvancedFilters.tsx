@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import { Filter, X, ChevronDown, Search } from 'lucide-react';
 import debounce from 'lodash.debounce';

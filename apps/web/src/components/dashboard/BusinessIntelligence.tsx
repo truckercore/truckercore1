@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, DollarSign, Target, BarChart3 } from 'lucide-react';
 import type { Revenue, Expense, BusinessMetrics, LaneProfitability } from '../../types/ownerOperator';

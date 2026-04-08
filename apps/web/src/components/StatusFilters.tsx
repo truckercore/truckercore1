@@ -1,4 +1,5 @@
 // apps/web/src/components/StatusFilters.tsx
+"use client";
 import { useState, useEffect } from "react";
 
 type Incident = { id: string; title: string; status?: string; impact?: string; started_at?: string; link?: string };

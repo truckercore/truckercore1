@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef, useState } from 'react';
 import { Upload, X, Camera } from 'lucide-react';
 import type { Expense, ExpenseCategory } from '../../types/ownerOperator';

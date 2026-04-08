@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import maplibregl, { Map as MLMap } from "maplibre-gl";
 import { createClient } from "@supabase/supabase-js";

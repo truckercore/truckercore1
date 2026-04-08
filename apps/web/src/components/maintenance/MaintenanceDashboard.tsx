@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { maintenanceEngine } from '@/services/maintenance/MaintenanceEngine';
 import type { MaintenanceDashboard as MD, WorkOrder, Vehicle } from '@/types/fleet.types';

@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import { Truck, DollarSign, TrendingUp, MapPin } from 'lucide-react';
 import type { Load } from '../types/freight';

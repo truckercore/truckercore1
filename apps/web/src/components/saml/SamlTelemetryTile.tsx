@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 
 type Row = { t: string; ok: number; fail: number; p95_ms: number };

@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import { Truck, Users, AlertTriangle, CheckCircle, Clock, TrendingUp } from 'lucide-react';
 import type { Load } from '../types/freight';

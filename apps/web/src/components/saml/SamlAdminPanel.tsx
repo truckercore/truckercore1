@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import { CertExpiryBadge } from "./CertExpiryBadge";
 import { SamlEnableToggle } from "./SamlEnableToggle";

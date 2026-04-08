@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';

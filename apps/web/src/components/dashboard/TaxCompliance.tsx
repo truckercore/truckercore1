@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { FileText, Download, AlertTriangle, CheckCircle } from 'lucide-react';
 import type { Revenue, Expense, IFTAReport, TaxEstimate, Form2290Data } from '../../types/ownerOperator';

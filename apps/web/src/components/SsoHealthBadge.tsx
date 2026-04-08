@@ -1,4 +1,5 @@
 // apps/web/src/components/SsoHealthBadge.tsx
+"use client";
 import React, { useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import SsoTestButton from './SsoTestButton'

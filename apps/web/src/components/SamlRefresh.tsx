@@ -1,4 +1,5 @@
 // apps/web/src/components/SamlRefresh.tsx
+"use client";
 import { useEffect, useState } from "react";
 
 export function SamlRefresh({ orgId, staleDays = 7 }: { orgId: string; staleDays?: number }) {

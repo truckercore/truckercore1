@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Truck, FileText, DollarSign, TrendingUp, Package, Users } from 'lucide-react';
 import { LoadCreationDialog } from './LoadCreationDialog';
