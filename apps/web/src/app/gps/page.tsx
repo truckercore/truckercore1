@@ -1,6 +1,5 @@
 'use client';
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
@@ -76,11 +75,8 @@ export default function GPSPage() {
       })
       .subscribe();
 
-    const interval = setInterval(loadTrucks, 30000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [loadTrucks]);
 

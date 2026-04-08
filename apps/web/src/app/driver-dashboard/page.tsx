@@ -1,6 +1,5 @@
 'use client';
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 
 import React from 'react';
 import { DriverDashboard } from '@/components/DriverDashboard';
@@ -11,8 +10,8 @@ export default function DriverDashboardPage() {
     <div>
       <DashboardNavigation />
       <DriverDashboard
-        driverName="John Doe"
-        vehicleId="TRK-101"
+        driverName="James Wilson"
+        vehicleId="TC-101"
         isPremium={false}
       />
     </div>

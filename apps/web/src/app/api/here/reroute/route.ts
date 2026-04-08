@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { decode } from '@here/flexpolyline';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 type HereSection = {
   polyline?: string;
