@@ -75,7 +75,6 @@ export default function GPSPageClient() {
         const vehicleId = row?.vehicle_id;
         if (!vehicleId) return;
 
-        // Fetch only the changed truck from the route-aware view
         const { data, error } = await supabase
           .from('vehicle_current_positions')
           .select('*')
