@@ -2,10 +2,10 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 
-const LiveTrackingMap = dynamic(
+const LiveTrackingMap = nextDynamic(
   () => import('@/components/gps/LiveTrackingMap'),
   {
     ssr: false,
