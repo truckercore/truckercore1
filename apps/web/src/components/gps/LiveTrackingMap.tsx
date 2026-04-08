@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -57,6 +57,7 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   const animationFramesRef = useRef<Map<string, number>>(new Map());
   const markerPositionsRef = useRef<Map<string, [number, number]>>(new Map());
   const previousTrucksRef = useRef<Map<string, Truck>>(new Map());
+  const [stationsData, setStationsData] = useState<any[]>([]);
 
   // Init map
   useEffect(() => {
@@ -187,11 +188,20 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
     // Clear all existing route layers
     routeLayerRef.current.clearLayers();
 
-    // Draw route for every truck that has geometry
+    // Dedup routes by hash
+    const drawnRoutes = new Set<string>();
+
     trucks.forEach(truck => {
       if (!truck.route_geometry?.coordinates?.length) return;
 
+      const routeHash = JSON.stringify(truck.route_geometry.coordinates.slice(0, 5)) + 
+                        JSON.stringify(truck.route_geometry.coordinates.slice(-5));
       const isSelected = selected?.vehicle_id === truck.vehicle_id;
+      
+      // If not selected and we already drew this route, skip
+      if (!isSelected && drawnRoutes.has(routeHash)) return;
+      if (!isSelected) drawnRoutes.add(routeHash);
+
       const isRerouting = truck.status === 'rerouting';
       const color = ROUTE_COLORS[truck.status] || '#6b7280';
 
@@ -234,6 +244,7 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   // Add useEffect for station markers
   useEffect(() => {
     if (!mapRef.current || !stations?.length) return;
+    setStationsData(stations);
 
     const icons: Record<string, string> = {
       weigh_station: '⚖️',
@@ -258,7 +269,28 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   }, [stations]);
 
   return (
-    <div ref={containerRef} className="w-full h-full" style={{ background: '#1a1a2e' }} />
+    <div className="w-full h-full relative" style={{ background: '#1a1a2e' }}>
+      <div ref={containerRef} className="w-full h-full" />
+      
+      {/* Map Legend */}
+      <div className="absolute top-4 right-4 z-[1000] bg-gray-900/90 border border-gray-700 p-3 rounded-lg backdrop-blur-sm text-[10px] text-gray-300 pointer-events-none">
+        <p className="font-bold mb-2 text-gray-400 uppercase tracking-wider">Fleet Status</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          {Object.entries(ROUTE_COLORS).map(([status, color]) => (
+            <div key={status} className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+              <span className="capitalize">{status.replace('_', ' ')}</span>
+            </div>
+          ))}
+          {stationsData.length > 0 && (
+            <div className="flex items-center gap-2 mt-1 pt-1 border-t border-gray-800 col-span-2">
+              <span>⚖️</span>
+              <span>Inspection Stations</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

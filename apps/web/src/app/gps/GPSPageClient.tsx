@@ -282,6 +282,22 @@ export default function GPSPageClient() {
                 )}
               </div>
 
+              {/* Route Progress Timeline */}
+              <div className="mt-4 pt-4 border-t border-gray-800">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">Route Progress</span>
+                  <span className="text-[10px] text-blue-400 font-bold">
+                    {selected.status === 'at_delivery' ? '100%' : '65%'}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                    style={{ width: selected.status === 'at_delivery' ? '100%' : '65%' }}
+                  />
+                </div>
+              </div>
+
               <RouteHazardPanel
                 routeCoordinates={selected?.route_geometry?.coordinates ?? null}
                 isPremium={false} // wire to real isPremium later
