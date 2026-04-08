@@ -11,31 +11,52 @@ export default async function UpgradePage({ searchParams }: UpgradePageProps) {
   const from = params.from ?? '/';
 
   return (
-    <main className="mx-auto max-w-2xl p-6 text-white">
-      <h1 className="text-3xl font-bold">Upgrade to Premium</h1>
-      <p className="mt-3 text-gray-300">
-        Unlock advanced GPS, analytics, AI tools, and premium dashboards.
+    <main className="mx-auto max-w-4xl p-6 text-white">
+      <h1 className="text-3xl font-bold">Upgrade TruckerCore</h1>
+      <p className="mt-2 text-slate-300">
+        Choose the premium plan that matches your role.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <p className="text-sm text-gray-400">Return path after upgrade</p>
-        <p className="mt-1 break-all text-sm text-white">{from}</p>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Link
+          href={`/api/stripe/checkout?plan=driver_pro&from=${encodeURIComponent(from)}`}
+          className="rounded-2xl border border-slate-800 bg-slate-950 p-5"
+        >
+          <div className="text-lg font-semibold">Driver Pro</div>
+          <div className="mt-2 text-sm text-slate-400">
+            Traffic, weather, station alerts, premium route intelligence.
+          </div>
+        </Link>
 
-        <div className="mt-6 flex gap-3">
-          <Link
-            href="/api/stripe/checkout?plan=fleet_pro"
-            className="rounded-lg bg-amber-500 px-4 py-2 font-medium text-black"
-          >
-            Upgrade Now
-          </Link>
+        <Link
+          href={`/api/stripe/checkout?plan=owner_operator_pro&from=${encodeURIComponent(from)}`}
+          className="rounded-2xl border border-slate-800 bg-slate-950 p-5"
+        >
+          <div className="text-lg font-semibold">Owner Operator Pro</div>
+          <div className="mt-2 text-sm text-slate-400">
+            Expense analysis, profit tools, fuel/toll route optimization.
+          </div>
+        </Link>
 
-          <Link
-            href={from}
-            className="rounded-lg border border-slate-700 px-4 py-2 font-medium text-white"
-          >
-            Back
-          </Link>
-        </div>
+        <Link
+          href={`/api/stripe/checkout?plan=fleet_pro&from=${encodeURIComponent(from)}`}
+          className="rounded-2xl border border-slate-800 bg-slate-950 p-5"
+        >
+          <div className="text-lg font-semibold">Fleet Pro</div>
+          <div className="mt-2 text-sm text-slate-400">
+            Advanced analytics, AI matching, dispatch intelligence.
+          </div>
+        </Link>
+
+        <Link
+          href={`/api/stripe/checkout?plan=broker_pro&from=${encodeURIComponent(from)}`}
+          className="rounded-2xl border border-slate-800 bg-slate-950 p-5"
+        >
+          <div className="text-lg font-semibold">Broker Pro</div>
+          <div className="mt-2 text-sm text-slate-400">
+            Automation, driver matching, premium broker workflow tools.
+          </div>
+        </Link>
       </div>
     </main>
   );
