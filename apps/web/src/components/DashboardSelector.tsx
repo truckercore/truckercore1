@@ -34,6 +34,14 @@ export const DashboardSelector: React.FC = () => {
       color: 'from-green-600 to-green-800',
     },
     {
+      id: 'driver',
+      title: 'Driver',
+      description: 'View your active load, track HOS, and navigation',
+      icon: <Users size={48} />,
+      route: '/driver-dashboard',
+      color: 'from-orange-600 to-orange-800',
+    },
+    {
       id: 'fleet-manager',
       title: 'Fleet Manager',
       description: 'Oversee fleet operations, maintenance, and compliance',
@@ -57,7 +65,7 @@ export const DashboardSelector: React.FC = () => {
         </div>
 
         {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {dashboards.map((dashboard) => (
             <button
               key={dashboard.id}
