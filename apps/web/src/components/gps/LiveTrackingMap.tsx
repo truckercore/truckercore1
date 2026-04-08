@@ -36,7 +36,7 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const routeLayerRef = useRef<L.Polyline | null>(null);
+  const routeLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Init map
   useEffect(() => {
@@ -50,6 +50,9 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
       attribution: '© OpenStreetMap © CARTO',
       maxZoom: 19,
     }).addTo(mapRef.current);
+
+    routeLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
     return () => { mapRef.current?.remove(); mapRef.current = null; };
   }, []);
 
@@ -110,33 +113,38 @@ export default function LiveTrackingMap({ trucks, selected, onSelectTruck }: Pro
     });
   }, [trucks, selected]);
 
-  // Show selected truck's route geometry
+  // Draw routes for ALL trucks that have geometry
   useEffect(() => {
-    if (!mapRef.current) return;
-    routeLayerRef.current?.remove();
-    routeLayerRef.current = null;
+    if (!mapRef.current || !routeLayerRef.current) return;
 
-    if (!selected?.route_geometry?.coordinates?.length) return;
+    // Clear all existing route layers
+    routeLayerRef.current.clearLayers();
 
-    const latlngs = selected.route_geometry.coordinates.map(
-      ([lng, lat]) => [lat, lng] as [number, number]
-    );
+    // Draw route for every truck that has geometry
+    trucks.forEach(truck => {
+      if (!truck.route_geometry?.coordinates?.length) return;
 
-    routeLayerRef.current = L.polyline(latlngs, {
-      color: '#3b82f6',
-      weight: 4,
-      opacity: 0.7,
-      dashArray: '8, 4',
-    }).addTo(mapRef.current);
+      const isSelected = selected?.vehicle_id === truck.vehicle_id;
+      const latlngs = truck.route_geometry.coordinates.map(
+        ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+      );
+
+      L.polyline(latlngs, {
+        color: isSelected ? '#3b82f6' : '#4b5563',
+        weight: isSelected ? 4 : 2,
+        opacity: isSelected ? 0.8 : 0.4,
+        dashArray: isSelected ? '8, 4' : '4, 4',
+      }).addTo(routeLayerRef.current!);
+    });
 
     // Pan to selected truck
-    if (selected.latitude && selected.longitude) {
+    if (selected?.latitude && selected?.longitude) {
       mapRef.current.panTo([selected.latitude, selected.longitude], {
         animate: true,
         duration: 0.5,
       });
     }
-  }, [selected]);
+  }, [trucks, selected]);
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ background: '#1a1a2e' }} />
