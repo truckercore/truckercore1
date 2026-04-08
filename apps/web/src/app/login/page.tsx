@@ -23,21 +23,30 @@ function LoginForm() {
     setLoading(true);
     setMessage('');
     const supabase = createClient();
-    const { error } = mode === 'signin'
+    const { data, error } = mode === 'signin'
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password });
+
     if (error) {
       setMessage(error.message);
       setLoading(false);
       return;
     }
+
     if (mode === 'signup') {
-      setMessage('Check your email for confirmation link');
+      setMessage('Account created! You can now sign in.');
+      setMode('signin');
       setLoading(false);
       return;
     }
-    router.push(redirectTo);
-    router.refresh();
+
+    if (data?.session) {
+      // ✅ CRITICAL: full reload so middleware sees cookies
+      window.location.href = redirectTo;
+    } else {
+      setMessage('Login succeeded but no session — try again');
+      setLoading(false);
+    }
   };
 
   return (
