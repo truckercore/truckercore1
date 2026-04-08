@@ -1,18 +1,16 @@
-'use client';
-
-import React from 'react';
-import { OwnerOperatorDashboard } from '../../components/OwnerOperatorDashboard';
+import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
+import { OwnerOperatorDashboard } from '../../components/OwnerOperatorDashboard';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+export default async function Page() {
+  const { isPremium } = await getAuthenticatedUser('/owner-operator-dashboard');
+
   return (
     <div>
       <DashboardNavigation />
-      <OwnerOperatorDashboard
-        operatorId="OO-001"
-        operatorName="J&M Trucking LLC"
-        mcNumber="123456"
-      />
+      <OwnerOperatorDashboard isPremium={isPremium} />
     </div>
   );
 }

@@ -1,14 +1,11 @@
-import { redirect } from 'next/navigation';
-import { getUser } from '@/lib/auth/getUser';
-import { DashboardNavigation } from '@/components/DashboardNavigation';
-import { DriverDashboard } from '@/components/DriverDashboard';
+import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
+import { DashboardNavigation } from '../../components/DashboardNavigation';
+import { DriverDashboard } from '../../components/DriverDashboard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const { user, profile, isPremium } = await getUser();
-
-  if (!user) redirect('/login?redirectTo=/driver-dashboard');
+  const { user, profile, isPremium } = await getAuthenticatedUser('/driver-dashboard');
 
   return (
     <div>
