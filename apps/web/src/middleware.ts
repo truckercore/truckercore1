@@ -1,52 +1,63 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+const PROTECTED = [
+  '/gps',
+  '/driver-dashboard',
+  '/owner-operator-dashboard',
+  '/fleet-manager-dashboard',
+  '/freight-broker-dashboard',
+];
+
 function isProtected(pathname: string) {
-  return (
-    pathname.startsWith('/gps') ||
-    pathname.startsWith('/driver-dashboard') ||
-    pathname.startsWith('/owner-operator-dashboard') ||
-    pathname.startsWith('/fleet-manager-dashboard') ||
-    pathname.startsWith('/freight-broker-dashboard')
-  );
+  return PROTECTED.some(p => pathname.startsWith(p));
 }
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return req.cookies.get(name)?.value; },
-        set(name: string, value: string, options: Record<string, any>) {
-          res.cookies.set({ name, value, ...options });
+        getAll() {
+          return request.cookies.getAll();
         },
-        remove(name: string, options: Record<string, any>) {
-          res.cookies.set({ name, value: '', ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
+  // Use getUser() not getSession() for secure auth checks
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (isProtected(req.nextUrl.pathname) && !user) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
+  if (!user && isProtected(request.nextUrl.pathname)) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set(
+      'redirectTo',
+      request.nextUrl.pathname + request.nextUrl.search
+    );
     return NextResponse.redirect(loginUrl);
   }
 
-  return res;
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/gps/:path*',
-    '/driver-dashboard/:path*',
-    '/owner-operator-dashboard/:path*',
-    '/fleet-manager-dashboard/:path*',
-    '/freight-broker-dashboard/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
