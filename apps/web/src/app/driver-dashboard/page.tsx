@@ -1,18 +1,22 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { getUser } from '@/lib/auth/getUser';
+import { DashboardNavigation } from '@/components/DashboardNavigation';
+import { DriverDashboard } from '@/components/DriverDashboard';
+
 export const dynamic = 'force-dynamic';
 
-import React from 'react';
-import { DriverDashboard } from '@/components/DriverDashboard';
-import { DashboardNavigation } from '@/components/DashboardNavigation';
+export default async function Page() {
+  const { user, profile, isPremium } = await getUser();
 
-export default function DriverDashboardPage() {
+  if (!user) redirect('/login?redirectTo=/driver-dashboard');
+
   return (
     <div>
       <DashboardNavigation />
       <DriverDashboard
-        driverName="James Wilson"
+        driverName={profile?.full_name || user.email || 'Driver'}
         vehicleId="TC-101"
-        isPremium={false}
+        isPremium={isPremium}
       />
     </div>
   );
