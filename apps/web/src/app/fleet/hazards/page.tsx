@@ -6,6 +6,8 @@ import AlertFeed from "@/components/AlertFeed";
 import KpiBar from "@/components/KpiBar";
 import type { BBox } from "@/lib/geo";
 
+export const dynamic = 'force-dynamic';
+
 export default function FleetHazardsPage() {
   const [bbox, setBbox] = useState<BBox | undefined>(undefined);
   const fleetId = undefined; // TODO: plug in from session claims if needed

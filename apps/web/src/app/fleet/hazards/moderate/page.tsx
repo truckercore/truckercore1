@@ -2,6 +2,8 @@
 import React from "react";
 import { createClient } from "@/lib/supabase/client";
 
+export const dynamic = 'force-dynamic';
+
 type Row = { id: string; type: string; title?: string | null; detected_at: string; status?: string | null };
 
 const supabase = createClient();
