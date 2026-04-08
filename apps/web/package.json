@@ -24,7 +24,7 @@
     "@here/flexpolyline": "^0.1.0",
     "@json2csv/plainjs": "^7.0.6",
     "@sentry/nextjs": "^8.30.0",
-    "@supabase/ssr": "^0.5.2",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tanstack/react-query": "^5.51.1",
     "@tanstack/react-virtual": "^3.1.3",
