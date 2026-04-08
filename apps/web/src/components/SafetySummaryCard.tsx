@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 type Summary = {
   org_id: string;
@@ -11,10 +11,7 @@ type Summary = {
   top_types: Array<{ type: string; ct?: number; count?: number }>;
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClient();
 
 export const SafetySummaryCard: React.FC<{ orgId: string }> = ({ orgId }) => {
   const [rows, setRows] = React.useState<Summary[]>([]);

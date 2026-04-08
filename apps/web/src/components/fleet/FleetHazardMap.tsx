@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import maplibregl, { Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 type Alert = {
   id: string
@@ -14,10 +14,7 @@ type Alert = {
   message: string
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient()
 
 const TYPE_COLOR: Record<Alert['alert_type'], string> = {
   SLOWDOWN: '#ef4444', // red

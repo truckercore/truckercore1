@@ -1,11 +1,9 @@
 // apps/web/src/lib/realtime/roadside.ts
 // Simple realtime helpers to subscribe to roadside requests/jobs changes for an org.
-import { createClient, RealtimeChannel } from '@supabase/supabase-js'
+import { RealtimeChannel } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-)
+const supabase = createClient()
 
 export type RoadsideHandlers = {
   onRequest?: (payload: any) => void

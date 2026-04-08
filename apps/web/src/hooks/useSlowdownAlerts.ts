@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 export type SlowdownAlert = {
   id: string
@@ -12,10 +12,7 @@ export type SlowdownAlert = {
   ahead_distance_m?: number
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient()
 
 export function useSlowdownAlerts() {
   const [latest, setLatest] = useState<SlowdownAlert | null>(null)

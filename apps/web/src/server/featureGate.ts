@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type Tier = 'free' | 'pro' | 'enterprise';
 
@@ -10,10 +10,7 @@ const matrix: Record<string, Tier[]> = {
 };
 
 export async function checkFeature(orgId: string, feature: string) {
-  const supa = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supa = createAdminClient();
 
   const { data: org, error } = await supa
     .from('orgs')

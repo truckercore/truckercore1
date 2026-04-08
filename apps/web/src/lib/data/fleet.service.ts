@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 export type ApiError = { status: number; code?: string; message: string; requestId?: string }
 export type ServiceResult<T> = { data: T | null; error: ApiError | null; requestId: string }
@@ -8,10 +8,7 @@ function normalizeError(err: any, status?: number, requestId?: string): ApiError
 }
 
 function getClientOrError(requestId: string): { client?: ReturnType<typeof createClient>; error?: ApiError } {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return { error: { status: 500, code: 'env_missing', message: 'Supabase env not set', requestId } }
-  return { client: createClient(url, key, { global: { headers: { 'x-request-id': requestId } } }) }
+  return { client: createClient() }
 }
 
 export async function listSafetyIncidents(): Promise<ServiceResult<any[]>> {

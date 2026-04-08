@@ -1,10 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const sb = createClient()
 
 export function useHazardSuite(currentRoute?: number[][]) {
   const timer = useRef<NodeJS.Timeout | null>(null)

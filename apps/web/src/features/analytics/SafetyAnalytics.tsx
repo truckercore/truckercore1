@@ -1,12 +1,10 @@
 "use client"
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 function useSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined
-  return React.useMemo(()=> (url && key) ? createClient(url, key) : null, [url, key])
+  return React.useMemo(() => createClient(), [])
 }
 
 export function SafetyAnalytics() {

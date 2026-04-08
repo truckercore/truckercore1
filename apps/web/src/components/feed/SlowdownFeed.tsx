@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 type AlertType = 'SLOWDOWN'|'WORKZONE'|'WEATHER'|'SPEED'|'OFFROUTE'|'WEIGH'|'FATIGUE'
 type Alert = {
@@ -11,10 +11,7 @@ type Alert = {
   road_name?: string | null
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient()
 
 const TABS: { key: 'ALL'|AlertType; label: string }[] = [
   { key: 'ALL', label: 'All' },

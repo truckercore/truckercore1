@@ -1,42 +1,29 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
-
-let supabaseInstance: SupabaseClient<Database> | null = null;
+import { createClient } from './client';
 
 /**
  * Get Supabase client (singleton pattern)
  */
 export function getSupabaseClient(): SupabaseClient<Database> {
-  if (!supabaseInstance) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON;
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    supabaseInstance = createClient<Database>(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: false,
-      },
-      db: {
-        schema: 'public',
-      },
-    });
-  }
-
-  return supabaseInstance;
+  return createClient() as SupabaseClient<Database>;
 }
 
 /**
  * Get authenticated Supabase client for user
  */
 export function getAuthenticatedClient(token: string): SupabaseClient<Database> {
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)!;
-  const supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON)!;
+  // Use the wrapper client and then append the token header if possible, 
+  // but since createClient returns a singleton, we might need to use the base library for authenticated overrides
+  // Or just rely on the session management in the singleton.
+  // For now, since this is a specific override, we can keep the local implementation but use the correct env vars.
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  return createClient<Database>(supabaseUrl, supabaseKey, {
+  const { createClient: createBaseClient } = require('@supabase/supabase-js');
+
+  return createBaseClient(supabaseUrl, supabaseKey, {
     global: {
       headers: {
         Authorization: `Bearer ${token}`,
