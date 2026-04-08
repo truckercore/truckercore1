@@ -80,9 +80,10 @@ export default function GPSPage() {
           .from('vehicle_current_positions')
           .select('*')
           .eq('vehicle_id', vehicleId)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) return;
+        if (error) { console.error('GPS patch error:', error); return; }
+        if (!data) { console.warn(`No position for ${vehicleId}`); return; }
 
         // Patch only the changed truck
         setTrucks(prev => {

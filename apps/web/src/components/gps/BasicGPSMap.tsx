@@ -301,23 +301,24 @@ export default function BasicGPSMap({
       setMapReady(true);
 
       // Load initial data
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('vehicle_current_positions')
         .select('*')
         .eq('vehicle_id', vehicleId)
-        .single();
+        .maybeSingle();
 
-      if (data) {
-        truckDataRef.current = data;
-        setTruck(data);
-        updateMap(L, data);
-        onStatusChange?.(data.status);
+      if (error) { console.error('GPS patch error:', error); return; }
+      if (!data) { console.warn(`No position for ${vehicleId}`); return; }
 
-        if (navigationMode) {
-          mapRef.current.setView([data.latitude, data.longitude], 13);
-        } else {
-          mapRef.current.setView([data.latitude, data.longitude], 9);
-        }
+      truckDataRef.current = data;
+      setTruck(data);
+      updateMap(L, data);
+      onStatusChange?.(data.status);
+
+      if (navigationMode) {
+        mapRef.current.setView([data.latitude, data.longitude], 13);
+      } else {
+        mapRef.current.setView([data.latitude, data.longitude], 9);
       }
 
       // Realtime subscription
@@ -329,11 +330,14 @@ export default function BasicGPSMap({
           table: 'vehicle_locations',
           filter: `vehicle_id=eq.${vehicleId}`,
         }, async () => {
-          const { data: updated } = await supabase
+          const { data: updated, error } = await supabase
             .from('vehicle_current_positions')
             .select('*')
             .eq('vehicle_id', vehicleId)
-            .single();
+            .maybeSingle();
+
+          if (error) { console.error('GPS patch error:', error); return; }
+          if (!updated) { console.warn(`No position for ${vehicleId}`); return; }
 
           if (updated && LRef.current) {
             truckDataRef.current = updated;
