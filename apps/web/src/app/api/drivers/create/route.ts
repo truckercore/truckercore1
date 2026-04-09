@@ -73,9 +73,12 @@ export async function POST(req: Request) {
     }
 
     const insertPayload = {
-      org_id: orgId,              // ✅ REQUIRED
+      org_id: orgId,
+      user_id: user.id,
       name,
       truck_number: truckNumber ?? null,
+      phone: phone ?? null,
+      license_number: licenseNumber ?? null,
       status: 'available',
     };
 
