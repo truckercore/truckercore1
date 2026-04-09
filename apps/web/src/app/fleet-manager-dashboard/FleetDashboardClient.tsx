@@ -9,6 +9,7 @@ import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard'
 import DispatchBoard from '@/components/fleet/DispatchBoard';
 import FleetCompliancePanel from '@/components/fleet/FleetCompliancePanel';
 import DriverManagementPanel from '@/components/fleet/DriverManagementPanel';
+import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
 
 interface Props {
   isPremium: boolean;
@@ -77,6 +78,9 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
           </div>
           <div className="mt-6">
             <DriverManagementPanel orgId={orgId} />
+          </div>
+          <div className="mt-6">
+            <VehicleAssignmentPanel orgId={orgId} />
           </div>
           <div className="mt-6">
             <InspectionAnalyticsCard />
