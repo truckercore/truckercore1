@@ -11,7 +11,8 @@ import FleetCompliancePanel from '@/components/fleet/FleetCompliancePanel';
 import DriverManagementPanel from '@/components/fleet/DriverManagementPanel';
 import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
 import LiveFleetTrackingPanel from '@/components/fleet/LiveFleetTrackingPanel';
-import FleetAlertsPanel from '@/components/fleet/FleetAlertsPanel';
+import FleetPredictiveAlertsPanel from '@/components/fleet/FleetPredictiveAlertsPanel';
+import BillingStatusCard from '@/components/billing/BillingStatusCard';
 
 interface Props {
   isPremium: boolean;
@@ -88,7 +89,10 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
             <InspectionAnalyticsCard />
           </div>
           <div className="mt-6">
-            <FleetAlertsPanel />
+            <FleetPredictiveAlertsPanel orgId={orgId} />
+          </div>
+          <div className="mt-6">
+            <BillingStatusCard />
           </div>
         </div>
       </div>
