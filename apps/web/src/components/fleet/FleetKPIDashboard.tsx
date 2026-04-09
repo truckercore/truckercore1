@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { useFleetKPI } from '@/hooks/useFleetKPI';
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 const currency = new Intl.NumberFormat('en-US', {
@@ -11,78 +12,6 @@ const currency = new Intl.NumberFormat('en-US', {
 });
 const fmtPct = (n: number) => `${Math.round(n)}%`;
 const cents = (c: number) => c / 100;
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-interface KPI {
-  totalTrucks: number;
-  activeTrucks: number;
-  idleTrucks: number;
-  offlineTrucks: number;
-  totalDrivers: number;
-  driversOnDuty: number;
-  activeLoads: number;
-  delayedLoads: number;
-  completedLoads: number;
-  onTimePct: number;
-  loadUtilizationPct: number;
-  totalMiles: number;
-  avgMPG: number;
-  baselineMPG: number;
-  revenueCents: number;
-  fuelCostCents: number;
-  maintenanceCostCents: number;
-  revenueTrend: Array<{ day: string; v: number }>;
-}
-
-// ─── Simulated data fetcher ───────────────────────────────────────────────────
-// Replace with Supabase / API route:
-//   const { data } = await supabase.rpc('get_fleet_kpi', { org_id: orgId });
-function useFleetKPI(orgId: string, tick: number) {
-  const [state, setState] = useState<{ loading: boolean; kpi: KPI | null }>({
-    loading: true,
-    kpi: null,
-  });
-
-  useEffect(() => {
-    setState((s) => ({ ...s, loading: true }));
-    const t = setTimeout(() => {
-      setState({
-        loading: false,
-        kpi: {
-          totalTrucks: 14,
-          activeTrucks: 9,
-          idleTrucks: 3,
-          offlineTrucks: 2,
-          totalDrivers: 12,
-          driversOnDuty: 8,
-          activeLoads: 7,
-          delayedLoads: 2,
-          completedLoads: 41,
-          onTimePct: 78,
-          loadUtilizationPct: 64,
-          totalMiles: 18240,
-          avgMPG: 5.9,
-          baselineMPG: 6.5,
-          revenueCents: 8430000,
-          fuelCostCents: 1870000,
-          maintenanceCostCents: 420000,
-          revenueTrend: [
-            { day: 'Mon', v: 9200 },
-            { day: 'Tue', v: 11400 },
-            { day: 'Wed', v: 8900 },
-            { day: 'Thu', v: 13100 },
-            { day: 'Fri', v: 12800 },
-            { day: 'Sat', v: 7600 },
-            { day: 'Sun', v: 8430 },
-          ],
-        },
-      });
-    }, 700);
-    return () => clearTimeout(t);
-  }, [orgId, tick]);
-
-  return state;
-}
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -198,7 +127,7 @@ export default function FleetKPIDashboard({ orgId = 'demo' }: { orgId?: string }
   const [tick, setTick] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  const { kpi, loading } = useFleetKPI(orgId, tick);
+  const { kpi, loading, error } = useFleetKPI(orgId, tick);
 
   const handleRefresh = () => {
     setTick((n) => n + 1);
@@ -274,6 +203,18 @@ export default function FleetKPIDashboard({ orgId = 'demo' }: { orgId?: string }
         </div>
         <Skeleton h={80} />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card style={{ margin: '1rem 0', borderColor: 'var(--color-border-danger)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-danger)' }}>
+            ⚠️ {error}
+          </p>
+        </div>
+      </Card>
     );
   }
 
