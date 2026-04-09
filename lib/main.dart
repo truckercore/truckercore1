@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'package:go_router/go_router.dart' as go;
 import 'package:logger/logger.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:truckercore1/services/gps_tracking_service.dart';
 import 'package:truckercore1/services/supa_client.dart';
 
 import 'app_router.dart';
@@ -299,6 +301,26 @@ Future<void> main([List<String>? args]) async {
 
   // Finally, run the app
   runApp(app);
+
+  // Initialize FCM after Supabase and App initialization
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        log.i('🔔 FOREGROUND PUSH: ${message.notification?.title}');
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        log.i('🔔 APP OPENED FROM PUSH: ${message.notification?.title}');
+      });
+
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await GpsTrackingService().registerPushToken(fcmToken);
+      }
+    } catch (e) {
+      log.e('FCM initialization failed', error: e);
+    }
+  }
 
   // Close guarded zone with error handler
   }, (error, stack) {

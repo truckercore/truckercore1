@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:truckercore1/common/config/app_config.dart';
 
 class GpsTrackingService {
   static final GpsTrackingService _instance = GpsTrackingService._internal();
@@ -11,6 +15,34 @@ class GpsTrackingService {
   bool _isTracking = false;
 
   bool get isTracking => _isTracking;
+
+  Future<void> registerPushToken(String fcmToken) async {
+    final supabase = Supabase.instance.client;
+    final session = supabase.auth.currentSession;
+    if (session == null) return;
+
+    try {
+      // Use the backend from appConfigFromEnv if possible, or a reasonable default
+      final baseUrl = appConfigFromEnv.backend == 'firebase' 
+          ? 'https://truckercore12.vercel.app' 
+          : appConfigFromEnv.backend;
+
+      await http.post(
+        Uri.parse('$baseUrl/api/push/register-mobile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+        body: jsonEncode({
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+          'pushToken': fcmToken,
+          'deviceName': 'TruckerCore Driver App',
+        }),
+      );
+    } catch (e) {
+      print('Push token registration failed: $e');
+    }
+  }
 
   Future<bool> requestPermissions() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();

@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { classifyAlert } from '@/app/api/alerts/classify/route';
 
 export const dynamic = 'force-dynamic';
 
+async function sendPush(baseUrl: string, userId: string, title: string, body: string, kind: string) {
+  await fetch(`${baseUrl}/api/push/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, title, body, kind, url: '/gps' }),
+  }).catch(() => {});
+}
+
 export async function POST(req: Request) {
   try {
-    // Verify cron secret
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = createAdminClient();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://truckercore12.vercel.app';
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-    // Get latest GPS point per driver
     const { data: recentLocations } = await supabase
       .from('gps_locations')
       .select('user_id, lat, lng, speed_mph, org_id, recorded_at')
@@ -25,7 +33,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, scanned: 0 });
     }
 
-    // Dedupe — latest per driver
     const driverMap = new Map<string, typeof recentLocations[0]>();
     for (const loc of recentLocations) {
       if (!driverMap.has(loc.user_id)) driverMap.set(loc.user_id, loc);
@@ -37,7 +44,7 @@ export async function POST(req: Request) {
     for (const driver of drivers) {
       if (!driver.lat || !driver.lng) continue;
 
-      // Check nearby hazards
+      // Check hazards
       const { data: hazards } = await supabase.rpc('get_nearby_hazards', {
         lat: driver.lat,
         lng: driver.lng,
@@ -47,70 +54,87 @@ export async function POST(req: Request) {
       const criticalHazards = (hazards || []).filter((h: any) => h.severity >= 4);
       const inspections = (hazards || []).filter((h: any) => h.type === 'inspection');
 
-      // Check HOS from drivers table
+      // Check HOS
       const { data: driverRecord } = await supabase
         .from('drivers')
-        .select('hos_driving_minutes, name, id')
+        .select('hos_driving_minutes, name')
         .eq('user_id', driver.user_id)
         .maybeSingle();
 
       const hosMinutes = driverRecord?.hos_driving_minutes ?? 0;
       const hosRemaining = 660 - hosMinutes;
 
-      // Alert: Critical hazard nearby
+      // Critical hazard alert
       if (criticalHazards.length > 0) {
+        const classification = classifyAlert({ type: 'hazard_nearby', severity: 4 });
+        const title = '🚨 Critical hazard detected';
+        const body = `${criticalHazards.length} critical hazard(s) within 25 miles`;
+
         await supabase.from('notifications').insert({
           user_id: driver.user_id,
-          title: '🚨 Critical hazard detected',
-          body: `${criticalHazards.length} critical hazard(s) within 25 miles of your location`,
+          title,
+          body,
           kind: 'hazard',
           url: '/gps',
         });
+
+        await sendPush(baseUrl, driver.user_id, title, body, 'hazard');
         alertCount++;
       }
 
-      // Alert: Inspection station nearby
+      // Inspection alert
       if (inspections.length > 0) {
+        const title = '🚔 Inspection station ahead';
+        const body = `${inspections.length} inspection station(s) on your route`;
+
         await supabase.from('notifications').insert({
           user_id: driver.user_id,
-          title: '🚔 Inspection station ahead',
-          body: `${inspections.length} inspection station(s) detected on your route`,
+          title,
+          body,
           kind: 'inspection',
           url: '/gps',
         });
+
+        await sendPush(baseUrl, driver.user_id, title, body, 'inspection');
         alertCount++;
       }
 
-      // Alert: HOS warning
+      // HOS warning
       if (hosRemaining <= 60 && hosRemaining > 0) {
+        const title = '⏱️ HOS limit approaching';
+        const body = `Only ${hosRemaining} minutes of driving time remaining`;
+
         await supabase.from('notifications').insert({
           user_id: driver.user_id,
-          title: '⏱️ HOS limit approaching',
-          body: `Only ${hosRemaining} minutes of driving time remaining`,
+          title,
+          body,
           kind: 'hos',
           url: '/driver-dashboard',
         });
+
+        await sendPush(baseUrl, driver.user_id, title, body, 'hos');
         alertCount++;
       }
 
-      // Alert: HOS exceeded
+      // HOS exceeded
       if (hosMinutes >= 660) {
+        const title = '🛑 HOS limit exceeded';
+        const body = 'You have reached the 11-hour limit. Rest required.';
+
         await supabase.from('notifications').insert({
           user_id: driver.user_id,
-          title: '🛑 HOS limit exceeded',
-          body: 'You have reached the 11-hour driving limit. Rest required.',
+          title,
+          body,
           kind: 'hos',
           url: '/driver-dashboard',
         });
+
+        await sendPush(baseUrl, driver.user_id, title, body, 'hos');
         alertCount++;
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      scanned: drivers.length,
-      alerts: alertCount,
-    });
+    return NextResponse.json({ ok: true, scanned: drivers.length, alerts: alertCount });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Scan failed' },
@@ -119,7 +143,6 @@ export async function POST(req: Request) {
   }
 }
 
-// Also support GET for Vercel cron
 export async function GET(req: Request) {
   return POST(req);
 }

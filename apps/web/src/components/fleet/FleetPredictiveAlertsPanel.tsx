@@ -140,24 +140,37 @@ export default function FleetPredictiveAlertsPanel({ orgId }: { orgId?: string }
       ) : (
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {alerts.map(alert => {
-            const colorClass = COLOR_MAP[alert.type] || COLOR_MAP.default;
+            const level = alert.severity === 'critical' ? 'critical'
+              : alert.severity === 'warning' ? 'warning'
+              : 'info';
+
+            const colorClass =
+              level === 'critical' ? 'border-red-700/50 bg-red-900/20' :
+              level === 'warning' ? 'border-yellow-700/50 bg-yellow-900/20' :
+              'border-gray-700/50 bg-gray-800/50';
+
+            const textColor =
+              level === 'critical' ? 'text-red-400' :
+              level === 'warning' ? 'text-yellow-400' :
+              'text-blue-400';
+
             const icon = ICON_MAP[alert.type] || ICON_MAP.default;
+
             return (
-              <div
-                key={alert.id}
-                className={`rounded-xl border px-3 py-2.5 ${colorClass}`}
-              >
+              <div key={alert.id} className={`rounded-xl border px-3 py-2.5 ${colorClass}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2">
                     <span className="text-sm mt-0.5">{icon}</span>
                     <div>
-                      <p className="text-sm font-medium">{alert.title}</p>
+                      <p className={`text-sm font-medium ${textColor}`}>
+                        {alert.title}
+                      </p>
                       {alert.body && (
-                        <p className="text-xs opacity-75 mt-0.5">{alert.body}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{alert.body}</p>
                       )}
                     </div>
                   </div>
-                  <span className="text-xs opacity-60 whitespace-nowrap">
+                  <span className="text-gray-500 text-xs whitespace-nowrap">
                     {timeAgo(alert.created_at)}
                   </span>
                 </div>
