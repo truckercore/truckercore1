@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const criticalPenalty = critical.length * 20;
   const warningPenalty = warnings.length * 8;
   const inspectionPenalty = inspections.length * 5;
-  const timePenalty = Math.round(durationMinutes / 10); // longer = more exposure
+  const timePenalty = Math.round(durationMinutes / 60); // per hour not per 10min
 
   const rawRisk = criticalPenalty + warningPenalty + inspectionPenalty + timePenalty;
   const riskScore = Math.min(100, rawRisk);
