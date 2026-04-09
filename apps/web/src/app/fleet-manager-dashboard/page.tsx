@@ -1,19 +1,18 @@
 import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
-import FleetManagerDashboard from '../../components/FleetManagerDashboard';
+import FleetDashboardClient from './FleetDashboardClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const { user, isPremium } = await getAuthenticatedUser('/fleet-manager-dashboard');
+  const { user, profile, isPremium } = await getAuthenticatedUser('/fleet-manager-dashboard');
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-950 text-white">
       <DashboardNavigation />
-      <FleetManagerDashboard
-        fleetName="Premier Transportation Services"
-        managerId={user.id}
+      <FleetDashboardClient
         isPremium={isPremium}
+        userName={profile?.full_name || user.email || 'Fleet Manager'}
       />
     </div>
   );

@@ -6,42 +6,100 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const { route, hazards = [], traffic = {} } = await req.json();
+  const {
+    originLat, originLng,
+    destLat, destLng,
+    durationMinutes = 0,
+  } = await req.json();
 
-  // Score the route based on hazards and conditions
-  const hazardPenalty = hazards.reduce((sum: number, h: any) => {
-    return sum + (h.severity || 1) * 5;
-  }, 0);
+  if (!originLat || !originLng || !destLat || !destLng) {
+    return Response.json({ error: 'Origin and destination required' }, { status: 400 });
+  }
 
-  const baseScore = 100;
-  const riskScore = Math.max(0, Math.min(100, baseScore - hazardPenalty));
+  const midLat = (originLat + destLat) / 2;
+  const midLng = (originLng + destLng) / 2;
 
-  let recommendation = '';
+  // Sample 3 points along route corridor
+  const checkpoints = [
+    { lat: originLat, lng: originLng },
+    { lat: midLat, lng: midLng },
+    { lat: destLat, lng: destLng },
+  ];
+
+  let allHazards: any[] = [];
+  const seenIds = new Set<string>();
+
+  for (const point of checkpoints) {
+    const { data } = await supabase.rpc('get_nearby_hazards', {
+      lat: point.lat,
+      lng: point.lng,
+      radius_miles: 75,
+    });
+    for (const h of data || []) {
+      if (!seenIds.has(h.id)) {
+        seenIds.add(h.id);
+        allHazards.push(h);
+      }
+    }
+  }
+
+  // Categorize
+  const critical = allHazards.filter(h => h.severity >= 4);
+  const warnings = allHazards.filter(h => h.severity === 3);
+  const inspections = allHazards.filter(h => h.type === 'inspection');
+  const weighStations = allHazards.filter(h => h.type === 'weigh_station');
+
+  // Corrected scoring — higher = more risk
+  const criticalPenalty = critical.length * 20;
+  const warningPenalty = warnings.length * 8;
+  const inspectionPenalty = inspections.length * 5;
+  const timePenalty = Math.round(durationMinutes / 10); // longer = more exposure
+
+  const rawRisk = criticalPenalty + warningPenalty + inspectionPenalty + timePenalty;
+  const riskScore = Math.min(100, rawRisk);
+  const safetyScore = 100 - riskScore;
+
+  // Recommendation
+  let suggestion = '';
   let suggestionType = 'safe';
+  let color = '#22c55e';
 
-  if (riskScore >= 80) {
-    recommendation = 'Route looks clear. Proceed as planned.';
+  if (riskScore <= 20) {
+    suggestion = 'Route looks clear. Proceed as planned.';
     suggestionType = 'safe';
-  } else if (riskScore >= 60) {
-    recommendation = 'Minor hazards detected. Drive with caution.';
+    color = '#22c55e';
+  } else if (riskScore <= 40) {
+    suggestion = `Minor hazards detected. ${warnings.length} warnings along route.`;
     suggestionType = 'caution';
-  } else if (riskScore >= 40) {
-    recommendation = 'Multiple hazards on route. Consider alternate path.';
+    color = '#eab308';
+  } else if (riskScore <= 65) {
+    suggestion = `Multiple hazards detected. ${inspections.length} inspection stations ahead.`;
     suggestionType = 'warning';
+    color = '#f97316';
   } else {
-    recommendation = 'High risk route. Strongly recommend alternate routing.';
+    suggestion = `HIGH RISK: ${critical.length} critical hazards. Recommend alternate route.`;
     suggestionType = 'danger';
+    color = '#ef4444';
   }
 
   return Response.json({
     riskScore,
-    suggestion: recommendation,
+    safetyScore,
+    suggestion,
     suggestionType,
-    hazardCount: hazards.length,
+    color,
+    hazardCount: allHazards.length,
+    checkpointsScanned: checkpoints.length,
     breakdown: {
-      hazardPenalty,
-      trafficPenalty: 0,
-      weatherPenalty: 0,
+      critical: critical.length,
+      warnings: warnings.length,
+      inspections: inspections.length,
+      weighStations: weighStations.length,
+      criticalPenalty,
+      warningPenalty,
+      inspectionPenalty,
+      timePenalty,
     },
+    hazards: allHazards.slice(0, 5),
   });
 }
