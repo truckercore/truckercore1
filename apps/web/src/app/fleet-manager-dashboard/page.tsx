@@ -17,7 +17,11 @@ export default async function Page() {
     .eq('role', 'admin')
     .maybeSingle();
 
-  const orgId = membership?.org_id ?? '00000000-0000-0000-0000-0000000000a1';
+  if (!membership?.org_id) {
+    throw new Error('User is not part of an organization');
+  }
+
+  const orgId = membership.org_id;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -26,6 +30,7 @@ export default async function Page() {
         isPremium={isPremium}
         userName={profile?.full_name || user.email || 'Fleet Manager'}
         orgId={orgId}
+        userId={user.id}
       />
     </div>
   );

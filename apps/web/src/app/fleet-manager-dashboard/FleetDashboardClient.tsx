@@ -11,15 +11,17 @@ import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
 import LiveFleetTrackingPanel from '@/components/fleet/LiveFleetTrackingPanel';
 import FleetPredictiveAlertsPanel from '@/components/fleet/FleetPredictiveAlertsPanel';
 import BillingStatusCard from '@/components/billing/BillingStatusCard';
+import BillingUsagePanel from '@/components/billing/BillingUsagePanel';
 import FleetKPIDashboard from '@/components/fleet/FleetKPIDashboard';
 
 interface Props {
   isPremium: boolean;
   userName: string;
   orgId: string;
+  userId: string;
 }
 
-export default function FleetDashboardClient({ isPremium, userName, orgId }: Props) {
+export default function FleetDashboardClient({ isPremium, userName, orgId, userId }: Props) {
   const [rerouteRequested, setRerouteRequested] = useState(false);
 
   // Shared hazard state — flows into both KPI cards AND RoadDogg
@@ -84,6 +86,9 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
           </div>
           <div className="mt-6">
             <FleetPredictiveAlertsPanel orgId={orgId} />
+          </div>
+          <div className="mt-6">
+            <BillingUsagePanel userId={userId} />
           </div>
           <div className="mt-6">
             <BillingStatusCard />
