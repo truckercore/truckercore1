@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Next.js App Router API: Generate + export ROI PDF
 import crypto from "crypto";
 import { NextRequest } from "next/server";
@@ -16,7 +19,6 @@ function orgFromReq(req: NextRequest): string | undefined {
   const h = req.headers.get("x-app-org-id");
   return h || new URL(req.url).searchParams.get("org_id") || undefined;
 }
-export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
