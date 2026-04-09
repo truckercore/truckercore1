@@ -5,6 +5,7 @@ import { useLiveFleet } from '@/hooks/useLiveFleet';
 import { useHazards } from '@/hooks/useHazards';
 import { useGeofence, type Geofence } from '@/hooks/useGeofence';
 import { requestNotificationPermission } from '@/hooks/useNotifications';
+import { useGeofenceTriggers } from '@/hooks/useGeofenceTriggers';
 
 // Default geofences — replace with DB-driven geofences later
 const DEFAULT_GEOFENCES: Geofence[] = [
@@ -39,6 +40,7 @@ export default function FleetHazardMap() {
   const hazardMarkersRef = useRef<any[]>([]);
 
   const drivers = useLiveFleet();
+  useGeofenceTriggers(drivers);
   const centerLat = drivers[0]?.lat || 39.8283;
   const centerLng = drivers[0]?.lng || -98.5795;
   const { hazards } = useHazards(centerLat, centerLng, 200);

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import RouteHazardPanel from '@/components/gps/RouteHazardPanel';
 import GPSDetailPanel from '@/components/gps/GPSDetailPanel';
 import FleetHazardMap from '@/components/maps/FleetHazardMap';
+import AutoModePanel from '@/components/gps/AutoModePanel';
 
 type GPSPageClientProps = {
   initialUser: {
@@ -42,6 +43,13 @@ export default function GPSPageClient({ initialUser }: GPSPageClientProps) {
           routeId={selectedRouteId}
           isPremium={userContext.isPremium}
           role={userContext.role}
+        />
+
+        <AutoModePanel
+          originLat={32.7767}
+          originLng={-96.7970}
+          destLat={41.8781}
+          destLng={-87.6298}
         />
       </div>
     </div>
