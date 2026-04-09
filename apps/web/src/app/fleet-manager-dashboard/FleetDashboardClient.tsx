@@ -7,6 +7,7 @@ import FleetHazardMap from '@/components/maps/FleetHazardMap';
 import { useHazards } from '@/hooks/useHazards';
 import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard';
 import DispatchBoard from '@/components/fleet/DispatchBoard';
+import FleetCompliancePanel from '@/components/fleet/FleetCompliancePanel';
 
 interface Props {
   isPremium: boolean;
@@ -70,6 +71,9 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
             liveHazards={hazards}
             onRerouteRequest={() => setRerouteRequested(true)}
           />
+          <div className="mt-6">
+            <FleetCompliancePanel orgId={orgId} />
+          </div>
           <div className="mt-6">
             <InspectionAnalyticsCard />
           </div>

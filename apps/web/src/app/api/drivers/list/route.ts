@@ -10,16 +10,20 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId');
 
-    let query = supabase
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!member) return NextResponse.json({ drivers: [] });
+
+    const { data: drivers, error } = await supabase
       .from('drivers')
       .select('*')
+      .eq('org_id', member.org_id)
       .order('name');
-
-    if (orgId) query = query.eq('org_id', orgId);
-
-    const { data: drivers, error } = await query;
     if (error) throw error;
 
     return NextResponse.json({ drivers: drivers || [] });

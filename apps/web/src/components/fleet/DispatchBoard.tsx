@@ -34,7 +34,7 @@ export default function DispatchBoard({ orgId }: { orgId: string }) {
       .catch(() => {});
 
     // Load open loads
-    fetch('/api/loads')
+    fetch(`/api/loads?orgId=${orgId}`)
       .then(r => r.json())
       .then(d => setLoads(d.loads || []))
       .catch(() => {});
@@ -147,12 +147,15 @@ export default function DispatchBoard({ orgId }: { orgId: string }) {
                     defaultValue=""
                   >
                     <option value="">Assign driver...</option>
-                    {drivers
-                      .filter(d => d.status === 'available' && (660 - d.hos_driving_minutes) > 60)
-                      .map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))
-                    }
+                    {drivers.map(d => (
+                      <option
+                        key={d.id}
+                        value={d.id}
+                        disabled={(660 - d.hos_driving_minutes) <= 60}
+                      >
+                        {d.name} ({formatHos(d.hos_driving_minutes)})
+                      </option>
+                    ))}
                   </select>
                 )}
               </div>

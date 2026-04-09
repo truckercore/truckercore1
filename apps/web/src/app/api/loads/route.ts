@@ -9,13 +9,20 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userLat = Number(searchParams.get('lat') || 39.8283);
   const userLng = Number(searchParams.get('lng') || -98.5795);
+  const orgId = searchParams.get('orgId');
 
-  const { data: loads, error } = await supabase
+  let query = supabase
     .from('loads')
     .select('*')
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(50);
+
+  if (orgId) {
+    query = query.eq('org_id', orgId);
+  }
+
+  const { data: loads, error } = await query;
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
