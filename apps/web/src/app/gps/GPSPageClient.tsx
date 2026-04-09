@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import RouteHazardPanel from '@/components/gps/RouteHazardPanel';
 import GPSDetailPanel from '@/components/gps/GPSDetailPanel';
+import FleetHazardMap from '@/components/maps/FleetHazardMap';
 
 type GPSPageClientProps = {
   initialUser: {
@@ -28,8 +29,7 @@ export default function GPSPageClient({ initialUser }: GPSPageClientProps) {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_420px]">
       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-white">
         <div className="mb-4 text-lg font-semibold">GPS Map</div>
-        {/* Your existing map content */}
-        <div className="h-[500px] rounded-xl border border-slate-800 bg-slate-900" />
+        <FleetHazardMap />
       </div>
 
       <div className="space-y-6">
