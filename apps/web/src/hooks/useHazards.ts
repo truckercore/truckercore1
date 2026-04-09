@@ -24,31 +24,35 @@ export function useHazards(lat?: number, lng?: number, radiusMiles = 50) {
     const fetchHazards = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          \/api/hazards/nearby?lat=\&lng=\&radius=\\`r
-        );
+        const url = new URL('/api/hazards/nearby', window.location.origin);
+        url.searchParams.set('lat', String(lat));
+        url.searchParams.set('lng', String(lng));
+        url.searchParams.set('radius', String(radiusMiles));
+
+        const res = await fetch(url.toString());
+        if (!res.ok) throw new Error('Failed to fetch hazards');
+
         const data = await res.json();
         const newHazards: Hazard[] = data.hazards || [];
         setHazards(newHazards);
 
-        // Trigger notifications for high-severity hazards
         newHazards.forEach(h => {
           if (h.severity >= 3) {
-            notify('⚠️ Hazard Ahead', h.description || \\ detected\);
+            notify('Warning Hazard Ahead', h.description || h.type);
           }
           if (h.type === 'inspection') {
-            notify('🚔 Inspection Station', 'Inspection station ahead on your route');
+            notify('Inspection Station', 'Inspection station ahead on your route');
           }
         });
       } catch (err) {
-        console.error('Hazard fetch error:', err);
+        console.error('Hazard fetch failed:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchHazards();
-    const interval = setInterval(fetchHazards, 60000); // refresh every minute
+    const interval = setInterval(fetchHazards, 60000);
     return () => clearInterval(interval);
   }, [lat, lng, radiusMiles]);
 
