@@ -1,32 +1,38 @@
-"use client";
-import React, { useState } from "react";
-import { useHazards, useHazardKpis } from "@/hooks/useHazards";
-import HazardMap from "@/components/HazardMap";
-import AlertFeed from "@/components/AlertFeed";
-import KpiBar from "@/components/KpiBar";
-import type { BBox } from "@/lib/geo";
+'use client';
 
 export const dynamic = 'force-dynamic';
 
+import { useHazards } from '@/hooks/useHazards';
+import { useHazardKpis } from '@/hooks/useHazardSuite';
+
 export default function FleetHazardsPage() {
-  const [bbox, setBbox] = useState<BBox | undefined>(undefined);
-  const fleetId = undefined; // TODO: plug in from session claims if needed
-
-  const { hazards, loading } = useHazards({ fleetId, bbox });
-  const kpis = useHazardKpis();
-
-  const onSelect = () => {}; // open right panel, etc.
+  const { hazards = [], loading } = useHazards();
+  const kpis = useHazardKpis(hazards);
 
   return (
-    <div className="p-4 grid gap-4">
-      <KpiBar k={kpis} />
-      <div className="grid md:grid-cols-2 gap-4">
-        <HazardMap hazards={hazards} onSelect={onSelect} onBoundsChange={setBbox} />
-        <div className="max-h-[480px] overflow-auto">
-          <AlertFeed hazards={hazards} />
+    <main className="p-6 text-white">
+      <h1 className="text-2xl font-bold">Fleet Hazards</h1>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <div className="text-sm text-slate-400">Total Hazards</div>
+          <div className="mt-2 text-2xl font-semibold">{kpis.total}</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <div className="text-sm text-slate-400">Severe Hazards</div>
+          <div className="mt-2 text-2xl font-semibold">{kpis.severe}</div>
+        </div>
+
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <div className="text-sm text-slate-400">Inspection Alerts</div>
+          <div className="mt-2 text-2xl font-semibold">{kpis.inspections}</div>
         </div>
       </div>
-      {loading && <div className="text-sm opacity-60">Loading realtime hazards…</div>}
-    </div>
+
+      <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-4">
+        {loading ? 'Loading hazards...' : `${hazards.length} hazards loaded`}
+      </div>
+    </main>
   );
 }
