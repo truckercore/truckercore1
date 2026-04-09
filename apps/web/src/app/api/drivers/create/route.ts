@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -6,17 +7,19 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
+    const admin = createAdminClient();
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { name, truckNumber, phone, licenseNumber, orgId } = await req.json();
+    const { name, truckNumber, phone, orgId } = await req.json();
 
     if (!name || !orgId) {
       return NextResponse.json({ error: 'name and orgId required' }, { status: 400 });
     }
 
-    // Verify user is admin of this org
-    const { data: member } = await supabase
+    // Use admin client to bypass RLS for membership check
+    const { data: member } = await admin
       .from('organization_members')
       .select('role')
       .eq('org_id', orgId)
@@ -27,20 +30,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Not authorized for this org' }, { status: 403 });
     }
 
-    const { data: driver, error } = await supabase
+    const { data: driver, error } = await admin
       .from('drivers')
       .insert({
         org_id: orgId,
         name,
         truck_number: truckNumber ?? null,
         phone: phone ?? null,
-        license_number: licenseNumber ?? null,
         status: 'available',
+        hos_driving_minutes: 0,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ driver });
   } catch (error) {
     return NextResponse.json(

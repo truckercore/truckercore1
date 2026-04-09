@@ -9,15 +9,16 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: trip, error } = await supabase
+    const { data: trip } = await supabase
       .from('trips')
       .select('id, user_id, start_time, start_address, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('start_time', { ascending: false })
-      .maybeSingle();
+      .maybeSingle()
+      .then(r => r)
+      .catch(() => ({ data: null }));
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ trip: trip ?? null });
   } catch (error) {
     return NextResponse.json(

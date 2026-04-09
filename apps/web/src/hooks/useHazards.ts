@@ -52,7 +52,7 @@ export function useHazards(lat?: number, lng?: number, radiusMiles = 50) {
     };
 
     fetchHazards();
-    const interval = setInterval(fetchHazards, 60000);
+    const interval = setInterval(fetchHazards, 120000);
     return () => clearInterval(interval);
   }, [lat, lng, radiusMiles]);
 
