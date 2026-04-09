@@ -55,25 +55,3 @@ export function useHazardSuite(currentRoute?: number[][]) {
   }, [currentRoute])
 }
 
-'use client';
-
-import { useMemo } from 'react';
-
-export type HazardKpiInput = {
-  severity?: number | null;
-  type?: string | null;
-};
-
-export function useHazardKpis(hazards: HazardKpiInput[] = []) {
-  return useMemo(() => {
-    const total = hazards.length;
-    const severe = hazards.filter((h) => (h.severity ?? 0) >= 4).length;
-    const inspections = hazards.filter((h) => h.type === 'inspection').length;
-
-    return {
-      total,
-      severe,
-      inspections,
-    };
-  }, [hazards]);
-}

@@ -2,8 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useHazards } from '@/hooks/useHazards';
-import { useHazardKpis } from '@/hooks/useHazardSuite';
+import { useHazards, useHazardKpis } from '@/hooks/useHazards';
 
 export default function FleetHazardsPage() {
   const { hazards = [], loading } = useHazards();

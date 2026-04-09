@@ -58,3 +58,12 @@ export function useHazards(lat?: number, lng?: number, radiusMiles = 50) {
 
   return { hazards, loading };
 }
+
+export function useHazardKpis(hazards: Hazard[]) {
+  const critical = hazards.filter(h => h.severity >= 4).length;
+  const warnings = hazards.filter(h => h.severity === 3).length;
+  const inspections = hazards.filter(h => h.type === 'inspection').length;
+  const weighStations = hazards.filter(h => h.type === 'weigh_station').length;
+
+  return { critical, warnings, inspections, weighStations, total: hazards.length };
+}
