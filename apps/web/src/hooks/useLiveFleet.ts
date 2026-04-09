@@ -60,6 +60,18 @@ export function useLiveFleet(orgId?: string) {
           map.set(incoming.user_id, incoming);
           return Array.from(map.values());
         });
+
+        // Trigger geofence check for new GPS points
+        fetch('/api/geofence/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: incoming.user_id,
+            driverId: incoming.user_id,
+            lat: incoming.lat,
+            lng: incoming.lng,
+          }),
+        }).catch(() => {});
       })
       .subscribe();
 
