@@ -11,9 +11,10 @@ import DispatchBoard from '@/components/fleet/DispatchBoard';
 interface Props {
   isPremium: boolean;
   userName: string;
+  orgId: string;
 }
 
-export default function FleetDashboardClient({ isPremium, userName }: Props) {
+export default function FleetDashboardClient({ isPremium, userName, orgId }: Props) {
   const [rerouteRequested, setRerouteRequested] = useState(false);
 
   // Shared hazard state — flows into both KPI cards AND RoadDogg
@@ -54,7 +55,7 @@ export default function FleetDashboardClient({ isPremium, userName }: Props) {
         {/* Map — full width on left */}
         <div className="lg:col-span-2 space-y-6">
           <FleetHazardMap />
-          <DispatchBoard orgId="YOUR_ORG_ID" />
+          <DispatchBoard orgId={orgId} />
         </div>
 
         {/* RoadDogg panel — receives live hazards for KPI adjustment */}

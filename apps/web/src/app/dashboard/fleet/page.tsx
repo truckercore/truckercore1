@@ -1,12 +1,7 @@
-import { SafetyLite } from '@/features/fleet/safety/SafetyLite'
-import { SafetyAnalytics } from '@/features/analytics/SafetyAnalytics'
+import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 export default function FleetPage() {
-  return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-semibold">Fleet Manager</h1>
-      <SafetyLite />
-      <SafetyAnalytics />
-    </div>
-  )
+  redirect('/fleet-manager-dashboard');
 }
