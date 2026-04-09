@@ -12,7 +12,7 @@ import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
 import LiveFleetTrackingPanel from '@/components/fleet/LiveFleetTrackingPanel';
 import FleetPredictiveAlertsPanel from '@/components/fleet/FleetPredictiveAlertsPanel';
 import BillingStatusCard from '@/components/billing/BillingStatusCard';
-import BillingUsagePanel from '@/components/billing/BillingUsagePanel';
+import BillingUsageMeter from '@/components/billing/BillingUsageMeter';
 import FleetKPIDashboard from '@/components/fleet/FleetKPIDashboard';
 
 interface Props {
@@ -92,7 +92,7 @@ export default function FleetDashboardClient({ isPremium, userName, orgId, userI
             <FleetPredictiveAlertsPanel orgId={orgId} />
           </div>
           <div className="mt-6">
-            <BillingUsagePanel userId={userId} />
+            <BillingUsageMeter userId={userId} />
           </div>
           <div className="mt-6">
             <BillingStatusCard />
