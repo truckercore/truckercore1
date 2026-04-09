@@ -6,6 +6,7 @@ import RoadDoggRiskPanel from '@/components/fleet/RoadDoggRiskPanel';
 import FleetHazardMap from '@/components/maps/FleetHazardMap';
 import { useHazards } from '@/hooks/useHazards';
 import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard';
+import DispatchBoard from '@/components/fleet/DispatchBoard';
 
 interface Props {
   isPremium: boolean;
@@ -25,13 +26,21 @@ export default function FleetDashboardClient({ isPremium, userName }: Props) {
           <h1 className="text-2xl font-bold text-white">Fleet Manager</h1>
           <p className="text-gray-400 text-sm">Welcome back, {userName}</p>
         </div>
-        {rerouteRequested && (
-          <div className="bg-orange-900/50 border border-orange-600 rounded-lg px-4 py-2">
-            <p className="text-orange-400 text-sm font-medium">
-              🔄 Reroute requested for high-risk routes
-            </p>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <a
+            href="/api/reports/csv?type=trips&days=30"
+            className="bg-gray-800 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg transition"
+          >
+            📥 Export CSV
+          </a>
+          {rerouteRequested && (
+            <div className="bg-orange-900/50 border border-orange-600 rounded-lg px-4 py-2">
+              <p className="text-orange-400 text-sm font-medium">
+                🔄 Reroute requested for high-risk routes
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI cards — live hazard data */}
@@ -43,8 +52,9 @@ export default function FleetDashboardClient({ isPremium, userName }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map — full width on left */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <FleetHazardMap />
+          <DispatchBoard orgId="YOUR_ORG_ID" />
         </div>
 
         {/* RoadDogg panel — receives live hazards for KPI adjustment */}

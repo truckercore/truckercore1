@@ -3,62 +3,77 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class GpsTrackingService {
-  GpsTrackingService({
-    SupabaseClient? supabase,
-  }) : _supabase = supabase ?? Supabase.instance.client;
+  static final GpsTrackingService _instance = GpsTrackingService._internal();
+  factory GpsTrackingService() => _instance;
+  GpsTrackingService._internal();
 
-  final SupabaseClient _supabase;
   StreamSubscription<Position>? _subscription;
+  bool _isTracking = false;
 
-  Future<void> start() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) {
-      throw Exception('User must be signed in before GPS tracking starts.');
-    }
+  bool get isTracking => _isTracking;
 
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
+  Future<bool> requestPermissions() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return false;
 
-    var permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+    return permission == LocationPermission.always ||
+           permission == LocationPermission.whileInUse;
+  }
 
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission not granted.');
+  Future<void> startTracking({String? orgId}) async {
+    if (_isTracking) return;
+
+    final hasPermission = await requestPermissions();
+    if (!hasPermission) {
+      throw Exception('Location permission denied');
     }
 
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.bestForNavigation,
-      distanceFilter: 25,
-    );
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('Not authenticated');
 
-    await _subscription?.cancel();
+    _isTracking = true;
 
     _subscription = Geolocator.getPositionStream(
-      locationSettings: settings,
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 50, // only update every 50 meters
+      ),
     ).listen((position) async {
-      await _writeLocation(position, user.id);
+      try {
+        await supabase.from('gps_locations').insert({
+          'user_id': user.id,
+          'org_id': orgId,
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'speed_mph': position.speed * 2.23694,
+          'heading': position.heading,
+          'accuracy_meters': position.accuracy,
+          'recorded_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      } catch (e) {
+        print('GPS insert error: $e');
+      }
     });
   }
 
-  Future<void> stop() async {
+  Future<void> stopTracking() async {
     await _subscription?.cancel();
     _subscription = null;
+    _isTracking = false;
   }
 
-  Future<void> _writeLocation(Position position, String userId) async {
-    await _supabase.from('gps_locations').insert({
-      'user_id': userId,
-      'latitude': position.latitude,
-      'longitude': position.longitude,
-      'heading': position.heading,
-      'speed_mph': position.speed * 2.23694,
-      'accuracy_meters': position.accuracy,
-      'recorded_at': position.timestamp?.toUtc().toIso8601String(),
-    });
+  Future<Position?> getCurrentPosition() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 }
