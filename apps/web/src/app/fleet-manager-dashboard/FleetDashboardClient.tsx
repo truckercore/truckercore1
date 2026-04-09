@@ -5,6 +5,7 @@ import RoadDoggRiskPanel from '@/components/fleet/RoadDoggRiskPanel';
 import { useHazards } from '@/hooks/useHazards';
 import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard';
 import DispatchBoard from '@/components/fleet/DispatchBoard';
+import GeofenceAlertsPanel from '@/components/fleet/GeofenceAlertsPanel';
 import FleetCompliancePanel from '@/components/fleet/FleetCompliancePanel';
 import DriverManagementPanel from '@/components/fleet/DriverManagementPanel';
 import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
@@ -83,6 +84,9 @@ export default function FleetDashboardClient({ isPremium, userName, orgId, userI
           </div>
           <div className="mt-6">
             <InspectionAnalyticsCard />
+          </div>
+          <div className="mt-6">
+            <GeofenceAlertsPanel orgId={orgId} />
           </div>
           <div className="mt-6">
             <FleetPredictiveAlertsPanel orgId={orgId} />
