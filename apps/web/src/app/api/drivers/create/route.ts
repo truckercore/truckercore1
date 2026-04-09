@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  console.log('SERVICE KEY EXISTS:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-  console.log('SUPABASE URL EXISTS:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-
-  console.log('ENV CHECK:', {
-    url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    anon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    service: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-  });
-
   try {
     const supabase = await createClient();
     const admin = createAdminClient();
@@ -77,7 +68,6 @@ export async function POST(req: Request) {
 
     const insertPayload = {
       org_id: orgId,
-      user_id: user.id,
       name,
       truck_number: truckNumber ?? null,
       phone: phone ?? null,
@@ -85,10 +75,9 @@ export async function POST(req: Request) {
       status: 'available',
     };
 
-    console.log('Creating driver with payload:', insertPayload);
-    const serviceSupabase = createServiceClient();
+    console.log('Creating placeholder driver with payload:', insertPayload);
 
-    const { data: driver, error: insertError } = await serviceSupabase
+    const { data: driver, error: insertError } = await admin
       .from('drivers')
       .insert(insertPayload)
       .select()
@@ -107,7 +96,7 @@ export async function POST(req: Request) {
     console.error('CREATE DRIVER CRASH:', error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : 'Failed to create driver',
       },
       { status: 500 }
     );
