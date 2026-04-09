@@ -58,7 +58,6 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map — full width on left */}
         <div className="lg:col-span-2 space-y-6">
-          <FleetHazardMap orgId={orgId} />
           <LiveFleetTrackingPanel orgId={orgId} />
           <DispatchBoard orgId={orgId} />
         </div>
