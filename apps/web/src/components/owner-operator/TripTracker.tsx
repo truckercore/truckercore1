@@ -23,6 +23,41 @@ export default function TripTracker() {
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [currentRoute, setCurrentRoute] = useState<any>(null);
+  const [liveMiles, setLiveMiles] = useState(0);
+
+  // Live mileage tracking
+  useEffect(() => {
+    if (!activeTrip || typeof window === 'undefined') {
+      setLiveMiles(0);
+      return;
+    }
+
+    let lastPos: { lat: number, lng: number } | null = null;
+    let accumulated = 0;
+
+    const watchId = navigator.geolocation.watchPosition(pos => {
+      const curr = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (lastPos) {
+        // Simple Haversine for live estimate
+        const R = 3958.8;
+        const dLat = (curr.lat - lastPos.lat) * Math.PI / 180;
+        const dLng = (curr.lng - lastPos.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 +
+          Math.cos(lastPos.lat * Math.PI/180) * Math.cos(curr.lat * Math.PI/180) *
+          Math.sin(dLng/2)**2;
+        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        // Filter small jitter or teleports
+        if (dist > 0.01 && dist < 2) {
+          accumulated += dist;
+          setLiveMiles(Math.round(accumulated * 10) / 10);
+        }
+      }
+      lastPos = curr;
+    }, err => console.error(err), { enableHighAccuracy: true });
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [activeTrip]);
 
   // Get current location
   useEffect(() => {
@@ -155,10 +190,18 @@ export default function TripTracker() {
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
               <p className="text-green-400 font-bold">Trip in Progress</p>
             </div>
-            <p className="text-gray-300 text-sm">Started {tripDuration} minutes ago</p>
-            <p className="text-gray-500 text-xs mt-1">
-              Miles, fuel & tolls calculating automatically
-            </p>
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-gray-300 text-sm">Started {tripDuration} minutes ago</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  GPS tracking active
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-white">{liveMiles}</p>
+                <p className="text-xs text-gray-400">est. miles</p>
+              </div>
+            </div>
           </div>
 
           {/* Live meters */}

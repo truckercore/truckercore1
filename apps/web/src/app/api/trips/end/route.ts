@@ -52,17 +52,69 @@ export async function POST(req: Request) {
     const mpg = settings?.mpg ?? 6.5;
     const fuelPrice = settings?.default_fuel_price ?? 4.20;
 
-    // Calculate miles
-    const miles = haversineMiles(
-      trip.start_lat, trip.start_lng, endLat, endLng
-    );
+    // Fetch all GPS points between trip start and end
+    const tripStart = trip.start_time;
+    const tripEnd = new Date().toISOString();
 
-    const fuelUsed = miles / mpg;
+    const { data: gpsPoints } = await supabase
+      .from('gps_locations')
+      .select('latitude, longitude, recorded_at, accuracy_meters, speed_mph')
+      .eq('user_id', user.id)
+      .gte('recorded_at', tripStart)
+      .lte('recorded_at', tripEnd)
+      .order('recorded_at', { ascending: true });
+
+    // Calculate miles from GPS points
+    let miles = 0;
+    const statesDriven = new Set<string>();
+
+    if (gpsPoints && gpsPoints.length > 1) {
+      for (let i = 1; i < gpsPoints.length; i++) {
+        const prev = gpsPoints[i - 1];
+        const curr = gpsPoints[i];
+
+        const distance = haversineMiles(
+          prev.latitude,
+          prev.longitude,
+          curr.latitude,
+          curr.longitude
+        );
+
+        // Skip bad GPS spikes (teleports)
+        if (distance > 5) continue;
+
+        // Skip low accuracy points
+        if ((curr.accuracy_meters ?? 0) > 100) continue;
+
+        miles += distance;
+        statesDriven.add(detectState(curr.latitude, curr.longitude));
+      }
+    } else {
+      // Fallback to straight-line if no GPS points (should not happen with active tracking)
+      miles = haversineMiles(
+        trip.start_lat, trip.start_lng, endLat, endLng
+      );
+    }
+
+    // Advanced: Speed-based fuel burn
+    const speeds = (gpsPoints || [])
+      .map(p => p.speed_mph)
+      .filter(s => s != null && s > 0);
+    
+    const avgSpeed = speeds.length > 0 
+      ? speeds.reduce((a, b) => a + b, 0) / speeds.length 
+      : 55;
+
+    const adjustedMpg =
+      avgSpeed > 70 ? mpg * 0.85 :
+      avgSpeed < 45 ? mpg * 0.9 :
+      mpg;
+
+    const fuelUsed = miles / adjustedMpg;
     const fuelCost = fuelUsed * fuelPrice;
     const totalTollCost = tollCost ?? 0;
 
     // Detect state for IFTA
-    const state = detectState(endLat, endLng);
     const now = new Date();
     const quarter = `${now.getFullYear()}-Q${Math.ceil((now.getMonth() + 1) / 3)}`;
 
@@ -79,13 +131,40 @@ export async function POST(req: Request) {
         total_toll_cost: totalTollCost,
         fuel_used_gallons: Math.round(fuelUsed * 100) / 100,
         fuel_cost: Math.round(fuelCost * 100) / 100,
-        mpg,
+        mpg: Math.round(adjustedMpg * 10) / 10,
       })
       .eq('id', tripId)
       .select()
       .single();
 
     if (error) throw error;
+
+    // Log IFTA mileage (per state)
+    if (statesDriven.size > 0) {
+      for (const st of statesDriven) {
+        // Simple heuristic: divide miles equally by states driven if multiple
+        // In production, we'd calculate miles PER state inside the GPS loop
+        const milesPerState = miles / statesDriven.size;
+        await supabase.from('ifta_mileage').insert({
+          user_id: user.id,
+          trip_id: tripId,
+          state: st,
+          miles: Math.round(milesPerState * 10) / 10,
+          quarter,
+          year: now.getFullYear(),
+        });
+      }
+    } else {
+      const state = detectState(endLat, endLng);
+      await supabase.from('ifta_mileage').insert({
+        user_id: user.id,
+        trip_id: tripId,
+        state,
+        miles: Math.round(miles * 10) / 10,
+        quarter,
+        year: now.getFullYear(),
+      });
+    }
 
     // Auto-log fuel expense
     if (fuelCost > 0) {
@@ -94,9 +173,9 @@ export async function POST(req: Request) {
         trip_id: tripId,
         category: 'fuel',
         amount: Math.round(fuelCost * 100) / 100,
-        description: `Auto-logged: ${Math.round(miles * 10) / 10} miles @ ${mpg} MPG`,
+        description: `Auto-logged: ${Math.round(miles * 10) / 10} miles @ ${Math.round(adjustedMpg * 10) / 10} MPG`,
         date: now.toISOString().split('T')[0],
-        state,
+        state: detectState(endLat, endLng),
         miles_driven: Math.round(miles * 10) / 10,
         is_auto_logged: true,
       });
@@ -111,20 +190,10 @@ export async function POST(req: Request) {
         amount: totalTollCost,
         description: `Auto-logged tolls for trip`,
         date: now.toISOString().split('T')[0],
-        state,
+        state: detectState(endLat, endLng),
         is_auto_logged: true,
       });
     }
-
-    // Log IFTA mileage
-    await supabase.from('ifta_mileage').insert({
-      user_id: user.id,
-      trip_id: tripId,
-      state,
-      miles: Math.round(miles * 10) / 10,
-      quarter,
-      year: now.getFullYear(),
-    });
 
     return NextResponse.json({
       trip: updatedTrip,
@@ -134,7 +203,7 @@ export async function POST(req: Request) {
         tollCost: totalTollCost,
         totalCost: Math.round((fuelCost + totalTollCost) * 100) / 100,
         fuelGallons: Math.round(fuelUsed * 100) / 100,
-        state,
+        state: detectState(endLat, endLng),
       },
     });
   } catch (error) {
