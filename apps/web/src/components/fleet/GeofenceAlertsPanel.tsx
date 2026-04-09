@@ -1,87 +1,164 @@
-'use client';
+import { useGeofenceAlerts, GeofenceAlert } from "@/hooks/useGeofenceAlerts";
+import { useRouter } from "next/navigation"; // or react-router equivalent
 
-import { useGeofenceAlerts } from '@/hooks/useGeofenceAlerts';
+const SEVERITY_STYLES: Record<string, { card: string; label: string }> = {
+  critical: {
+    card:  "bg-red-500/10 border-red-500/30",
+    label: "text-red-400",
+  },
+  warning: {
+    card:  "bg-yellow-500/10 border-yellow-500/30",
+    label: "text-yellow-300",
+  },
+  info: {
+    card:  "bg-white/4 border-white/9",
+    label: "text-white/50",
+  },
+};
 
-export default function GeofenceAlertsPanel({ orgId }: { orgId: string }) {
-  const { alerts, stats, acknowledge, loading } = useGeofenceAlerts(orgId);
+interface AlertCardProps {
+  alert: GeofenceAlert;
+  onAck: (id: string) => void;
+  onReroute: (alert: GeofenceAlert) => void;
+  onMessage: (alert: GeofenceAlert) => void;
+  isNew: boolean;
+}
 
-  if (loading && alerts.length === 0) {
-    return (
-      <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4 animate-pulse">
-        <div className="h-40 bg-gray-800 rounded-xl" />
-      </div>
-    );
-  }
+function AlertCard({ alert, onAck, onReroute, onMessage, isNew }: AlertCardProps) {
+  const styles = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="font-bold text-white">📍 Geofence Alerts</h2>
-          <p className="text-xs text-gray-400">Real-time off-route and zone alerts</p>
+    <div
+      className={`rounded-xl px-3 py-2.5 border transition-opacity ${styles.card} ${
+        alert.acknowledged ? "opacity-40" : ""
+      }`}
+    >
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${styles.label}`}>
+            {alert.type.replace(/_/g, " ")}
+          </span>
+          {isNew && (
+            <span className="text-[9px] bg-red-500 text-white px-1.5 py-px rounded font-semibold">
+              NEW
+            </span>
+          )}
         </div>
-        <div className="flex gap-2">
-          {stats.critical > 0 && (
-            <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full font-bold border border-red-700/50">
-              {stats.critical} Critical
-            </span>
-          )}
-          {stats.warning > 0 && (
-            <span className="bg-yellow-900/50 text-yellow-400 text-xs px-2 py-0.5 rounded-full font-bold border border-yellow-700/50">
-              {stats.warning} Warning
-            </span>
-          )}
+        <span className="text-[10px] text-white/30 whitespace-nowrap">
+          {new Date(alert.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      </div>
+
+      <p className="text-xs text-white/80 mt-1">
+        {alert.driver_name} —{" "}
+        <span className="text-white/45">{alert.zone_name}</span>
+      </p>
+
+      {alert.eta_delay && alert.eta_delay > 0 && (
+        <p className="text-[11px] text-yellow-300 mt-1">
+          +{alert.eta_delay} min ETA delay
+        </p>
+      )}
+
+      {!alert.acknowledged ? (
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={() => onAck(alert.id)}
+            className="text-[10px] px-2 py-1 rounded border border-green-500/35 text-green-400 hover:bg-green-500/10 transition-colors"
+          >
+            Acknowledge
+          </button>
+          <button
+            onClick={() => onReroute(alert)}
+            className="text-[10px] px-2 py-1 rounded border border-blue-500/35 text-blue-400 hover:bg-blue-500/10 transition-colors"
+          >
+            Reroute
+          </button>
+          <button
+            onClick={() => onMessage(alert)}
+            className="text-[10px] px-2 py-1 rounded border border-white/15 text-white/50 hover:bg-white/5 transition-colors"
+          >
+            Message
+          </button>
+        </div>
+      ) : (
+        <p className="text-[10px] text-white/25 mt-2">Acknowledged</p>
+      )}
+    </div>
+  );
+}
+
+interface Props {
+  orgId: string;
+}
+
+export default function GeofenceAlertsPanel({ orgId }: Props) {
+  const router = useRouter();
+  const { alerts, stats, acknowledge, loading } = useGeofenceAlerts(orgId);
+
+  const handleReroute = (alert: GeofenceAlert) => {
+    acknowledge(alert.id);
+    router.push(`/fleet/reroute?driver=${alert.driver_id}&alert=${alert.id}`);
+  };
+
+  const handleMessage = (alert: GeofenceAlert) => {
+    router.push(`/fleet/dispatch?driver=${alert.driver_id}&prefill=route-alert`);
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="bg-[#0f1117] border border-white/10 rounded-xl p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <h3 className="text-xs font-medium text-white/80 uppercase tracking-wider">
+          Ops Command Center
+        </h3>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-white/4 rounded-lg p-2 text-center">
+          <p className={`text-base font-medium ${stats.critical > 0 ? "text-red-400" : "text-white/50"}`}>
+            {stats.critical}
+          </p>
+          <p className="text-[10px] text-white/35 mt-0.5">Critical</p>
+        </div>
+        <div className="bg-white/4 rounded-lg p-2 text-center">
+          <p className={`text-base font-medium ${stats.warning > 0 ? "text-yellow-400" : "text-white/50"}`}>
+            {stats.warning}
+          </p>
+          <p className="text-[10px] text-white/35 mt-0.5">Warnings</p>
+        </div>
+        <div className="bg-white/4 rounded-lg p-2 text-center">
+          <p className={`text-base font-medium ${stats.resolved > 0 ? "text-green-400" : "text-white/50"}`}>
+            {stats.resolved}
+          </p>
+          <p className="text-[10px] text-white/35 mt-0.5">Resolved</p>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      {/* Alert feed */}
+      <div className="space-y-2 max-h-[480px] overflow-y-auto pr-0.5">
         {alerts.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-3xl mb-2">✅</p>
-            <p className="text-gray-400 text-sm">No active geofence alerts</p>
+          <div className="flex flex-col items-center justify-center py-10 text-white/25 text-xs gap-2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+            No active alerts
           </div>
         ) : (
-          alerts.map((alert) => (
-            <div
+          alerts.map((alert, i) => (
+            <AlertCard
               key={alert.id}
-              className={`rounded-xl border p-3 transition ${
-                alert.acknowledged
-                  ? 'bg-gray-800/20 border-gray-800 opacity-60'
-                  : alert.severity === 'critical'
-                  ? 'bg-red-900/10 border-red-700/30'
-                  : alert.severity === 'warning'
-                  ? 'bg-yellow-900/10 border-yellow-700/30'
-                  : 'bg-gray-800 border-gray-700'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className={`text-sm font-bold ${
-                    alert.severity === 'critical' ? 'text-red-400' : 
-                    alert.severity === 'warning' ? 'text-yellow-400' : 'text-blue-400'
-                  }`}>
-                    {alert.type.replace('_', ' ').toUpperCase()}
-                  </p>
-                  <p className="text-white text-sm font-medium">{alert.driver_name}</p>
-                </div>
-                {!alert.acknowledged && (
-                  <button
-                    onClick={() => acknowledge(alert.id)}
-                    className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded transition"
-                  >
-                    Acknowledge
-                  </button>
-                )}
-              </div>
-              <div className="flex justify-between items-end">
-                <p className="text-xs text-gray-400">
-                  {alert.zone_name} {alert.eta_delay ? `· +${alert.eta_delay}m delay` : ''}
-                </p>
-                <p className="text-[10px] text-gray-500">
-                  {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            </div>
+              alert={alert}
+              isNew={i === 0}
+              onAck={acknowledge}
+              onReroute={handleReroute}
+              onMessage={handleMessage}
+            />
           ))
         )}
       </div>
