@@ -45,10 +45,14 @@ export default function DriverManagementPanel({ orgId }: { orgId: string }) {
         setMessage('✓ Driver added');
         loadDrivers();
       } else {
-        setMessage(data.error || 'Failed to add driver');
+        const errorMsg = data.error || 'Failed to add driver';
+        setMessage(errorMsg);
+        alert(errorMsg);
       }
-    } catch {
-      setMessage('Error adding driver');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error adding driver';
+      setMessage(errorMsg);
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }
