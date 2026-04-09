@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,8 +83,9 @@ export async function POST(req: Request) {
     };
 
     console.log('Creating driver with payload:', insertPayload);
+    const serviceSupabase = createServiceClient();
 
-    const { data: driver, error: insertError } = await supabase
+    const { data: driver, error: insertError } = await serviceSupabase
       .from('drivers')
       .insert(insertPayload)
       .select()
