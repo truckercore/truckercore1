@@ -5,6 +5,7 @@ import FleetHazardKpiCards from '@/components/fleet/FleetHazardKpiCards';
 import RoadDoggRiskPanel from '@/components/fleet/RoadDoggRiskPanel';
 import FleetHazardMap from '@/components/maps/FleetHazardMap';
 import { useHazards } from '@/hooks/useHazards';
+import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard';
 
 interface Props {
   isPremium: boolean;
@@ -58,6 +59,9 @@ export default function FleetDashboardClient({ isPremium, userName }: Props) {
             liveHazards={hazards}
             onRerouteRequest={() => setRerouteRequested(true)}
           />
+          <div className="mt-6">
+            <InspectionAnalyticsCard />
+          </div>
         </div>
       </div>
     </div>

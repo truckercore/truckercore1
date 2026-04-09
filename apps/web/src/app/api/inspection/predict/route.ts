@@ -13,6 +13,17 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('app_is_premium, is_premium')
+      .eq('id', user.id)
+      .single();
+
+    const isPremium = profile?.app_is_premium || profile?.is_premium;
+    if (!isPremium) {
+      return NextResponse.json({ error: 'Premium required' }, { status: 403 });
+    }
+
     const { originLat, originLng, destLat, destLng,
       truckWeight, hazmat, routeDurationMinutes } = await req.json();
 

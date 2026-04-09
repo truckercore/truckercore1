@@ -21,6 +21,23 @@ export default function AutoModePanel({
     originLat, originLng, destLat, destLng, route, enabled,
   });
 
+  const saveDecision = async (decisionType: 'accepted_reroute' | 'dismissed_reroute') => {
+    if (!result) return;
+    await fetch('/api/route/decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        routeId: route?.id,
+        decisionType,
+        originLat, originLng, destLat, destLng,
+        riskScore: result.riskScore,
+        hazardCount: result.hazards?.length ?? 0,
+        inspectionCount: result.breakdown?.inspections ?? 0,
+        reroutePayload: result.reroute ?? null,
+      }),
+    });
+  };
+
   useEffect(() => {
     if (!enabled || originLat == null || originLng == null || destLat == null || destLng == null) return;
 
@@ -69,6 +86,22 @@ export default function AutoModePanel({
             Warnings: {result.breakdown?.warnings ?? 0} · 
             Inspections: {result.breakdown?.inspections ?? 0}
           </div>
+          {result?.shouldReroute && (
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => saveDecision('accepted_reroute')}
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                ✓ Accept Reroute
+              </button>
+              <button
+                onClick={() => saveDecision('dismissed_reroute')}
+                className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700"
+              >
+                ✕ Dismiss
+              </button>
+            </div>
+          )}
         </div>
       )}
 
