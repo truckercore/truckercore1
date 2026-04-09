@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import FleetHazardKpiCards from '@/components/fleet/FleetHazardKpiCards';
 import RoadDoggRiskPanel from '@/components/fleet/RoadDoggRiskPanel';
-import FleetHazardMap from '@/components/maps/FleetHazardMap';
 import { useHazards } from '@/hooks/useHazards';
 import InspectionAnalyticsCard from '@/components/fleet/InspectionAnalyticsCard';
 import DispatchBoard from '@/components/fleet/DispatchBoard';
@@ -13,6 +11,7 @@ import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
 import LiveFleetTrackingPanel from '@/components/fleet/LiveFleetTrackingPanel';
 import FleetPredictiveAlertsPanel from '@/components/fleet/FleetPredictiveAlertsPanel';
 import BillingStatusCard from '@/components/billing/BillingStatusCard';
+import FleetKPIDashboard from '@/components/fleet/FleetKPIDashboard';
 
 interface Props {
   isPremium: boolean;
@@ -50,12 +49,7 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
         </div>
       </div>
 
-      {/* KPI cards — live hazard data */}
-      <FleetHazardKpiCards
-        centerLat={39.8283}
-        centerLng={-98.5795}
-        radiusMiles={300}
-      />
+      <FleetKPIDashboard orgId={orgId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map — full width on left */}
