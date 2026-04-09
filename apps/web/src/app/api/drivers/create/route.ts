@@ -5,6 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  console.log('ENV CHECK:', {
+    url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    anon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    service: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
+
   try {
     const supabase = await createClient();
     const admin = createAdminClient();
@@ -67,18 +73,15 @@ export async function POST(req: Request) {
     }
 
     const insertPayload = {
-      org_id: orgId,
+      org_id: orgId,              // ✅ REQUIRED
       name,
       truck_number: truckNumber ?? null,
-      phone: phone ?? null,
-      license_number: licenseNumber ?? null,
       status: 'available',
-      hos_driving_minutes: 0,
     };
 
     console.log('Creating driver with payload:', insertPayload);
 
-    const { data: driver, error: insertError } = await admin
+    const { data: driver, error: insertError } = await supabase
       .from('drivers')
       .insert(insertPayload)
       .select()
@@ -94,12 +97,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ driver });
   } catch (error) {
-    console.error('drivers/create crashed', error);
+    console.error('CREATE DRIVER CRASH:', error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to create driver',
-      },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
