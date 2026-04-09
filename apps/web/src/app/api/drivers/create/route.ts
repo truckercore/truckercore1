@@ -5,6 +5,9 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  console.log('SERVICE KEY EXISTS:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log('SUPABASE URL EXISTS:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+
   console.log('ENV CHECK:', {
     url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     anon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -103,7 +106,9 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('CREATE DRIVER CRASH:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
+      {
+        error: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
