@@ -3,11 +3,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const supabase = await createClient();
-  const { searchParams } = new URL(req.url);
-  const lat = Number(searchParams.get('lat') || 0);
-  const lng = Number(searchParams.get('lng') || 0);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const { data, error } = await supabase
+  const { searchParams } = new URL(req.url);
+  const userLat = Number(searchParams.get('lat') || 39.8283);
+  const userLng = Number(searchParams.get('lng') || -98.5795);
+
+  const { data: loads, error } = await supabase
     .from('loads')
     .select('*')
     .eq('status', 'open')
@@ -15,5 +18,24 @@ export async function GET(req: Request) {
     .limit(50);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ loads: data, count: data?.length || 0 });
+
+  // Distance scoring — closest pickup first
+  const scored = (loads || []).map(load => ({
+    ...load,
+    distanceToPickup: Math.round(
+      Math.sqrt(
+        Math.pow((load.pickup_lat - userLat) * 69, 2) +
+        Math.pow((load.pickup_lng - userLng) * 55, 2)
+      )
+    ),
+    profitPerMile: load.miles > 0
+      ? Math.round((load.price / load.miles) * 100) / 100
+      : 0,
+  })).sort((a, b) => a.distanceToPickup - b.distanceToPickup);
+
+  return Response.json({
+    loads: scored,
+    count: scored.length,
+    userLocation: { lat: userLat, lng: userLng },
+  });
 }
