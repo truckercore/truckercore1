@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type {
   AlertEvent, AlertActionLog, ActionType,
-  UserRole, AlertSeverity,
+  UserRole, AlertSeverity, AlertStatus,
 } from '@/types/alert-copilot'
+import { isValidTransition } from '@/lib/alerts/hardening'
 
 // ─── Supabase singleton ───────────────────────────────────────────────────────
 
@@ -148,6 +149,13 @@ interface UseAlertActionsOptions {
 
 interface UseAlertActionsReturn {
   performAction: (alertId: string, action: ActionType, note?: string) => Promise<void>
+  recordFeedback: (params: {
+    alertId: string;
+    actionTaken: string;
+    wasHelpful: boolean;
+    resolutionTimeMs?: number;
+    note?: string;
+  }) => Promise<void>
   loading:       boolean
   error:         string | null
 }
@@ -166,36 +174,68 @@ export function useAlertActions({ orgId, userId, userRole }: UseAlertActionsOpti
     setError(null)
 
     try {
+      // 1. Load current status for transition validation
+      const { data: alert } = await supabase
+        .from('alert_events')
+        .select('status')
+        .eq('id', alertId)
+        .single();
+
+      if (!alert) throw new Error('Alert not found');
+
       // Map action to status change
-      const STATUS_MAP: Partial<Record<ActionType, string>> = {
+      const STATUS_MAP: Partial<Record<ActionType, AlertStatus>> = {
         acknowledged: 'acknowledged',
         resolved:     'resolved',
         dismissed:    'dismissed',
         snoozed:      'snoozed',
       }
 
+      const nextStatus = STATUS_MAP[action];
+      
+      if (nextStatus) {
+        if (!isValidTransition(alert.status as AlertStatus, nextStatus)) {
+          throw new Error(`Illegal state transition from ${alert.status} to ${nextStatus}`);
+        }
+      }
+
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       }
 
-      const newStatus = STATUS_MAP[action]
-      if (newStatus) {
-        updates.status = newStatus
-        if (newStatus === 'resolved') updates.resolved_at = new Date().toISOString()
+      if (nextStatus) {
+        updates.status = nextStatus
+        if (nextStatus === 'resolved') updates.resolved_at = new Date().toISOString()
+        if (nextStatus === 'dismissed') updates.dismissed_at = new Date().toISOString()
       }
 
       // Snooze: schedule re-open via metadata
       if (action === 'snoozed') {
         const snoozeUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString()
-        updates.metadata = { snooze_until: snoozeUntil }
+        updates.snoozed_until = snoozeUntil
       }
+
+      // Append to transition history
+      const historyEntry = {
+        from: alert.status,
+        to: nextStatus || alert.status,
+        at: new Date().toISOString(),
+        actor_id: userId,
+        reason: note ?? null,
+      };
 
       if (Object.keys(updates).length > 1) {
         const { error: updateErr } = await supabase
           .from('alert_events')
-          .update(updates)
+          .update({
+            ...updates,
+            transition_history: supabase.rpc('append_transition_history', {
+              p_alert_id: alertId,
+              p_entry: historyEntry
+            })
+          })
           .eq('id', alertId)
-          .eq('org_id', orgId) // RLS double-check
+          .eq('org_id', orgId)
 
         if (updateErr) throw updateErr
       }
@@ -206,7 +246,6 @@ export function useAlertActions({ orgId, userId, userRole }: UseAlertActionsOpti
         .insert({
           alert_id:   alertId,
           actor_id:   userId,
-          actor_role: userRole,
           action_type: action,
           note:       note ?? null,
           metadata:   { timestamp: new Date().toISOString() },
@@ -222,7 +261,30 @@ export function useAlertActions({ orgId, userId, userRole }: UseAlertActionsOpti
     }
   }, [orgId, userId, userRole, supabase])
 
-  return { performAction, loading, error }
+  const recordFeedback = useCallback(async (params: {
+    alertId: string;
+    actionTaken: string;
+    wasHelpful: boolean;
+    resolutionTimeMs?: number;
+    note?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/alerts/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { performAction, recordFeedback, loading, error }
 }
 
 // ─── useAlertTimeline ─────────────────────────────────────────────────────────

@@ -190,6 +190,9 @@ export function AlertTimeline({ actions, alertCreatedAt }: AlertTimelineProps) {
 // ─── AICopilotCard ────────────────────────────────────────────────────────────
 
 export function AICopilotCard({ alert, isPremium, onUpgrade }: AICopilotCardProps) {
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
   if (!alert.ai_generated) {
     return (
       <div style={{ background: '#161b27', border: '1px solid #1e2535', borderRadius: 8 }}>
@@ -237,6 +240,26 @@ export function AICopilotCard({ alert, isPremium, onUpgrade }: AICopilotCardProp
       </div>
     )
   }
+
+  const sendFeedback = async (helpful: boolean) => {
+    setFeedbackLoading(true);
+    try {
+      await fetch('/api/alerts/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alertId: alert.id,
+          actionTaken: helpful ? 'verified' : 'ignored',
+          wasHelpful: helpful,
+        }),
+      });
+      setFeedbackSent(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   const confPct = Math.round((alert.confidence ?? 0) * 100)
   const confColor = confPct >= 85 ? '#22c55e' : confPct >= 65 ? '#fbbf24' : '#f43f3f'
@@ -312,6 +335,27 @@ export function AICopilotCard({ alert, isPremium, onUpgrade }: AICopilotCardProp
               {alert.auto_escalate ? 'YES' : 'NO'}
             </span>
           </div>
+        </div>
+
+        {/* Feedback loop */}
+        <div style={{ marginTop: 4, pt: 8, borderTop: '1px solid #1e2535', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, color: '#64748b' }}>Was this analysis helpful?</span>
+          {feedbackSent ? (
+            <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>✓ Thank you!</span>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                disabled={feedbackLoading}
+                onClick={() => sendFeedback(true)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 14, opacity: feedbackLoading ? 0.5 : 1 }}
+              >👍</button>
+              <button
+                disabled={feedbackLoading}
+                onClick={() => sendFeedback(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 14, opacity: feedbackLoading ? 0.5 : 1 }}
+              >👎</button>
+            </div>
+          )}
         </div>
 
         {/* Financial impact */}

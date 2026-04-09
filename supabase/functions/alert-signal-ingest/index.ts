@@ -16,6 +16,7 @@ interface IngestPayload {
   load_id?:     string
   signal_type:  string
   signal_value: Record<string, unknown>
+  idempotency_key?: string
 }
 
 const ALLOWED_SIGNAL_TYPES = new Set([
@@ -42,7 +43,22 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unknown signal type' }), { status: 400 })
     }
 
-    // Dedup: don't insert duplicate GPS pings within 30 seconds
+    // 1. Idempotency Check (Offline/Replay safety)
+    if (body.idempotency_key) {
+      const { data: seen } = await supabase
+        .from('alert_signal_events')
+        .select('id')
+        .eq('idempotency_key', body.idempotency_key)
+        .maybeSingle()
+
+      if (seen) {
+        return new Response(JSON.stringify({ signal_id: seen.id, replayed: true }), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // 2. Dedup: don't insert duplicate GPS pings within 30 seconds
     if (body.signal_type === 'gps_ping') {
       const { data: recent } = await supabase
         .from('alert_signal_events')

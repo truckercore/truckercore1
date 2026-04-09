@@ -12,6 +12,8 @@ import type {
   PolicyKey,
 } from '../_shared/types.ts'
 
+import { generateFingerprint, calculatePriorityScore, SEVERITY_RANK } from '../_shared/hardening.ts'
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -494,9 +496,47 @@ Deno.serve(async (_req) => {
         const candidate = rule(ctx)
         if (!candidate) continue
 
-        // Dedup check
-        const dup = await isDuplicate(candidate)
-        if (dup) continue
+        // 1. Generate Fingerprint
+        const fingerprint = await generateFingerprint({
+          org_id: candidate.org_id,
+          alert_type: candidate.alert_type,
+          driver_id: candidate.driver_id,
+          load_id: candidate.load_id,
+        })
+
+        // 2. Calculate Priority Score
+        const priority_score = calculatePriorityScore({
+          severity: candidate.base_severity,
+          minutesLate: candidate.metadata.minutes_late as number,
+          hosViolationRisk: candidate.metadata.hos_violation_risk as number,
+        })
+
+        // 3. Dedup check with severity/priority upgrade logic
+        const { data: existing } = await supabase
+          .from('alert_events')
+          .select('id, severity, priority_score, upgrade_count')
+          .eq('fingerprint', fingerprint)
+          .eq('status', 'open')
+          .maybeSingle()
+
+        if (existing) {
+          const incomingSev = SEVERITY_RANK[candidate.base_severity]
+          const existingSev = SEVERITY_RANK[existing.severity as AlertSeverity]
+
+          if (incomingSev > existingSev || priority_score > existing.priority_score) {
+            await supabase
+              .from('alert_events')
+              .update({
+                severity: incomingSev > existingSev ? candidate.base_severity : existing.severity,
+                priority_score: Math.max(priority_score, existing.priority_score),
+                upgrade_count: (existing.upgrade_count ?? 0) + 1,
+                updated_at: new Date().toISOString(),
+                metadata: { ...candidate.metadata, upgraded: true },
+              })
+              .eq('id', existing.id)
+          }
+          continue
+        }
 
         // Generate title/summary for non-AI alerts
         const { data: driverProfile } = await supabase
