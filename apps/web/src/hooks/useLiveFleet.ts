@@ -8,6 +8,7 @@ export interface DriverPosition {
   lng: number;
   speed_mph: number;
   heading: number;
+  status?: string;
   recorded_at: string;
   org_id?: string;
 }
@@ -20,35 +21,38 @@ export function useLiveFleet(orgId?: string) {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
     // Load initial positions
-    supabase
+    let query = supabase
       .from('gps_locations')
       .select('*')
-      .gte('recorded_at', fiveMinutesAgo)
-      .then(({ data }) => {
-        if (!data) return;
-        // Dedupe — keep latest per user
-        const map = new Map<string, DriverPosition>();
-        for (const row of data) {
-          const existing = map.get(row.user_id);
-          if (!existing || row.recorded_at > existing.recorded_at) {
-            map.set(row.user_id, row as DriverPosition);
-          }
+      .gte('recorded_at', fiveMinutesAgo);
+
+    if (orgId) {
+      query = query.eq('org_id', orgId);
+    }
+
+    query.then(({ data }) => {
+      if (!data) return;
+      // Dedupe — keep latest per user
+      const map = new Map<string, DriverPosition>();
+      (data as DriverPosition[]).forEach(row => {
+        const existing = map.get(row.user_id);
+        if (!existing || row.recorded_at > existing.recorded_at) {
+          map.set(row.user_id, row);
         }
-        setDrivers(Array.from(map.values()));
       });
+      setDrivers(Array.from(map.values()));
+    });
 
     // Realtime subscription
     const channel = supabase
-      .channel('gps-live')
+      .channel(`gps-live-${orgId || 'all'}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'gps_locations',
+        filter: orgId ? `org_id=eq.${orgId}` : undefined,
       }, (payload) => {
         const incoming = payload.new as DriverPosition;
-
-        // Filter by org if provided
-        if (orgId && incoming.org_id !== orgId) return;
 
         // Dedupe — replace old position for same user
         setDrivers(prev => {

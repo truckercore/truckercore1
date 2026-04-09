@@ -10,6 +10,7 @@ import DispatchBoard from '@/components/fleet/DispatchBoard';
 import FleetCompliancePanel from '@/components/fleet/FleetCompliancePanel';
 import DriverManagementPanel from '@/components/fleet/DriverManagementPanel';
 import VehicleAssignmentPanel from '@/components/fleet/VehicleAssignmentPanel';
+import LiveFleetTrackingPanel from '@/components/fleet/LiveFleetTrackingPanel';
 
 interface Props {
   isPremium: boolean;
@@ -57,7 +58,8 @@ export default function FleetDashboardClient({ isPremium, userName, orgId }: Pro
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map — full width on left */}
         <div className="lg:col-span-2 space-y-6">
-          <FleetHazardMap />
+          <FleetHazardMap orgId={orgId} />
+          <LiveFleetTrackingPanel orgId={orgId} />
           <DispatchBoard orgId={orgId} />
         </div>
 

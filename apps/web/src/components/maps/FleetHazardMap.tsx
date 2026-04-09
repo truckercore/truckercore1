@@ -32,14 +32,14 @@ const HAZARD_COLORS: Record<string, string> = {
   default: '#ef4444',
 };
 
-export default function FleetHazardMap() {
+export default function FleetHazardMap({ orgId }: { orgId?: string }) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const LRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const hazardMarkersRef = useRef<any[]>([]);
 
-  const drivers = useLiveFleet();
+  const drivers = useLiveFleet(orgId);
   useGeofenceTriggers(drivers);
   const centerLat = drivers[0]?.lat || 39.8283;
   const centerLng = drivers[0]?.lng || -98.5795;
