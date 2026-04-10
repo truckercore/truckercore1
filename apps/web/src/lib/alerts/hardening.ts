@@ -5,7 +5,7 @@
 
 import { AlertSeverity, AlertStatus, UserRole } from '@/types/alert-copilot';
 
-// ─── CONSTANTS ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ CONSTANTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const SEVERITY_RANK: Record<AlertSeverity, number> = {
   low: 1,
@@ -35,7 +35,7 @@ export const PRIORITY_WEIGHTS = {
   load_value: 0.20,
 };
 
-// ─── LOGIC ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ LOGIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Floor a timestamp to the nearest 5-minute bucket for deduplication.
@@ -46,7 +46,7 @@ export function floorTo5Min(ts: Date | number | string): number {
 }
 
 /**
- * Calculate a 0–100 priority score for an alert.
+ * Calculate a 0â€“100 priority score for an alert.
  */
 export function calculatePriorityScore(params: {
   severity: AlertSeverity;
@@ -63,7 +63,7 @@ export function calculatePriorityScore(params: {
     maxRevenue = 10000,
   } = params;
 
-  // Normalize each factor to 0–100
+  // Normalize each factor to 0â€“100
   const severityScore = (SEVERITY_RANK[severity] / 4) * 100;
   const etaScore = Math.min(minutesLate / 120, 1) * 100; // cap at 2h late
   const hosScore = Math.min(hosViolationRisk, 1) * 100;
@@ -122,3 +122,6 @@ export function generateIdempotencyKey(params: {
   }
   return Math.abs(hash).toString(16).padStart(24, '0');
 }
+
+// -- Fingerprint deduplication ------------------------------
+export function generateFingerprint(params: { org_id: string; alert_type: string; driver_id?: string | null; load_id?: string | null; now?: number; }): string { const { org_id, alert_type, driver_id = null, load_id = null, now = Date.now() } = params; if (!org_id) throw new Error("org_id required"); if (!alert_type) throw new Error("alert_type required"); const tb = Math.floor(now / 300000) * 300000; const p = JSON.stringify({ org_id, alert_type, driver_id, load_id, tb }); let h = 0x811c9dc5; for (let i = 0; i < p.length; i++) { h ^= p.charCodeAt(i); h = Math.imul(h, 0x01000193); } let h2 = 0xdeadbeef; for (let i = 0; i < p.length; i++) { h2 ^= p.charCodeAt(i); h2 = Math.imul(h2, 0x01000193); } return (h>>>0).toString(16).padStart(8,"0") + (h2>>>0).toString(16).padStart(8,"0"); }
