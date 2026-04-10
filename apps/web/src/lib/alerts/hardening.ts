@@ -3,7 +3,7 @@
  * Standardized logic for deduplication, priority, and escalation.
  */
 
-import { AlertSeverity, AlertType, UserRole, AlertStatus } from '@/types/alert-copilot';
+import { AlertSeverity, AlertStatus, UserRole } from '@/types/alert-copilot';
 
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────
 
@@ -102,4 +102,23 @@ export function getEscalationLevel(createdAt: string | Date, now: number = Date.
     }
   }
   return { level: 0, ...ESCALATION_LADDER[0], minutesElapsed: 0 };
+}
+
+/**
+ * Generate a collision-resistant idempotency key for a GPS event.
+ */
+export function generateIdempotencyKey(params: {
+  driver_id: string;
+  timestamp: string;
+  lat: number;
+  lng: number;
+}): string {
+  // Simple representation for browser/Node compatibility in tests
+  const raw = `${params.driver_id}:${params.timestamp}:${params.lat}:${params.lng}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(24, '0');
 }
