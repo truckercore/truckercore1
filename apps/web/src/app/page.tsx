@@ -1,8 +1,3 @@
-'use client';
-
-import React from 'react';
-import { DashboardSelector } from '../components/DashboardSelector';
-
-export default function HomePage() {
-  return <DashboardSelector />;
+export default function Home() {
+  return <div>TruckerCore minimal app</div>;
 }
