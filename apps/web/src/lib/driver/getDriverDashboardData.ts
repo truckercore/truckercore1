@@ -17,8 +17,8 @@ export async function getDriverDashboardData(userId: string) {
     .from('loads')
     .select('*')
     .eq('assigned_driver_id', driver.id)
-    .in('status', ['assigned', 'at_pickup', 'in_transit', 'at_delivery'])
-    .order('updated_at', { ascending: false })
+    .in('status', ['assigned', 'at_pickup', 'loaded', 'in_transit', 'en_route', 'at_delivery'])
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 

@@ -1,266 +1,188 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { createClient } from '@/lib/supabase/client';
-import { SponsoredTruckStopBanner } from './ads/SponsoredTruckStopBanner';
-import { SponsoredTruckStopsPanel } from './ads/SponsoredTruckStopsPanel';
-import { PremiumRouteIntelligenceCard } from './driver/PremiumRouteIntelligenceCard';
-import { PremiumHOSAlertsCard } from './driver/PremiumHOSAlertsCard';
-import { DriverLoadActionButtons } from './driver/DriverLoadActionButtons';
+import SponsoredTruckStopBanner from '@/components/ads/SponsoredTruckStopBanner';
+import SponsoredTruckStopsPanel from '@/components/ads/SponsoredTruckStopsPanel';
+import PremiumRouteIntelligenceCard from '@/components/driver/PremiumRouteIntelligenceCard';
+import PremiumHOSAlertsCard from '@/components/driver/PremiumHOSAlertsCard';
+import DriverLoadActionButtons from '@/components/driver/DriverLoadActionButtons';
 
-const BasicGPSMap = dynamic(
-  () => import('./gps/BasicGPSMap'),
-  { ssr: false, loading: () => <div className="h-48 bg-gray-800 rounded-xl animate-pulse" /> }
-);
+const BasicGPSMap = dynamic(() => import('./gps/BasicGPSMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400">
+      Loading map...
+    </div>
+  ),
+});
 
-interface DriverDashboardProps {
+interface ActiveLoad {
+  id: string;
+  origin: string | null;
+  destination: string | null;
+  pickup_at: string | null;
+  dropoff_at?: string | null;
+  delivery_at?: string | null;
+  status: string | null;
+  revenue_cents?: number | null;
+  equipment_type?: string | null;
+  equipment?: string | null;
+}
+
+interface HosSummary {
+  driveTimeLeftHours: number;
+  shiftTimeLeftHours: number;
+  cycleLeftHours: number;
+}
+
+interface SponsoredStop {
+  id: string;
+  title: string;
+  description: string;
+  cta_text: string;
+  cta_url: string | null;
+  sponsor_name: string;
+  fuel_discount_cents: number | null;
+  parking_spots: number | null;
+  location_label: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  priority: number;
+}
+
+interface DriverInfo {
+  id: string;
+  full_name: string;
+  truck_number: string | null;
+  status: string;
+}
+
+interface Props {
   driverId: string;
-  driver: any;
-  initialLoad: any;
-  hosLogs: any[];
-  isPremium: boolean;
+  driver: DriverInfo | null;
+  activeLoad: ActiveLoad | null;
+  hosSummary: HosSummary;
+  sponsoredStops: SponsoredStop[];
+  isPremium?: boolean;
 }
 
-const STATUS_OPTIONS = ['driving', 'on_duty', 'resting', 'off_duty'] as const;
-type DutyStatus = typeof STATUS_OPTIONS[number];
-
-const STATUS_STYLE: Record<DutyStatus, string> = {
-  driving:  'bg-yellow-500 text-gray-950 border-yellow-500',
-  on_duty:  'bg-green-500 text-gray-950 border-green-500',
-  resting:  'bg-purple-500 text-white border-purple-500',
-  off_duty: 'bg-gray-600 text-white border-gray-600',
-};
-
-// HOS rules (FMCSA 11/14 rule)
-const MAX_DRIVE_HRS = 11;
-const MAX_SHIFT_HRS = 14;
-const MAX_CYCLE_HRS = 70;
-
-function calcHOS(logs: any[]) {
-  const now = Date.now();
-  const cutoff24 = now - 24 * 60 * 60 * 1000;
-  const cutoff8day = now - 8 * 24 * 60 * 60 * 1000;
-
-  let driveUsed = 0;
-  let shiftUsed = 0;
-  let cycleUsed = 0;
-
-  logs.forEach(log => {
-    const start = new Date(log.start_time).getTime();
-    const end = log.end_time ? new Date(log.end_time).getTime() : now;
-    const durationHrs = (end - start) / (1000 * 60 * 60);
-
-    if (start >= cutoff8day) cycleUsed += durationHrs;
-    if (start >= cutoff24) {
-      shiftUsed += durationHrs;
-      if (log.status === 'driving') driveUsed += durationHrs;
-    }
-  });
-
-  return {
-    driveLeft:  Math.max(0, MAX_DRIVE_HRS - driveUsed),
-    shiftLeft:  Math.max(0, MAX_SHIFT_HRS - shiftUsed),
-    cycleLeft:  Math.max(0, MAX_CYCLE_HRS - cycleUsed),
-  };
-}
-
-export default function DriverDashboard({ 
-  driverId, 
-  driver: initialDriver, 
-  initialLoad, 
-  hosLogs, 
-  isPremium 
-}: DriverDashboardProps) {
-  const [driver, setDriver] = useState(initialDriver);
-  const [load, setLoad] = useState(initialLoad);
-  const [hos, setHos] = useState(() => hosLogs.length > 0 ? calcHOS(hosLogs) : 
-    { driveLeft: initialDriver?.hos_hours_left ?? 11, shiftLeft: 14, cycleLeft: 70 });
-  const [status, setStatus] = useState<DutyStatus>((initialDriver?.status as DutyStatus) ?? 'off_duty');
-  const [location, setLocation] = useState<string>('Locating…');
-  const [isOnline, setIsOnline] = useState(true);
-  const [sessionReady, setSessionReady] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setSessionReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    const on = () => setIsOnline(true);
-    const off = () => setIsOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!navigator.geolocation) { setLocation('GPS unavailable'); return; }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-          const data = await res.json();
-          const city = data.address?.city || data.address?.town || data.address?.county || 'Unknown';
-          const state = data.address?.state_code || '';
-          setLocation(`${city}${state ? ', ' + state : ''}`);
-        } catch {
-          setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
-        }
-      },
-      () => setLocation('Location unavailable')
-    );
-  }, []);
-
-  const handleStatusChange = async (newStatus: DutyStatus) => {
-    setStatus(newStatus);
-    const supabase = createClient();
-    if (!driver) return;
-
-    await supabase.from('drivers').update({ status: newStatus }).eq('id', driver.id);
-    await supabase.from('hos_logs').insert({
-      driver_id: driver.id,
-      status: newStatus,
-      start_time: new Date().toISOString(),
-      org_id: '00000000-0000-0000-0000-0000000000a1',
-    });
-  };
-
-  const progressPct = load
-    ? Math.min(100, Math.max(0,
-        ((Date.now() - new Date(load.pickup_at).getTime()) /
-        (new Date(load.dropoff_at).getTime() - new Date(load.pickup_at).getTime())) * 100
-      ))
-    : 0;
+export default function DriverDashboard({
+  driverId,
+  driver,
+  activeLoad,
+  hosSummary,
+  sponsoredStops,
+  isPremium = false,
+}: Props) {
+  const featuredAd = useMemo(() => sponsoredStops[0] ?? null, [sponsoredStops]);
+  const vehicleId = driver?.truck_number ?? 'TC-1001';
+  const deliveryTime = activeLoad?.dropoff_at ?? activeLoad?.delivery_at;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          <SponsoredTruckStopBanner driverId={driverId} />
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold">{driver?.full_name || 'Driver Dashboard'}</h1>
-              <p className="text-gray-400 text-sm mt-0.5">
-                Truck: {driver?.truck_number || 'TC-1001'} · 📍 {location} · {isOnline ? '🟢 Online' : '🔴 Offline'}
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {STATUS_OPTIONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                    status === s ? STATUS_STYLE[s] : 'bg-transparent border-gray-700 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
-                  {s.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
+        {!isPremium && featuredAd && (
+          <SponsoredTruckStopBanner ad={featuredAd} vehicleId={vehicleId} />
+        )}
 
-          {/* HOS & Load Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Drive Time Left', value: hos.driveLeft, max: MAX_DRIVE_HRS },
-              { label: 'Shift Time Left', value: hos.shiftLeft, max: MAX_SHIFT_HRS },
-              { label: '70-hr Cycle Left', value: hos.cycleLeft, max: MAX_CYCLE_HRS },
-            ].map(({ label, value, max }) => (
-              <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <p className="text-gray-400 text-xs uppercase font-bold mb-1 tracking-tight">{label}</p>
-                <p className={`text-2xl font-bold ${value / max < 0.25 ? 'text-yellow-400' : 'text-white'}`}>
-                  {value.toFixed(1)} hrs
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          <div className="space-y-6">
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">{driver?.full_name ?? 'Driver'}</h1>
+                <p className="text-gray-400 text-sm">Truck: {vehicleId} · Online</p>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Active Load Section */}
-          {load ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-sm uppercase tracking-wider text-gray-400">Active Load</h2>
-                <span className="text-[10px] bg-blue-900/30 text-blue-400 border border-blue-800/50 px-2 py-0.5 rounded uppercase font-bold">
-                  {load.status.replace('_', ' ')}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="text-right min-w-[80px]">
-                  <p className="text-[10px] uppercase text-gray-500 font-bold">Origin</p>
-                  <p className="font-bold text-sm leading-tight">{load.origin}</p>
+            {/* HOS Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div className="text-xs text-gray-400 uppercase tracking-widest">Drive Time Left</div>
+                <div className={`text-3xl font-bold mt-2 ${hosSummary.driveTimeLeftHours < 2 ? 'text-yellow-400' : 'text-white'}`}>
+                  {hosSummary.driveTimeLeftHours.toFixed(1)} hrs
                 </div>
-                <div className="flex-1 relative h-1 bg-gray-800 rounded-full">
-                  <div className="absolute inset-y-0 left-0 bg-blue-500 rounded-full" style={{ width: `${progressPct}%` }} />
-                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: `${progressPct}%` }}>
-                    <span className="text-xl">🚛</span>
+              </div>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div className="text-xs text-gray-400 uppercase tracking-widest">Shift Time Left</div>
+                <div className="text-3xl font-bold mt-2">{hosSummary.shiftTimeLeftHours.toFixed(1)} hrs</div>
+              </div>
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div className="text-xs text-gray-400 uppercase tracking-widest">70-hr Cycle Left</div>
+                <div className="text-3xl font-bold mt-2">{hosSummary.cycleLeftHours.toFixed(1)} hrs</div>
+              </div>
+            </div>
+
+            {/* Active Load */}
+            {activeLoad ? (
+              <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold">Active Load</h2>
+                  <span className="text-xs px-2 py-1 rounded bg-blue-900/30 text-blue-300 capitalize">
+                    {activeLoad.status ?? 'assigned'}
+                  </span>
+                </div>
+                <p className="text-gray-300 mb-4">{activeLoad.origin} → {activeLoad.destination}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border-t border-gray-800 pt-4">
+                  <div>
+                    <div className="text-gray-400">Pickup</div>
+                    <div>{activeLoad.pickup_at ? new Date(activeLoad.pickup_at).toLocaleDateString() : 'TBD'}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Delivery</div>
+                    <div>{deliveryTime ? new Date(deliveryTime).toLocaleDateString() : 'TBD'}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Pay</div>
+                    <div className="text-green-400 font-semibold">
+                      {activeLoad.revenue_cents ? '$' + (activeLoad.revenue_cents / 100).toLocaleString() : 'TBD'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400">Equipment</div>
+                    <div>{activeLoad.equipment_type ?? activeLoad.equipment ?? 'Standard'}</div>
                   </div>
                 </div>
-                <div className="min-w-[80px]">
-                  <p className="text-[10px] uppercase text-gray-500 font-bold">Dest</p>
-                  <p className="font-bold text-sm leading-tight">{load.destination}</p>
+                <div className="mt-4">
+                  <DriverLoadActionButtons loadId={activeLoad.id} status={activeLoad.status ?? 'assigned'} />
                 </div>
               </div>
+            ) : (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
+                <p className="text-gray-400">No active load assigned</p>
+                <a href="/loads" className="text-blue-400 text-sm mt-1 inline-block hover:underline">Browse available loads →</a>
+              </div>
+            )}
 
-              <DriverLoadActionButtons 
-                loadId={load.id} 
-                driverId={driver.id} 
-                currentStatus={load.status}
-                onStatusChange={(newStatus) => setLoad({ ...load, status: newStatus })}
-              />
+            {/* GPS Map */}
+            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+                <h2 className="font-semibold">Real-time GPS Tracking</h2>
+                <span className="text-xs text-green-400">LIVE</span>
+              </div>
+              <div className="h-72">
+                <BasicGPSMap vehicleId={vehicleId} sponsoredStops={sponsoredStops} />
+              </div>
             </div>
-          ) : (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-              <p className="text-gray-500 text-sm">No active load assigned</p>
-              <a href="/available-loads" className="text-blue-400 text-xs font-bold uppercase tracking-widest mt-2 inline-block hover:text-blue-300 transition">Browse Load Board →</a>
-            </div>
-          )}
 
-          {/* Map */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-800 flex justify-between items-center">
-              <h2 className="font-bold text-sm uppercase tracking-wider text-gray-400">Real-time GPS Tracking</h2>
-              <span className="text-[10px] bg-red-900/30 text-red-400 px-2 py-0.5 rounded font-bold uppercase">Live</span>
-            </div>
-            <div className="h-[400px]">
-              {sessionReady && <BasicGPSMap vehicleId={driver?.truck_number || 'TC-1001'} />}
+            {/* Quick Actions */}
+            <div className="grid grid-cols-3 gap-4">
+              <a href="/loads" className="bg-gray-900 border border-gray-800 rounded-xl py-4 text-center font-medium hover:bg-gray-800 transition">📦 Loads</a>
+              <a href="/documents" className="bg-gray-900 border border-gray-800 rounded-xl py-4 text-center font-medium hover:bg-gray-800 transition">📄 Docs</a>
+              <a href="/fuel" className="bg-gray-900 border border-gray-800 rounded-xl py-4 text-center font-medium hover:bg-gray-800 transition">⛽ Fuel</a>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Loads', href: '/available-loads' },
-              { label: 'Docs',  href: '/documents' },
-              { label: 'Fuel',  href: '/fuel' },
-            ].map(({ label, href }) => (
-              <a key={href} href={href} className="bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-xl p-4 text-center group transition">
-                <p className="text-gray-400 text-xs uppercase font-bold tracking-widest group-hover:text-white transition">{label}</p>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <PremiumRouteIntelligenceCard isPremium={isPremium} />
-          <PremiumHOSAlertsCard isPremium={isPremium} hosLeft={hos.driveLeft} />
-          <SponsoredTruckStopsPanel driverId={driverId} />
-          
-          <div className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-xl p-6 text-center">
-             <h3 className="font-bold mb-2">Independent Driver?</h3>
-             <p className="text-gray-400 text-sm mb-4 leading-relaxed">Unlock advanced route intelligence and expense tracking.</p>
-             <a href="/pricing" className="block w-full py-3 bg-white text-gray-950 font-black text-xs uppercase tracking-widest rounded-lg hover:bg-gray-200 transition">Go Premium</a>
+          {/* Right sidebar */}
+          <div className="space-y-4">
+            <PremiumRouteIntelligenceCard isPremium={isPremium} />
+            <PremiumHOSAlertsCard isPremium={isPremium} />
+            {sponsoredStops.length > 0 && (
+              <SponsoredTruckStopsPanel ads={sponsoredStops} vehicleId={vehicleId} />
+            )}
           </div>
         </div>
       </div>
