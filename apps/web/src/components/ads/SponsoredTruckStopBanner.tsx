@@ -1,30 +1,44 @@
 'use client';
 
-import { useSponsoredTruckStops } from '../../hooks/useSponsoredTruckStops';
-import { Tag } from 'lucide-react';
+import { trackAdEvent } from '@/lib/ads/trackAdEvent';
+import { useAdImpression } from './useAdImpression';
 
-export function SponsoredTruckStopBanner() {
-  const { ads, loading } = useSponsoredTruckStops();
+interface Ad {
+  id: string;
+  title: string;
+  image_url: string;
+  link_url: string;
+  description: string;
+}
 
-  if (loading || ads.length === 0) return null;
+export function SponsoredTruckStopBanner({ ad, driverId }: { ad?: Ad, driverId?: string }) {
+  useAdImpression(ad?.id, driverId);
 
-  const featured = ads[0];
+  if (!ad) return null;
 
   return (
-    <div className="bg-gradient-to-r from-blue-900 to-indigo-900 border border-blue-800 rounded-xl p-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <div className="bg-blue-600 p-2 rounded-lg">
-          <Tag className="text-white" size={20} />
+    <a 
+      href={ad.link_url} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      onClick={() => trackAdEvent(ad.id, 'click', driverId)}
+      className="block relative overflow-hidden rounded-xl border border-yellow-500/30 bg-gray-900 group"
+    >
+      <div className="flex flex-col md:flex-row items-center p-4 gap-4">
+        <div className="w-20 h-20 bg-gray-800 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-700">
+           <span className="text-2xl">⛽</span>
         </div>
-        <div>
-          <p className="text-xs text-blue-200 uppercase font-bold tracking-wider">Sponsored Deal</p>
-          <h3 className="text-white font-bold">{featured.name}</h3>
-          <p className="text-blue-100 text-sm">{featured.discount}</p>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] uppercase tracking-wider bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded font-bold">Sponsored</span>
+            <h3 className="font-bold text-lg text-white group-hover:text-yellow-400 transition-colors">{ad.title}</h3>
+          </div>
+          <p className="text-gray-400 text-sm">{ad.description}</p>
+        </div>
+        <div className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-bold rounded-lg transition text-sm">
+          Visit Stop
         </div>
       </div>
-      <button className="bg-white text-blue-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition">
-        Get Deal
-      </button>
-    </div>
+    </a>
   );
 }

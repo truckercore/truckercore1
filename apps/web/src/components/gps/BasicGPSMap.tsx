@@ -31,38 +31,6 @@ interface TruckData {
   duration_minutes?: number;
 }
 
-// Haversine distance in meters
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Find closest point on route and return distance + progress
-function analyzePosition(
-  lat: number,
-  lng: number,
-  routeCoords: [number, number][]
-): { distanceFromRoute: number; closestIndex: number; progressPercent: number } {
-  let minDist = Infinity;
-  let closestIndex = 0;
-
-  routeCoords.forEach(([rLng, rLat], i) => {
-    const d = haversine(lat, lng, rLat, rLng);
-    if (d < minDist) {
-      minDist = d;
-      closestIndex = i;
-    }
-  });
-
-  const progressPercent = (closestIndex / (routeCoords.length - 1)) * 100;
-  return { distanceFromRoute: minDist, closestIndex, progressPercent };
-}
-
 export default function BasicGPSMap({
   vehicleId,
   navigationMode = false,
@@ -74,13 +42,9 @@ export default function BasicGPSMap({
   const markerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const progressLayerRef = useRef<any>(null);
-  const originRef = useRef<any>(null);
-  const destRef = useRef<any>(null);
   const lastRouteRef = useRef<string>('');
   const LRef = useRef<any>(null);
   const truckDataRef = useRef<TruckData | null>(null);
-  const [truck, setTruck] = useState<TruckData | null>(null);
-  const [progress, setProgress] = useState<RouteProgress | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const STATUS_COLORS: Record<string, string> = {
@@ -109,71 +73,10 @@ export default function BasicGPSMap({
     requestAnimationFrame(animate);
   }, []);
 
-  const reroutingRef = useRef(false);
-  const lastRerouteAtRef = useRef(0);
-
-  const requestHereReroute = useCallback(async (data: TruckData) => {
-    if (reroutingRef.current) return;
-    if (!data.route_geometry?.coordinates?.length) return;
-
-    reroutingRef.current = true;
-    onStatusChange?.('rerouting');
-
-    try {
-      const coords = data.route_geometry.coordinates;
-      const destCoord = coords[coords.length - 1];
-
-      const res = await fetch('/api/here/reroute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vehicleId,
-          origin: { lat: data.latitude, lng: data.longitude },
-          destination: { lat: destCoord[1], lng: destCoord[0] },
-          destinationAddress: data.destination_address,
-          currentAddress: `${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`,
-          truck: {
-            height: 4.11,       // 13.6 ft in meters
-            weight: 36287,      // 80,000 lbs in kg
-            axleCount: 5,
-            trailerCount: 1,
-          },
-          avoid: {
-            tolls: false,
-            ferries: true,
-            tunnels: false,
-          },
-        }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || 'Reroute failed');
-      }
-
-      // Server handled everything — just update status
-      // Realtime subscription will automatically pick up the new route
-      onStatusChange?.('en_route');
-      lastRerouteAtRef.current = Date.now();
-
-      console.log(`✓ Rerouted via ${result.source} — v${result.route_version} — ${result.distance_miles}mi`);
-
-    } catch (err: any) {
-      console.error('Reroute error:', err.message);
-      onStatusChange?.('en_route'); // Reset status even on failure
-    } finally {
-      setTimeout(() => {
-        reroutingRef.current = false;
-      }, 15000);
-    }
-  }, [vehicleId, onStatusChange]);
-
   const updateMap = useCallback((L: any, data: TruckData) => {
     if (!mapRef.current) return;
 
     const color = STATUS_COLORS[data.status] || '#3b82f6';
-    const isRerouting = data.status === 'rerouting';
 
     // Update or create truck marker
     const icon = L.divIcon({
@@ -208,81 +111,31 @@ export default function BasicGPSMap({
       const coords = data.route_geometry.coordinates;
       const routeKey = `${coords.length}-${coords[0]}-${coords[coords.length-1]}`;
 
-      // Only redraw route if it actually changed
       if (routeKey !== lastRouteRef.current) {
         lastRouteRef.current = routeKey;
         const allLatlngs = coords.map(([lng, lat]) => [lat, lng] as [number, number]);
 
-        // Full route (gray)
         routeLayerRef.current?.remove();
         routeLayerRef.current = L.polyline(allLatlngs, {
           color: '#374151', weight: 6, opacity: 0.6,
         }).addTo(mapRef.current);
-
-        // Origin marker — only create once
-        if (!originRef.current) {
-          originRef.current = L.circleMarker(allLatlngs[0], {
-            radius: 8, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 1, weight: 2,
-          }).addTo(mapRef.current);
-        }
-
-        // Destination marker — only create once
-        if (!destRef.current) {
-          destRef.current = L.circleMarker(allLatlngs[allLatlngs.length - 1], {
-            radius: 8, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1, weight: 2,
-          }).addTo(mapRef.current);
-        }
-      }
-
-      // Analyze position
-      const analysis = analyzePosition(data.latitude, data.longitude, coords);
-      const milesRemaining = (data.distance_miles || 0) * (1 - analysis.progressPercent / 100);
-      const etaMinutes = (data.duration_minutes || 0) * (1 - analysis.progressPercent / 100);
-      const isDeviating = analysis.distanceFromRoute > 500;
-
-      // Completed portion in blue
-      progressLayerRef.current?.remove();
-      if (analysis.closestIndex > 0) {
-        const completedLatlngs = coords
-          .slice(0, analysis.closestIndex + 1)
-          .map(([lng, lat]) => [lat, lng] as [number, number]);
-        progressLayerRef.current = L.polyline(completedLatlngs, {
-          color: isDeviating || isRerouting ? '#f97316' : '#3b82f6',
-          weight: 6,
-          opacity: 0.9,
-        }).addTo(mapRef.current);
-      }
-
-      const routeProgress: RouteProgress = {
-        percentComplete: Math.round(analysis.progressPercent),
-        milesRemaining: Math.round(milesRemaining),
-        etaMinutes: Math.round(etaMinutes),
-        distanceFromRoute: Math.round(analysis.distanceFromRoute),
-        isDeviating,
-      };
-
-      setProgress(routeProgress);
-      onProgressChange?.(routeProgress);
-
-      // Deviation detection — update status if off route
-      if (isDeviating && data.status === 'en_route') {
-        // Debounce reroute — only once every 30s
-        if (Date.now() - lastRerouteAtRef.current > 30000) {
-          requestHereReroute(data);
-        }
       }
     }
 
-    // Camera follow
     if (navigationMode) {
       mapRef.current.panTo([data.latitude, data.longitude], { animate: true, duration: 0.5 });
     }
-  }, [navigationMode, onStatusChange, onProgressChange, animateMarker, requestHereReroute]);
+  }, [navigationMode, animateMarker]);
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+    if (!containerRef.current) return;
 
     const supabase = createClient();
+    let channel: any;
 
     import('leaflet').then(async Lmodule => {
       const L = Lmodule.default;
@@ -291,7 +144,7 @@ export default function BasicGPSMap({
       mapRef.current = L.map(containerRef.current!, {
         zoomControl: !navigationMode,
         attributionControl: true,
-      }).setView([39.8283, -98.5795], navigationMode ? 12 : 5);
+      }).setView([39.8283, -98.5795], 4);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap © CARTO',
@@ -300,29 +153,56 @@ export default function BasicGPSMap({
 
       setMapReady(true);
 
-      // Load initial data
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('vehicle_current_positions')
         .select('*')
         .eq('vehicle_id', vehicleId)
         .maybeSingle();
 
-      if (error) { console.error('GPS patch error:', error); return; }
-      if (!data) { console.warn(`No position for ${vehicleId}`); return; }
-
-      truckDataRef.current = data;
-      setTruck(data);
-      updateMap(L, data);
-      onStatusChange?.(data.status);
-
-      if (navigationMode) {
-        mapRef.current.setView([data.latitude, data.longitude], 13);
-      } else {
-        mapRef.current.setView([data.latitude, data.longitude], 9);
+      if (data) {
+        truckDataRef.current = data;
+        updateMap(L, data);
+        onStatusChange?.(data.status);
+        mapRef.current.setView([data.latitude, data.longitude], 12);
       }
 
+      channel = supabase
+        .channel(`truck-${vehicleId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'vehicle_locations',
+          filter: `vehicle_id=eq.${vehicleId}`,
+        }, async () => {
+          const { data: updated } = await supabase
+            .from('vehicle_current_positions')
+            .select('*')
+            .eq('vehicle_id', vehicleId)
+            .maybeSingle();
+
+          if (updated && LRef.current) {
+            truckDataRef.current = updated;
+            updateMap(LRef.current, updated);
+            onStatusChange?.(updated.status);
+          }
+        })
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [vehicleId, navigationMode, onStatusChange, updateMap]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full bg-gray-900" />
+  );
+}
+
       // Realtime subscription
-      const channel = supabase
+      channel = supabase
         .channel(`truck-${vehicleId}`)
         .on('postgres_changes', {
           event: '*',
@@ -347,11 +227,13 @@ export default function BasicGPSMap({
           }
         })
         .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
     });
 
-    return () => { mapRef.current?.remove(); mapRef.current = null; };
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, [vehicleId, navigationMode, onStatusChange, updateMap]);
 
   return (
