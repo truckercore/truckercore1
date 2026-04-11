@@ -42,3 +42,5 @@ export function SponsoredTruckStopBanner({ ad, driverId }: { ad?: Ad, driverId?:
     </a>
   );
 }
+
+export default SponsoredTruckStopBanner;

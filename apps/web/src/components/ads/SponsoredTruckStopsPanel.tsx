@@ -43,3 +43,5 @@ export function SponsoredTruckStopsPanel({ ads, driverId }: { ads?: Ad[], driver
     </div>
   );
 }
+
+export default SponsoredTruckStopsPanel;

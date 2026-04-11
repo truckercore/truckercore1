@@ -64,3 +64,5 @@ export function DriverLoadActionButtons({
     </div>
   );
 }
+
+export default DriverLoadActionButtons;

@@ -45,3 +45,5 @@ export function PremiumHOSAlertsCard({ isPremium, hosLeft }: PremiumHOSAlertsCar
     </div>
   );
 }
+
+export default PremiumHOSAlertsCard;

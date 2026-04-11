@@ -47,3 +47,5 @@ export function PremiumRouteIntelligenceCard({ isPremium }: PremiumRouteIntellig
     </div>
   );
 }
+
+export default PremiumRouteIntelligenceCard;
