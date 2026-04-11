@@ -34,6 +34,7 @@ export default async function Page() {
       <DashboardNavigation role={role} />
       <DriverDashboard
         driverId={user.id}
+        userId={user.id}
         driver={dashboardData.driver}
         activeLoad={dashboardData.load}
         hosSummary={hosSummary}

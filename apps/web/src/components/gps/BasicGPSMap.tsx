@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface Props {
   vehicleId: string;
+  userId: string;
   navigationMode?: boolean;
   onStatusChange?: (status: string) => void;
   onProgressChange?: (progress: RouteProgress) => void;
@@ -33,6 +34,7 @@ interface TruckData {
 
 export default function BasicGPSMap({
   vehicleId,
+  userId,
   navigationMode = false,
   onStatusChange,
   onProgressChange,
@@ -153,10 +155,6 @@ export default function BasicGPSMap({
     let channel: any;
 
     (async () => {
-      // ✅ Auth first to ensure session is resolved and token is attached
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       import('leaflet').then(async Lmodule => {
         const L = Lmodule.default;
         LRef.current = L;
@@ -179,7 +177,7 @@ export default function BasicGPSMap({
         const { data: driverRow } = await supabase
           .from('drivers')
           .select('vehicle_id')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .maybeSingle();
 
         console.log('Driver row:', driverRow);

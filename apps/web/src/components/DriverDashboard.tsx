@@ -60,6 +60,7 @@ interface DriverInfo {
 
 interface Props {
   driverId: string;
+  userId: string;
   driver: DriverInfo | null;
   activeLoad: ActiveLoad | null;
   hosSummary: HosSummary;
@@ -69,6 +70,7 @@ interface Props {
 
 export default function DriverDashboard({
   driverId,
+  userId,
   driver,
   activeLoad,
   hosSummary,
@@ -164,7 +166,7 @@ export default function DriverDashboard({
                 <span className="text-xs text-green-400">LIVE</span>
               </div>
               <div className="h-72">
-                <BasicGPSMap vehicleId={vehicleId} sponsoredStops={sponsoredStops} />
+                <BasicGPSMap vehicleId={vehicleId} userId={userId} sponsoredStops={sponsoredStops} />
               </div>
             </div>
 
