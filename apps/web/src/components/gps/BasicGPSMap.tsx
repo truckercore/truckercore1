@@ -45,7 +45,6 @@ export default function BasicGPSMap({
   const lastRouteRef = useRef<string>('');
   const LRef = useRef<any>(null);
   const truckDataRef = useRef<TruckData | null>(null);
-  const initializedRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [truck, setTruck] = useState<TruckData | null>(null);
   const [progress, setProgress] = useState<RouteProgress | null>(null);
@@ -133,9 +132,6 @@ export default function BasicGPSMap({
 
   useEffect(() => {
     // ── NEW DEFENSIVE CLEANUP ──
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
     if (containerRef.current && (containerRef.current as any)._leaflet_id) {
       mapRef.current?.remove();
       mapRef.current = null;
@@ -157,10 +153,12 @@ export default function BasicGPSMap({
         LRef.current = L;
 
         if (!containerRef.current) return;
-        mapRef.current = L.map(containerRef.current!, {
-          zoomControl: !navigationMode,
-          attributionControl: true,
-        }).setView([39.8283, -98.5795], 4);
+        if (!(containerRef.current as any)._leaflet_id) {
+          mapRef.current = L.map(containerRef.current!, {
+            zoomControl: !navigationMode,
+            attributionControl: true,
+          }).setView([39.8283, -98.5795], 4);
+        }
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
           attribution: '© OpenStreetMap © CARTO',
@@ -213,7 +211,6 @@ export default function BasicGPSMap({
     })();
 
     return () => {
-      initializedRef.current = false;
       if (channel) supabase.removeChannel(channel);
       if (mapRef.current) {
         mapRef.current.remove();
