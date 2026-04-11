@@ -178,15 +178,30 @@ export default function BasicGPSMap({
 
         const { data: driverRow } = await supabase
           .from('drivers')
-          .select('vehicle_id, vehicles(truck_number)')
+          .select('vehicle_id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        const truckNumber = (driverRow as any)?.vehicles?.truck_number;
+        console.log('Driver row:', driverRow);
+
+        if (!driverRow?.vehicle_id) {
+          console.warn('No vehicle linked to this driver');
+          return;
+        }
+
+        const { data: vehicleRow } = await supabase
+          .from('vehicles')
+          .select('truck_number')
+          .eq('id', driverRow.vehicle_id)
+          .maybeSingle();
+
+        console.log('Vehicle row:', vehicleRow);
+
+        const truckNumber = vehicleRow?.truck_number;
         console.log('Truck number:', truckNumber);
 
         if (!truckNumber) {
-          console.warn('No vehicle linked to this driver');
+          console.warn('No truck_number found for vehicle');
           return;
         }
 
