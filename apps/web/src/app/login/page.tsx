@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/';
+  const redirectTo = searchParams.get('redirectTo');
+  const roleParam = searchParams.get('role');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,30 +24,47 @@ function LoginForm() {
     setLoading(true);
     setMessage('');
     const supabase = createClient();
-    const { data, error } = mode === 'signin'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      setMessage(error.message);
-      setLoading(false);
-      return;
-    }
 
     if (mode === 'signup') {
-      setMessage('Account created! You can now sign in.');
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) { setMessage(error.message); setLoading(false); return; }
+      setMessage('Account created! Check your email to verify, then sign in.');
       setMode('signin');
       setLoading(false);
       return;
     }
 
-    if (data?.session) {
-      // ✅ CRITICAL: full reload so middleware sees cookies
-      window.location.href = redirectTo;
-    } else {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { setMessage(error.message); setLoading(false); return; }
+
+    if (!data?.session) {
       setMessage('Login succeeded but no session — try again');
       setLoading(false);
+      return;
     }
+
+    if (redirectTo && redirectTo !== '/' && redirectTo !== '/fleet-manager') {
+      window.location.href = redirectTo;
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', data.session.user.id)
+      .maybeSingle();
+
+    console.log('PROFILE:', profile, 'ERROR:', profileError);
+
+    const role = profile?.role ?? roleParam;
+    const destination =
+      role === 'fleet_manager'    ? '/fleet-manager' :
+      role === 'owner_operator'   ? '/owner-operator' :
+      role === 'driver'           ? '/driver-dashboard' :
+      role === 'broker'           ? '/freight-broker-dashboard' :
+      redirectTo ?? '/onboarding';
+
+    window.location.href = destination;
   };
 
   return (
