@@ -46,6 +46,8 @@ export default function BasicGPSMap({
   const LRef = useRef<any>(null);
   const truckDataRef = useRef<TruckData | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [truck, setTruck] = useState<TruckData | null>(null);
+  const [progress, setProgress] = useState<RouteProgress | null>(null);
 
   const STATUS_COLORS: Record<string, string> = {
     en_route: '#3b82f6',
@@ -161,45 +163,11 @@ export default function BasicGPSMap({
 
       if (data) {
         truckDataRef.current = data;
+        setTruck(data);
         updateMap(L, data);
         onStatusChange?.(data.status);
         mapRef.current.setView([data.latitude, data.longitude], 12);
       }
-
-      channel = supabase
-        .channel(`truck-${vehicleId}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'vehicle_locations',
-          filter: `vehicle_id=eq.${vehicleId}`,
-        }, async () => {
-          const { data: updated } = await supabase
-            .from('vehicle_current_positions')
-            .select('*')
-            .eq('vehicle_id', vehicleId)
-            .maybeSingle();
-
-          if (updated && LRef.current) {
-            truckDataRef.current = updated;
-            updateMap(LRef.current, updated);
-            onStatusChange?.(updated.status);
-          }
-        })
-        .subscribe();
-    });
-
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, [vehicleId, navigationMode, onStatusChange, updateMap]);
-
-  return (
-    <div ref={containerRef} className="w-full h-full bg-gray-900" />
-  );
-}
 
       // Realtime subscription
       channel = supabase
