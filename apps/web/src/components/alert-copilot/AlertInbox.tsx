@@ -367,7 +367,7 @@ function btnStyle(bg: string, fg: string): React.CSSProperties {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
-export default function AlertInbox() {
+export default function AlertInbox({ orgId }: { orgId?: string }) {
   const [alerts,    setAlerts]    = useState<any[]>([]);
   const [clusters,  setClusters]  = useState<any[]>([]);
   const [aiReport,  setAIReport]  = useState<any[]>([]);
@@ -382,7 +382,12 @@ export default function AlertInbox() {
   const loadInbox = useCallback(async () => {
     try {
       setError(null);
-      const data = await apiFetch('/inbox?limit=50');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setError('Not authenticated'); return; }
+
+      const query = orgId ? `?org_id=${orgId}&limit=50` : '?limit=50';
+      const data = await apiFetch(`/inbox${query}`);
       setAlerts(data.alerts || []);
       setLastSync(new Date());
     } catch (err: any) {
@@ -390,7 +395,7 @@ export default function AlertInbox() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   const loadClusters = useCallback(async () => {
     try {

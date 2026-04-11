@@ -130,6 +130,7 @@ export default function BasicGPSMap({
   }, [navigationMode, animateMarker]);
 
   useEffect(() => {
+    // ── NEW DEFENSIVE CLEANUP ──
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -139,63 +140,70 @@ export default function BasicGPSMap({
     const supabase = createClient();
     let channel: any;
 
-    import('leaflet').then(async Lmodule => {
-      const L = Lmodule.default;
-      LRef.current = L;
+    (async () => {
+      // ✅ Auth first to ensure session is resolved and token is attached
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      mapRef.current = L.map(containerRef.current!, {
-        zoomControl: !navigationMode,
-        attributionControl: true,
-      }).setView([39.8283, -98.5795], 4);
+      import('leaflet').then(async Lmodule => {
+        const L = Lmodule.default;
+        LRef.current = L;
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        maxZoom: 19,
-      }).addTo(mapRef.current);
+        if (!containerRef.current) return;
+        mapRef.current = L.map(containerRef.current!, {
+          zoomControl: !navigationMode,
+          attributionControl: true,
+        }).setView([39.8283, -98.5795], 4);
 
-      setMapReady(true);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap © CARTO',
+          maxZoom: 19,
+        }).addTo(mapRef.current);
 
-      const { data } = await supabase
-        .from('vehicle_current_positions')
-        .select('*')
-        .eq('vehicle_id', vehicleId)
-        .maybeSingle();
+        setMapReady(true);
 
-      if (data) {
-        truckDataRef.current = data;
-        setTruck(data);
-        updateMap(L, data);
-        onStatusChange?.(data.status);
-        mapRef.current.setView([data.latitude, data.longitude], 12);
-      }
+        const { data } = await supabase
+          .from('vehicle_current_positions')
+          .select('*')
+          .eq('vehicle_id', vehicleId)
+          .maybeSingle();
 
-      // Realtime subscription
-      channel = supabase
-        .channel(`truck-${vehicleId}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'vehicle_locations',
-          filter: `vehicle_id=eq.${vehicleId}`,
-        }, async () => {
-          const { data: updated, error } = await supabase
-            .from('vehicle_current_positions')
-            .select('*')
-            .eq('vehicle_id', vehicleId)
-            .maybeSingle();
+        if (data) {
+          truckDataRef.current = data;
+          setTruck(data);
+          updateMap(L, data);
+          onStatusChange?.(data.status);
+          mapRef.current.setView([data.latitude, data.longitude], 12);
+        }
 
-          if (error) { console.error('GPS patch error:', error); return; }
-          if (!updated) { console.warn(`No position for ${vehicleId}`); return; }
+        // Realtime subscription
+        channel = supabase
+          .channel(`truck-${vehicleId}`)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'vehicle_locations',
+            filter: `vehicle_id=eq.${vehicleId}`,
+          }, async () => {
+            const { data: updated, error } = await supabase
+              .from('vehicle_current_positions')
+              .select('*')
+              .eq('vehicle_id', vehicleId)
+              .maybeSingle();
 
-          if (updated && LRef.current) {
-            truckDataRef.current = updated;
-            setTruck(updated);
-            updateMap(LRef.current, updated);
-            onStatusChange?.(updated.status);
-          }
-        })
-        .subscribe();
-    });
+            if (error) { console.error('GPS patch error:', error); return; }
+            if (!updated) { console.warn(`No position for ${vehicleId}`); return; }
+
+            if (updated && LRef.current) {
+              truckDataRef.current = updated;
+              setTruck(updated);
+              updateMap(LRef.current, updated);
+              onStatusChange?.(updated.status);
+            }
+          })
+          .subscribe();
+      });
+    })();
 
     return () => {
       if (channel) supabase.removeChannel(channel);
