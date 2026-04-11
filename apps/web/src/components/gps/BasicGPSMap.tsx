@@ -82,7 +82,7 @@ export default function BasicGPSMap({
 
     // Update or create truck marker
     const icon = L.divIcon({
-      className: '',
+      className: 'truck-marker-icon',
       html: `
         <div style="
           width: 44px; height: 44px;
@@ -98,6 +98,7 @@ export default function BasicGPSMap({
       `,
       iconSize: [44, 44],
       iconAnchor: [22, 22],
+      popupAnchor: [0, -22],
     });
 
     if (markerRef.current) {
@@ -131,9 +132,11 @@ export default function BasicGPSMap({
 
   useEffect(() => {
     // ── NEW DEFENSIVE CLEANUP ──
-    if (mapRef.current) {
-      mapRef.current.remove();
+    if (containerRef.current && (containerRef.current as any)._leaflet_id) {
+      mapRef.current?.remove();
       mapRef.current = null;
+      // Force Leaflet to forget this container
+      delete (containerRef.current as any)._leaflet_id;
     }
     if (!containerRef.current) return;
 
@@ -165,7 +168,7 @@ export default function BasicGPSMap({
         const { data } = await supabase
           .from('vehicle_current_positions')
           .select('*')
-          .eq('vehicle_id', vehicleId)
+          .eq('driver_id', user.id)
           .maybeSingle();
 
         if (data) {
@@ -183,12 +186,12 @@ export default function BasicGPSMap({
             event: '*',
             schema: 'public',
             table: 'vehicle_locations',
-            filter: `vehicle_id=eq.${vehicleId}`,
+            filter: `driver_id=eq.${user.id}`,
           }, async () => {
             const { data: updated, error } = await supabase
               .from('vehicle_current_positions')
               .select('*')
-              .eq('vehicle_id', vehicleId)
+              .eq('driver_id', user.id)
               .maybeSingle();
 
             if (error) { console.error('GPS patch error:', error); return; }
@@ -207,8 +210,13 @@ export default function BasicGPSMap({
 
     return () => {
       if (channel) supabase.removeChannel(channel);
-      mapRef.current?.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      if (containerRef.current) {
+        delete (containerRef.current as any)._leaflet_id;
+      }
     };
   }, [vehicleId, navigationMode, onStatusChange, updateMap]);
 
