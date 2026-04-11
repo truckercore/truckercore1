@@ -208,21 +208,13 @@ export default function BasicGPSMap({
         }
 
         // Realtime subscription
-        const { data: driverRow } = await supabase
-          .from('drivers')
-          .select('vehicle_id, vehicles(truck_number)')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const truckNumber = (driverRow as any)?.vehicles?.truck_number;
-
         channel = supabase
-          .channel(`truck-${vehicleId}`)
+          .channel(`truck-${truckNumber}`)
           .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'vehicle_locations',
-            filter: truckNumber ? `vehicle_id=eq.${truckNumber}` : undefined,
+            filter: `vehicle_id=eq.${truckNumber}`,
           }, async () => {
             const { data: updated, error } = await supabase
               .from('vehicle_current_positions')
