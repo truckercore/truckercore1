@@ -61,6 +61,7 @@ interface DriverInfo {
 interface Props {
   driverId: string;
   userId: string;
+  vehicleId: string;
   driver: DriverInfo | null;
   activeLoad: ActiveLoad | null;
   hosSummary: HosSummary;
@@ -71,6 +72,7 @@ interface Props {
 export default function DriverDashboard({
   driverId,
   userId,
+  vehicleId: initialVehicleId,
   driver,
   activeLoad,
   hosSummary,
@@ -78,7 +80,7 @@ export default function DriverDashboard({
   isPremium = false,
 }: Props) {
   const featuredAd = useMemo(() => sponsoredStops[0] ?? null, [sponsoredStops]);
-  const vehicleId = driver?.truck_number ?? 'TC-1001';
+  const vehicleId = initialVehicleId;
   const deliveryTime = activeLoad?.dropoff_at ?? activeLoad?.delivery_at;
 
   return (

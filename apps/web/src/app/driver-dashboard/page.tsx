@@ -2,6 +2,7 @@ import { getAuthenticatedUser } from '@/lib/auth/getAuthenticatedUser';
 import { getDriverDashboardData } from '@/lib/driver/getDriverDashboardData';
 import { DashboardNavigation } from '../../components/DashboardNavigation';
 import DriverDashboard from '../../components/DriverDashboard';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,16 @@ export default async function Page() {
   const { user, role, profile } = await getAuthenticatedUser('/driver-dashboard');
   
   const dashboardData = await getDriverDashboardData(user.id);
+
+  // Resolve vehicle server-side using drivers table
+  const supabase = createAdminClient();
+  const { data: driverRow } = await supabase
+    .from('drivers')
+    .select('vehicle_id, vehicles(truck_number)')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const vehicleId = (driverRow as any)?.vehicles?.truck_number ?? 'TC-102';
 
   const hosLogs = dashboardData.hosLogs ?? [];
   const now = Date.now();
@@ -40,6 +51,7 @@ export default async function Page() {
         hosSummary={hosSummary}
         sponsoredStops={[]}
         isPremium={profile?.is_premium || profile?.app_is_premium || false}
+        vehicleId={vehicleId}
       />
     </div>
   );
