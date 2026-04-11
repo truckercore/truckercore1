@@ -76,6 +76,11 @@ export default function BasicGPSMap({
   }, []);
 
   const updateMap = useCallback((L: any, data: TruckData) => {
+    console.log('updateMap called with:', data);
+    console.log('mapRef.current exists:', !!mapRef.current);
+    console.log('markerRef.current exists:', !!markerRef.current);
+    console.log('coords:', data?.latitude, data?.longitude);
+
     if (!mapRef.current) return;
 
     const color = STATUS_COLORS[data.status] || '#3b82f6';
@@ -101,6 +106,8 @@ export default function BasicGPSMap({
       popupAnchor: [0, -22],
     });
 
+    console.log('Creating/updating marker...');
+
     if (markerRef.current) {
       animateMarker(markerRef.current, data.latitude, data.longitude);
       markerRef.current.setIcon(icon);
@@ -108,6 +115,8 @@ export default function BasicGPSMap({
       markerRef.current = L.marker([data.latitude, data.longitude], { icon })
         .addTo(mapRef.current);
     }
+
+    console.log('Marker created/updated successfully');
 
     // Draw route geometry
     if (data.route_geometry?.coordinates?.length) {
@@ -167,11 +176,28 @@ export default function BasicGPSMap({
 
         setMapReady(true);
 
+        const { data: driverRow } = await supabase
+          .from('drivers')
+          .select('vehicle_id, vehicles(truck_number)')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const truckNumber = (driverRow as any)?.vehicles?.truck_number;
+        console.log('Truck number:', truckNumber);
+
+        if (!truckNumber) {
+          console.warn('No vehicle linked to this driver');
+          return;
+        }
+
         const { data } = await supabase
           .from('vehicle_current_positions')
           .select('*')
-          .eq('driver_id', user.id)
+          .eq('vehicle_id', truckNumber)
           .maybeSingle();
+
+        console.log('Position data:', data);
+        console.log('Lat/Lng:', data?.latitude, data?.longitude);
 
         if (data) {
           truckDataRef.current = data;
@@ -182,18 +208,26 @@ export default function BasicGPSMap({
         }
 
         // Realtime subscription
+        const { data: driverRow } = await supabase
+          .from('drivers')
+          .select('vehicle_id, vehicles(truck_number)')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const truckNumber = (driverRow as any)?.vehicles?.truck_number;
+
         channel = supabase
           .channel(`truck-${vehicleId}`)
           .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'vehicle_locations',
-            filter: `driver_id=eq.${user.id}`,
+            filter: truckNumber ? `vehicle_id=eq.${truckNumber}` : undefined,
           }, async () => {
             const { data: updated, error } = await supabase
               .from('vehicle_current_positions')
               .select('*')
-              .eq('driver_id', user.id)
+              .eq('vehicle_id', truckNumber)
               .maybeSingle();
 
             if (error) { console.error('GPS patch error:', error); return; }
