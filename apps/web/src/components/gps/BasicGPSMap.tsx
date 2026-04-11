@@ -153,11 +153,19 @@ export default function BasicGPSMap({
       }).addTo(mapRef.current);
 
       // Query position directly using vehicleId prop
-      const { data } = await supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Client session exists:', !!session);
+      console.log('Client user:', session?.user?.id);
+      console.log('Vehicle ID being used:', vehicleId);
+
+      const { data, error } = await supabase
         .from('vehicle_current_positions')
         .select('*')
         .eq('vehicle_id', vehicleId)
         .maybeSingle();
+
+      console.log('Position data:', data);
+      console.log('Position error:', error?.message, error?.code);
 
       if (data) {
         truckDataRef.current = data;
